@@ -1,2 +1,2 @@
 # referee
-A discord bot that to automate warnings and punishments
+A discord bot to automate warnings and punishments
