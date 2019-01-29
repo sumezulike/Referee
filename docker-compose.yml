@@ -2,6 +2,7 @@ version: '3'
 services:
   bot:
     build: .
+    restart: unless-stopped
     volumes:
       - '.:/bot'
     working_dir: /bot

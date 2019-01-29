@@ -3,3 +3,4 @@
 options.ini
 __pycache__
 .idea
+*.log

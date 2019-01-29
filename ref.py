@@ -5,6 +5,7 @@ import sys
 import os
 import logging
 import logging.handlers
+import timeit
 
 
 CONFIG_FILE = "config/options.ini"
@@ -37,6 +38,16 @@ async def get_oauth_url():
 async def on_ready():
     url = await get_oauth_url()
     print(url)
+
+
+@bot.command()
+async def ping(ctx: commands.Context):
+    start = timeit.default_timer()
+    embed = discord.Embed(title="Pong.")
+    msg = await ctx.send(embed=embed)  # type: discord.Message
+    time = timeit.default_timer() - start
+    embed.title += f"  |  {time:.3}s"
+    await msg.edit(embed=embed)
 
 
 def set_logger():
@@ -78,5 +89,5 @@ def set_logger():
 
 
 if __name__ == '__main__':
-    print("RUNNING REFEREE")
+    set_logger()
     bot.run(token)
