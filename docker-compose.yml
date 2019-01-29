@@ -1,0 +1,12 @@
+version: '3'
+services:
+  bot:
+    build: .
+    volumes:
+      - '.:/bot'
+    working_dir: /bot
+    command: 'python launcher.py'
+    environment:
+      PORT: 8080
+    ports:
+      - '8080:8080'

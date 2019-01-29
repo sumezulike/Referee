@@ -35,7 +35,7 @@ def run_ref(autorestart):
                 if not autorestart:
                     break
 
-    print("Referee has been terminated. Exit code: {]".format(code))
+    print("Referee has been terminated. Exit code: {}]".format(code))
 
 
 args = parse_cli_arguments()
