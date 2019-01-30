@@ -7,8 +7,8 @@ import logging
 import logging.handlers
 import timeit
 
-
 CONFIG_FILE = "config/options.ini"
+DYNO_ID = 155149108183695360
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -40,11 +40,30 @@ async def on_ready():
     print(url)
 
 
+def remove_formatting(text: str):
+    return text.replace("***", "").replace("\\_", "_").replace("\\*", "*").replace("\\\\", "\\")
+
+
+@bot.event
+async def on_message(message: discord.Message):
+    content = remove_formatting(message.content)
+    if message.author.id == DYNO_ID:
+        if "has been warned" in content:
+            print(content)
+            name = content.split(" has been warned")[0]
+            name = name.split("> ")[1]
+            member = await commands.MemberConverter().convert(await bot.get_context(message), name)  # type: discord.Member
+            await message.channel.send("Shame on you, {}".format(member.mention))
+        await message.add_reaction("👁")
+    await bot.process_commands(message)
+
+
 @bot.command()
 async def ping(ctx: commands.Context):
     start = timeit.default_timer()
     embed = discord.Embed(title="Pong.")
-    msg = await ctx.send(embed=embed)  # type: discord.Message
+    msg = await ctx.send(embed=embed)              # type: discord.Message
+    await msg.add_reaction("👍")
     time = timeit.default_timer() - start
     embed.title += f"  |  {time:.3}s"
     await msg.edit(embed=embed)
@@ -89,5 +108,5 @@ def set_logger():
 
 
 if __name__ == '__main__':
-    set_logger()
+    logger = set_logger()
     bot.run(token)
