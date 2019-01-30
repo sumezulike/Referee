@@ -26,18 +26,10 @@ bot = commands.Bot(command_prefix=prefix,
                    activity=discord.Game(name="ref!help"))
 
 
-async def get_oauth_url():
-    try:
-        data = await bot.application_info()
-    except Exception as e:
-        return "Couldn't retrieve invite link. Error: {}".format(e)
-    return discord.utils.oauth_url(data.id)
-
-
 @bot.event
 async def on_ready():
-    url = await get_oauth_url()
-    print(url)
+    bot.remove_command("help")
+    print("Ready!")
 
 
 def remove_formatting(text: str):
@@ -57,6 +49,13 @@ async def on_message(message: discord.Message):
         await message.add_reaction("👁")
     await bot.process_commands(message)
 
+async def execute_warning(member: discord.Member):
+
+    await assign_warned_role(member)
+
+
+async def assign_warned_role(member: discord.Member):
+    pass
 
 @bot.command()
 async def ping(ctx: commands.Context):
