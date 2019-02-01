@@ -10,6 +10,7 @@ import timeit
 import time
 
 import models
+from WarningRepositorys import WarningRepository, JSONWarningRepository
 
 CONFIG_FILE = "config/options.ini"
 DATABASE_FILE: str = "warnings.json"
@@ -26,7 +27,7 @@ warning_lifetime = int(config["Warnings"].get("WarningLifetime"))
 token = config["Credentials"].get("Token")
 description = config["Credentials"].get("Description")
 
-database: models.WarningDB = models.JSONWarningDB(DATABASE_FILE)
+database: WarningRepository = JSONWarningRepository(DATABASE_FILE)
 watchlist = []
 
 bot = commands.Bot(command_prefix=prefix,
@@ -45,11 +46,6 @@ async def on_ready():
     bot.remove_command("help")
     print("Ready!")
 
-
-def remove_formatting(text: str):
-    return text.replace("***", "").replace("\\_", "_").replace("\\*", "*").replace("\\\\", "\\")
-
-
 @bot.event
 async def on_message(message: discord.Message):
     content = remove_formatting(message.content)
@@ -60,8 +56,15 @@ async def on_message(message: discord.Message):
             name = name.split("> ")[1]
             member: discord.Member = await commands.MemberConverter().convert(await bot.get_context(message), name)
 
-            warning = models.WarningObj(user_id=str(member.id), reason=reason, expiration_time=time.time()+warning_lifetime)
+            warning = models.Warning(user_id=str(member.id),
+                                     reason=reason,
+                                     expiration_time=time.time() + warning_lifetime)
+
             await execute_warning(member, warning)
+        elif "<:dynoSuccess:314691591484866560> Cleared" in content and "warnings for " in content:
+            name = content[:-1].split("for ")[-1]
+            member: discord.Member = await commands.MemberConverter().convert(await bot.get_context(message), name)
+            await remove_warned_roles(member)
 
     elif message.author.id in watchlist:
         await message.add_reaction("👁")
@@ -76,7 +79,15 @@ async def on_member_update(before: discord.Member, after: discord.Member):
         await check_warnings(after)
 
 
-async def execute_warning(member: discord.Member, warning: models.WarningObj):
+@bot.event
+async def on_member_join(member: discord.Member):
+    await check_warnings(member)
+    with database as db:
+        if db.get_warnings(member.id):
+            await assign_warned_role(member)
+
+
+async def execute_warning(member: discord.Member, warning: models.Warning):
     await log_warning(warning)
     await assign_warned_role(member)
     watchlist.append(member.id)
@@ -98,12 +109,16 @@ async def assign_warned_role(member: discord.Member):
     if member.top_role.position > member.guild.me.top_role.position:
         return
 
+    if len(get_warned_roles(member)) >= 2:
+        return
+
     guild: discord.Guild = member.guild
     warning_color = discord.Colour.from_rgb(*get_darker_color(member.colour.to_rgb()))
     warned_roles = [r for r in guild.roles if r.name == warned_role_name and r.colour == warning_color]
 
     if not warned_roles:
-        role = await guild.create_role(name=warned_role_name, colour=warning_color)
+        role = await guild.create_role(name=warned_role_name,
+                                       colour=warning_color)
         await asyncio.sleep(0.5)
         await role.edit(position=max(member.top_role.position, 1))
     elif len(warned_roles) == 1:
@@ -115,29 +130,23 @@ async def assign_warned_role(member: discord.Member):
 
 
 async def remove_warned_roles(member: discord.Member):
-    warned_roles = [r for r in member.roles if r.name == warned_role_name]
+    warned_roles = get_warned_roles(member)
     await member.remove_roles(*warned_roles)
     if member.id in watchlist:
         watchlist.remove(member.id)
 
 
-async def log_warning(warning: models.WarningObj):
+def get_warned_roles(member: discord.Member) -> list:
+    warned_roles = [r for r in member.roles if r.name == warned_role_name]
+    return warned_roles
+
+
+async def log_warning(warning: models.Warning):
     with database as db:
         db.put_warning(warning)
 
 
-@bot.command()
-async def ping(ctx: commands.Context):
-    start = timeit.default_timer()
-    embed = discord.Embed(title="Pong.")
-    msg = await ctx.send(embed=embed)              # type: discord.Message
-    await msg.add_reaction("👍")
-    time = timeit.default_timer() - start
-    embed.title += f"  |  {time:.3}s"
-    await msg.edit(embed=embed)
-
-
-def set_logger():
+def set_logger() -> logging.Logger:
 
     if not os.path.exists("logs"):
         print("Creating logs folder...")
@@ -175,10 +184,25 @@ def set_logger():
     return logger
 
 
-def get_darker_color(color: tuple):
+def get_darker_color(color: tuple) -> tuple:
     if color == (0, 0, 0):
         return 120, 100, 100
     return color[0]//2, color[1]//2, color[2]//2
+
+
+def remove_formatting(text: str) -> str:
+    return text.replace("***", "").replace("\\_", "_").replace("\\*", "*").replace("\\\\", "\\")
+
+
+@bot.command()
+async def ping(ctx: commands.Context):
+    start = timeit.default_timer()
+    embed = discord.Embed(title="Pong.")
+    msg = await ctx.send(embed=embed)              # type: discord.Message
+    await msg.add_reaction("👍")
+    dur = timeit.default_timer() - start
+    embed.title += f"  |  {dur:.3}s"
+    await msg.edit(embed=embed)
 
 
 if __name__ == '__main__':
