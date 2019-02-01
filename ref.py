@@ -17,8 +17,10 @@ DYNO_ID = 155149108183695360
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
 prefix = config["Chat"].get("CommandPrefix")
-warned_role_name = config["Chat"].get("WarnedRoleName")
 debug_level = config["Chat"].get("DebugLevel")
+
+warned_role_name = config["Warnings"].get("WarnedRoleName")
+warning_lifetime = int(config["Warnings"].get("WarningLifetime"))
 
 token = config["Credentials"].get("Token")
 description = config["Credentials"].get("Description")
@@ -31,7 +33,6 @@ bot = commands.Bot(command_prefix=prefix,
                    pm_help=None,
                    description=description,
                    activity=discord.Game(name="ref!ping"))
-
 
 
 def main():
@@ -90,6 +91,10 @@ async def assign_warned_role(member: discord.Member):
         raise RuntimeError(f"Too many same-colored {warned_role_name} roles")
 
     await member.add_roles(role)
+
+
+async def remove_warned_roles(member: discord.Member):
+    pass
 
 
 async def log_warning(warning: models.WarningObj):
