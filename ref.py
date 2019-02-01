@@ -7,6 +7,7 @@ import os
 import logging
 import logging.handlers
 import timeit
+import time
 
 import models
 
@@ -26,7 +27,7 @@ token = config["Credentials"].get("Token")
 description = config["Credentials"].get("Description")
 
 database: models.WarningDB = models.JSONWarningDB(DATABASE_FILE)
-watchlist =[]
+watchlist = []
 
 bot = commands.Bot(command_prefix=prefix,
                    case_insensitive=True,
@@ -59,7 +60,7 @@ async def on_message(message: discord.Message):
             name = name.split("> ")[1]
             member: discord.Member = await commands.MemberConverter().convert(await bot.get_context(message), name)
 
-            warning = models.WarningObj(user_id=str(member.id), reason=reason)
+            warning = models.WarningObj(user_id=str(member.id), reason=reason, expiration_time=time.time()+warning_lifetime)
             await execute_warning(member, warning)
 
     elif message.author.id in watchlist:
@@ -69,14 +70,34 @@ async def on_message(message: discord.Message):
     await bot.process_commands(message)
 
 
-async def execute_warning(member: discord.Member, warning: models.WarningObj):
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    if before.status != after.status:
+        await check_warnings(after)
 
+
+async def execute_warning(member: discord.Member, warning: models.WarningObj):
     await log_warning(warning)
     await assign_warned_role(member)
     watchlist.append(member.id)
 
 
+async def check_warnings(member: discord.Member):
+    with database as db:
+        warnings = db.get_warnings(str(member.id))
+        if warnings:
+            now = time.time()
+            invalid = [w for w in warnings if w.expiration_time < now]
+            for w in invalid:
+                db.delete_warning(w)
+            if invalid == warnings:
+                await remove_warned_roles(member)
+
+
 async def assign_warned_role(member: discord.Member):
+    if member.top_role.position > member.guild.me.top_role.position:
+        return
+
     guild: discord.Guild = member.guild
     warning_color = discord.Colour.from_rgb(*get_darker_color(member.colour.to_rgb()))
     warned_roles = [r for r in guild.roles if r.name == warned_role_name and r.colour == warning_color]
@@ -94,7 +115,10 @@ async def assign_warned_role(member: discord.Member):
 
 
 async def remove_warned_roles(member: discord.Member):
-    pass
+    warned_roles = [r for r in member.roles if r.name == warned_role_name]
+    await member.remove_roles(*warned_roles)
+    if member.id in watchlist:
+        watchlist.remove(member.id)
 
 
 async def log_warning(warning: models.WarningObj):

@@ -13,7 +13,7 @@ class WarningObj:
         self.timestamp = timestamp
 
         self.reason = kwargs.pop("reason", "")
-        self.expiration_date = kwargs.pop("expiration_time", None)
+        self.expiration_time = kwargs.pop("expiration_time", None)
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
@@ -25,10 +25,10 @@ class WarningObj:
         return not self == other
 
     def get_remaining_time(self):
-        if not self.expiration_date:
+        if not self.expiration_time:
             return self.timestamp         # It's weird, I know
 
-        return self.expiration_date - time.time()
+        return self.expiration_time - time.time()
 
     def is_expired(self):
         return self.get_remaining_time() < 0
@@ -70,11 +70,11 @@ class WarningDB(abc.ABC):
 
 
 def serialize_warning(warning: WarningObj) -> list:
-    return [warning.user_id, warning.timestamp, warning.reason, warning.expiration_date]
+    return [warning.user_id, warning.timestamp, warning.reason, warning.expiration_time]
 
 
 def deserialize_warning(s_warning: list) -> WarningObj:
-    return WarningObj(user_id=s_warning[0], timestamp=s_warning[1], message=s_warning[2], expiration_date=s_warning[3])
+    return WarningObj(user_id=s_warning[0], timestamp=s_warning[1], reason=s_warning[2], expiration_time=s_warning[3])
 
 
 class JSONWarningDB(WarningDB):
@@ -120,8 +120,9 @@ class JSONWarningDB(WarningDB):
         return {user_id: [deserialize_warning(w) for w in w_list] for user_id, w_list in self.data.items()}
 
     def delete_warning(self, warning: WarningObj):
-        # TODO: implement
-        pass
+        self.data[warning.user_id] = [w for w in self.data.get(warning.user_id, []) if deserialize_warning(w) != warning]
+        if not self.data[warning.user_id]:
+            del self.data[warning.user_id]
 
     def delete_warnings(self, user_id: str) -> int:
         count = len(self.data.get(user_id, []))
