@@ -19,7 +19,7 @@ class TestJSONWarningDB(unittest.TestCase):
         user_id = "123456789"
         message = "Hello. My name is Inigo Montoya."
 
-        warning = WarningObj(user_id=user_id, message=message)
+        warning = WarningObj(user_id=user_id, reason=message)
         with JSONWarningDB(filepath=DB_FILE) as db:
             re_warning = db.put_warning(warning)
             self.assertEqual(warning, re_warning)
@@ -28,7 +28,7 @@ class TestJSONWarningDB(unittest.TestCase):
         user_id = "123456789"
         message = "Hello. My name is Inigo Montoya."
 
-        warning = WarningObj(user_id=user_id, message=message)
+        warning = WarningObj(user_id=user_id, reason=message)
         with JSONWarningDB(filepath=DB_FILE) as db:
             db.put_warning(warning)
             re_warning = db.get_warnings(user_id=user_id)[0]
@@ -39,7 +39,7 @@ class TestJSONWarningDB(unittest.TestCase):
         user_id = "123456789"
         message = "Hello. My name is Inigo Montoya."
 
-        warning = WarningObj(user_id=user_id, message=message)
+        warning = WarningObj(user_id=user_id, reason=message)
         with JSONWarningDB(filepath=DB_FILE) as db:
             db.put_warning(warning)
 

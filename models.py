@@ -12,13 +12,17 @@ class WarningObj:
         self.user_id = user_id
         self.timestamp = timestamp
 
-        self.message = kwargs.pop("message", "")
+        self.reason = kwargs.pop("reason", "")
         self.expiration_date = kwargs.pop("expiration_time", None)
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return False
         return self.__dict__ == other.__dict__
+
+
+    def __ne__(self, other):
+        return not self == other
 
     def get_remaining_time(self):
         if not self.expiration_date:
@@ -66,7 +70,7 @@ class WarningDB(abc.ABC):
 
 
 def serialize_warning(warning: WarningObj) -> list:
-    return [warning.user_id, warning.timestamp, warning.message, warning.expiration_date]
+    return [warning.user_id, warning.timestamp, warning.reason, warning.expiration_date]
 
 
 def deserialize_warning(s_warning: list) -> WarningObj:

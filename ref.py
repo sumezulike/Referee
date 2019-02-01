@@ -1,3 +1,4 @@
+import asyncio
 import configparser
 import discord
 from discord.ext import commands
@@ -7,23 +8,34 @@ import logging
 import logging.handlers
 import timeit
 
+import models
+
 CONFIG_FILE = "config/options.ini"
+DATABASE_FILE: str = "warnings.json"
 DYNO_ID = 155149108183695360
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
 prefix = config["Chat"].get("CommandPrefix")
-auto_delete = config["Chat"].getboolean("DeleteMessages")
+warned_role_name = config["Chat"].get("WarnedRoleName")
 debug_level = config["Chat"].get("DebugLevel")
 
 token = config["Credentials"].get("Token")
 description = config["Credentials"].get("Description")
 
+database: models.WarningDB = models.JSONWarningDB(DATABASE_FILE)
+watchlist =[]
+
 bot = commands.Bot(command_prefix=prefix,
                    case_insensitive=True,
                    pm_help=None,
                    description=description,
-                   activity=discord.Game(name="ref!help"))
+                   activity=discord.Game(name="ref!ping"))
+
+
+
+def main():
+    bot.run(token)
 
 
 @bot.event
@@ -42,20 +54,48 @@ async def on_message(message: discord.Message):
     if message.author.id == DYNO_ID:
         if "has been warned" in content:
             print(content)
-            name = content.split(" has been warned")[0]
+            name, reason = content.split(" has been warned.", 1)
             name = name.split("> ")[1]
-            member = await commands.MemberConverter().convert(await bot.get_context(message), name)  # type: discord.Member
-            await message.channel.send("Shame on you, {}".format(member.mention))
+            member: discord.Member = await commands.MemberConverter().convert(await bot.get_context(message), name)
+
+            warning = models.WarningObj(user_id=str(member.id), reason=reason)
+            await execute_warning(member, warning)
+
+    elif message.author.id in watchlist:
         await message.add_reaction("👁")
+        watchlist.remove(message.author.id)
+
     await bot.process_commands(message)
 
-async def execute_warning(member: discord.Member):
 
+async def execute_warning(member: discord.Member, warning: models.WarningObj):
+
+    await log_warning(warning)
     await assign_warned_role(member)
+    watchlist.append(member.id)
 
 
 async def assign_warned_role(member: discord.Member):
-    pass
+    guild: discord.Guild = member.guild
+    warning_color = discord.Colour.from_rgb(*get_darker_color(member.colour.to_rgb()))
+    warned_roles = [r for r in guild.roles if r.name == warned_role_name and r.colour == warning_color]
+
+    if not warned_roles:
+        role = await guild.create_role(name=warned_role_name, colour=warning_color)
+        await asyncio.sleep(0.5)
+        await role.edit(position=max(member.top_role.position, 1))
+    elif len(warned_roles) == 1:
+        role = warned_roles[0]
+    else:  # this should NEVER happen
+        raise RuntimeError(f"Too many same-colored {warned_role_name} roles")
+
+    await member.add_roles(role)
+
+
+async def log_warning(warning: models.WarningObj):
+    with database as db:
+        db.put_warning(warning)
+
 
 @bot.command()
 async def ping(ctx: commands.Context):
@@ -106,6 +146,11 @@ def set_logger():
     return logger
 
 
+def get_darker_color(color: tuple):
+    if color == (0, 0, 0):
+        return 120, 100, 100
+    return color[0]//2, color[1]//2, color[2]//2
+
+
 if __name__ == '__main__':
-    logger = set_logger()
-    bot.run(token)
+    main()
