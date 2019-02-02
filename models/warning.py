@@ -20,12 +20,6 @@ class Warning:
     def __ne__(self, other):
         return not self == other
 
-    def get_remaining_time(self):
-        if not self.expiration_time:
-            return self.timestamp         # It's weird, I know
-
-        return self.expiration_time - time.time()
-
     def is_expired(self):
-        return self.get_remaining_time() < 0
+        return self.expiration_time < time.time()
 

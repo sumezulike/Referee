@@ -9,8 +9,9 @@ import logging.handlers
 import timeit
 import time
 
-import models
-from WarningRepositorys import WarningRepository, JSONWarningRepository
+from models.warning import Warning
+from abstract import WarningRepository
+from JSONWarningRepository import JSONWarningRepository
 
 CONFIG_FILE = "config/options.ini"
 DATABASE_FILE: str = "warnings.json"
@@ -57,9 +58,9 @@ async def on_message(message: discord.Message):
             name = name.split("> ")[1]
             member: discord.Member = await commands.MemberConverter().convert(await bot.get_context(message), name)
 
-            warning = models.Warning(user_id=str(member.id),
-                                     reason=reason,
-                                     expiration_time=time.time() + warning_lifetime)
+            warning = Warning(user_id=str(member.id),
+                              reason=reason,
+                              expiration_time=time.time() + warning_lifetime)
 
             await execute_warning(await bot.get_context(message), member, warning)
         elif "<:dynoSuccess:314691591484866560> Cleared" in content and "warnings for " in content:
@@ -90,13 +91,15 @@ async def on_member_join(member: discord.Member):
             await assign_warned_role(member)
 
 
-async def execute_warning(ctx: commands.Context, member: discord.Member, warning: models.Warning):
+async def execute_warning(ctx: commands.Context, member: discord.Member, warning: Warning):
     watchlist.append(member.id)
     await log_warning(warning)
     await check_warnings(member)
     num_warnings = await count_warnings(member)
-    if num_warnings == 1:
+    if not await get_warned_roles(member):
         await assign_warned_role(member)
+    if num_warnings == 1:
+        pass
     elif num_warnings == 2:
         mute_time = 30 * 60
         await ctx.send(f"Second warning in {time_string(warning_lifetime)}:"
@@ -107,14 +110,15 @@ async def execute_warning(ctx: commands.Context, member: discord.Member, warning
         await ctx.send(f"Third warning in {time_string(warning_lifetime)}:"
                        f" {member.mention} has been muted automatically for {time_string(mute_time)}")
         await mute(member, mute_time)
+    else:
+        await ctx.send(f"{num_warnings}. warning in {time_string(warning_lifetime)} for {member.mention}")
 
 
 async def check_warnings(member: discord.Member):
     with database as db:
         warnings = db.get_warnings(str(member.id))
         if warnings:
-            now = time.time()
-            invalid = [w for w in warnings if w.expiration_time < now]
+            invalid = [w for w in warnings if w.is_expired()]
             for w in invalid:
                 db.delete_warning(w)
             if invalid == warnings:
@@ -161,15 +165,16 @@ async def count_warnings(member: discord.Member) -> int:
     with database as db:
         return len(db.get_warnings(member.id))
 
-async def log_warning(warning: models.Warning):
+
+async def log_warning(warning: Warning):
     with database as db:
         db.put_warning(warning)
 
 
-async def mute(member: discord.Member, mutetime: int = 30 * 60):
+async def mute(member: discord.Member, mute_time: int = 30 * 60):
     muted_role = filter(lambda x: x.name == "Muted", member.guild.roles)
     await member.add_roles(*muted_role)
-    await asyncio.sleep(mutetime)
+    await asyncio.sleep(mute_time)
     await member.remove_roles(*muted_role)
 
 
@@ -243,6 +248,21 @@ async def ping(ctx: commands.Context):
     dur = timeit.default_timer() - start
     embed.title += f"  |  {dur:.3}s"
     await msg.edit(embed=embed)
+
+
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def warn(ctx: commands.Context, member: discord.Member, *reason):
+    await execute_warning(ctx, member, Warning(member.id, reason=reason))
+    print("Warned")
+
+
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def clear(ctx: commands.Context, member: discord.Member):
+    with database as db:
+        db.delete_warnings(member.id)
+    await remove_warned_roles(member)
 
 
 if __name__ == '__main__':

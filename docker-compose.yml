@@ -8,6 +8,6 @@ services:
     working_dir: /bot
     command: 'python launcher.py'
     environment:
-      PORT: 8080
+      PORT: 8008
     ports:
-      - '8080:8080'
+      - '8008:8008'
