@@ -87,6 +87,7 @@ class JSONWarningRepository(WarningRepository):
         return deserialize_warning(s)
 
     def get_warnings(self, user_id: str) -> List[Warning]:
+        user_id = str(user_id)
         return [deserialize_warning(w) for w in self.data.get(user_id, [])]
 
     def get_all_warnings(self) -> Dict[str, List[Warning]]:
@@ -98,6 +99,7 @@ class JSONWarningRepository(WarningRepository):
             del self.data[warning.user_id]
 
     def delete_warnings(self, user_id: str) -> int:
+        user_id = str(user_id)
         count = len(self.data.get(user_id, []))
         self.data[user_id] = []
         return count

@@ -5,7 +5,7 @@ import time
 class Warning:
 
     def __init__(self, user_id: str, timestamp: float=time.time(), **kwargs):
-        self.user_id = user_id
+        self.user_id = str(user_id)
         self.timestamp = timestamp
 
         self.reason = kwargs.pop("reason", "")
