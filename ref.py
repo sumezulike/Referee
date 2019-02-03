@@ -133,7 +133,7 @@ async def assign_warned_role(member: discord.Member):
         return
 
     guild: discord.Guild = member.guild
-    warning_color = discord.Colour.from_rgb(*get_darker_color(member.colour.to_rgb()))
+    warning_color = discord.Colour.from_rgb(*get_warned_color(member.colour.to_rgb()))
     warned_roles = [r for r in guild.roles if r.name == warned_role_name and r.colour == warning_color]
 
     if not warned_roles:
