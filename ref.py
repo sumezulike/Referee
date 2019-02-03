@@ -221,7 +221,7 @@ def get_warned_color(color: tuple) -> tuple:
     if sum(new_color)/3 < 80:
         return default_warned_color
     else:
-        return default_warned_colorrself
+        return default_warned_color
 
 
 def remove_formatting(text: str) -> str:
