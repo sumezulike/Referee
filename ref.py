@@ -216,9 +216,12 @@ def set_logger() -> logging.Logger:
 
 
 def get_darker_color(color: tuple) -> tuple:
-    if color == (0, 0, 0):
-        return 120, 100, 100
-    return color[0] // 2, color[1] // 2, color[2] // 2
+    new_color = (color[0] // 2, color[1] // 2, color[2] // 2)
+    default_warned_color = (120, 100, 100)
+    if sum(new_color)/3 < 80:
+        return default_warned_color
+    else:
+        return default_warned_color
 
 
 def remove_formatting(text: str) -> str:
