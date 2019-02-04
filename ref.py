@@ -8,6 +8,7 @@ import logging
 import logging.handlers
 import timeit
 import time
+from datetime import datetime
 
 from models.warning import Warning
 from abstract import WarningRepository
@@ -140,11 +141,11 @@ async def assign_warned_role(member: discord.Member):
         role = await guild.create_role(name=warned_role_name,
                                        colour=warning_color)
         await asyncio.sleep(0.5)
-        await role.edit(position=max(member.top_role.position, 1))
-    elif len(warned_roles) == 1:
+    else:
         role = warned_roles[0]
-    else:  # this should NEVER happen
-        raise RuntimeError(f"Too many same-colored {warned_role_name} roles")
+
+    if role.position <= member.top_role.position:
+        await role.edit(position=max(member.top_role.position, 1))
 
     await member.add_roles(role)
 
@@ -269,6 +270,30 @@ async def clear(ctx: commands.Context, member: discord.Member):
     with database as db:
         db.delete_warnings(member.id)
     await remove_warned_roles(member)
+
+
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def warnings(ctx: commands.Context, member: discord.Member = None):
+    def add_warning(member_id: str):
+        with database as db:
+            for warning in db.get_warnings(member_id):
+                desc = f"{datetime.utcfromtimestamp(int(warning.timestamp)).strftime('%Y-%m-%d')}" \
+                       f"{warning.reason if warning.reason else ', no reason'}"
+                embed.add_field(name=ctx.guild.get_member(int(member_id)), value=desc, inline=False)
+
+    title = "Active warnings"
+    embed = discord.Embed(title=title)
+    if member:
+        add_warning(member.id)
+        embed.title = f"Active warnings for {member}"
+    else:
+        with database as db:
+            all_warnings = db.get_all_warnings()
+        for member_id in all_warnings:
+            add_warning(member_id)
+
+    await ctx.send(embed=embed)
 
 
 if __name__ == '__main__':

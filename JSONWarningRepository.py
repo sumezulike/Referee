@@ -40,7 +40,7 @@ class JSONWarningRepository(WarningRepository):
     def __exit__(self, exc_type, exc_val, exc_tb):
         with open(self.filepath, "w") as file:
             json.dump(self.data, file)
-        return True
+        return False
 
     def put_warning(self, warning: Warning) -> Warning:
         s = serialize_warning(warning)
