@@ -65,7 +65,7 @@ class JSONWarningRepository(WarningRepository):
     def delete_warnings(self, user_id: str) -> int:
         user_id = str(user_id)
         count = len(self.data.get(user_id, []))
-        self.data[user_id] = []
+        del self.data[user_id]
         return count
 
     def delete_all_warnings(self) -> int:

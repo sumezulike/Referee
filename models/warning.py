@@ -16,9 +16,11 @@ class Warning:
             return False
         return self.__dict__ == other.__dict__
 
-
     def __ne__(self, other):
         return not self == other
+
+    def __hash__(self):
+        return hash((self.user_id, self.timestamp, self.reason, self.expiration_time))
 
     def is_expired(self):
         return self.expiration_time < time.time()

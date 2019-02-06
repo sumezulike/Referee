@@ -85,19 +85,28 @@ class TestJSONWarningDB(unittest.TestCase):
         user_3 = "789"
 
         warning_1 = Warning(user_id=user_1)
+        warning_1b = Warning(user_id=user_1, reason="stay")
         warning_2 = Warning(user_id=user_2)
         warning_3 = Warning(user_id=user_3)
 
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.put_warning(warning_1)
+            db.put_warning(warning_1b)
             db.put_warning(warning_2)
             db.put_warning(warning_3)
 
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.delete_warning(warning_1)
-            self.assertNotIn(warning_1, db.get_all_warnings())
-            self.assertIn(warning_2, db.get_all_warnings())
-            self.assertIn(warning_3, db.get_all_warnings())
+            remaining = []
+            for l in db.get_all_warnings().values():
+                remaining += l
+            self.assertNotIn(warning_1, remaining)
+            self.assertIn(warning_1b, remaining)
+            self.assertIn(warning_2, remaining)
+            self.assertIn(warning_3, remaining)
+
+            db.delete_warning(warning_1b)
+            self.assertNotIn(user_1, db.get_all_warnings())
 
     def test_delete_warnings(self):
         user_1 = "123"
@@ -116,9 +125,14 @@ class TestJSONWarningDB(unittest.TestCase):
 
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.delete_warnings(user_1)
-            self.assertNotIn(warning_1, db.get_all_warnings())
-            self.assertIn(warning_2, db.get_all_warnings())
-            self.assertIn(warning_3, db.get_all_warnings())
+            remaining = []
+            for l in db.get_all_warnings().values():
+                remaining += l
+            self.assertNotIn(warning_1, remaining)
+            self.assertIn(warning_2, remaining)
+            self.assertIn(warning_3, remaining)
+
+            self.assertNotIn(user_1, db.get_all_warnings())
 
     def test_delete_all_warnings(self):
         user_1 = "123"
@@ -138,6 +152,17 @@ class TestJSONWarningDB(unittest.TestCase):
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.delete_all_warnings()
             self.assertFalse(db.get_all_warnings())
+
+    def test_malformed_json(self):
+        filename = str(time.time())
+
+        with open(filename, "w") as file:
+            file.write("[2, 3]")
+
+        j = JSONWarningRepository(filepath=filename)
+        self.assertRaises(RuntimeError, j.__enter__)
+
+        os.remove(filename)
 
 
 if __name__ == '__main__':
