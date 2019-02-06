@@ -222,7 +222,7 @@ def get_warned_color(color: tuple) -> tuple:
 
     new_color = (color[0] // 2, color[1] // 2, color[2] // 2)
     default_warned_color = (120, 100, 100)
-    if sum(new_color)/3 < 60 and is_grey(new_color):
+    if sum(new_color)/3 < 80 and is_grey(new_color):
         return default_warned_color
     else:
         return new_color
