@@ -218,11 +218,11 @@ def set_logger() -> logging.Logger:
 
 def get_warned_color(color: tuple) -> tuple:
     def is_grey(c):
-        return max([abs(c[0]-c[1]), abs(c[1]-c[2]), abs(c[0]-c[2])]) < 10
+        return max([abs(c[0]-c[1]), abs(c[1]-c[2]), abs(c[0]-c[2])]) < 25
 
     new_color = (color[0] // 2, color[1] // 2, color[2] // 2)
     default_warned_color = (120, 100, 100)
-    if sum(new_color)/3 < 80 and is_grey(new_color):
+    if sum(new_color)/3 < 100 and is_grey(new_color):
         return default_warned_color
     else:
         return new_color
