@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Dict
 import abc
+from models.refwarning import RefWarning
 
 
 class WarningRepository(abc.ABC):
@@ -14,15 +15,15 @@ class WarningRepository(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def put_warning(self, warning: Warning) -> Warning:
+    def put_warning(self, warning: RefWarning) -> RefWarning:
         pass
 
     @abc.abstractmethod
-    def get_warnings(self, user_id: str) -> List[Warning]:
+    def get_warnings(self, user_id: str) -> List[RefWarning]:
         pass
 
     @abc.abstractmethod
-    def get_all_warnings(self) -> Dict[str, List[Warning]]:
+    def get_all_warnings(self) -> Dict[str, List[RefWarning]]:
         pass
 
     @abc.abstractmethod
@@ -30,7 +31,7 @@ class WarningRepository(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def delete_warning(self, warning: Warning):
+    def delete_warning(self, warning: RefWarning):
         pass
 
     @abc.abstractmethod

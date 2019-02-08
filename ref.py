@@ -10,7 +10,7 @@ import timeit
 import time
 from datetime import datetime
 
-from models.warning import Warning
+from models.refwarning import RefWarning
 from abstract import WarningRepository
 from JSONWarningRepository import JSONWarningRepository
 
@@ -59,9 +59,9 @@ async def on_message(message: discord.Message):
             name = name.split("> ")[1]
             member: discord.Member = await commands.MemberConverter().convert(await bot.get_context(message), name)
 
-            warning = Warning(user_id=str(member.id),
-                              reason=reason,
-                              expiration_time=time.time() + warning_lifetime)
+            warning = RefWarning(user_id=str(member.id),
+                                 reason=reason,
+                                 expiration_time=time.time() + warning_lifetime)
 
             await execute_warning(await bot.get_context(message), member, warning)
         elif "<:dynoSuccess:314691591484866560> Cleared" in content and "warnings for " in content:
@@ -72,7 +72,7 @@ async def on_message(message: discord.Message):
             await remove_warned_roles(member)
 
     elif message.author.id in watchlist:
-        await message.add_reaction("👁")
+        await see(message)
         watchlist.remove(message.author.id)
 
     await bot.process_commands(message)
@@ -92,7 +92,11 @@ async def on_member_join(member: discord.Member):
             await assign_warned_role(member)
 
 
-async def execute_warning(ctx: commands.Context, member: discord.Member, warning: Warning):
+async def see(message: discord.Message):
+    await message.add_reaction("👁")
+
+
+async def execute_warning(ctx: commands.Context, member: discord.Member, warning: RefWarning):
     watchlist.append(member.id)
     await log_warning(warning)
     await check_warnings(member)
@@ -167,7 +171,7 @@ async def count_warnings(member: discord.Member) -> int:
         return len(db.get_warnings(member.id))
 
 
-async def log_warning(warning: Warning):
+async def log_warning(warning: RefWarning):
     with database as db:
         db.put_warning(warning)
 
@@ -218,11 +222,11 @@ def set_logger() -> logging.Logger:
 
 def get_warned_color(color: tuple) -> tuple:
     def is_grey(c):
-        return max([abs(c[0]-c[1]), abs(c[1]-c[2]), abs(c[0]-c[2])]) < 25
+        return max([abs(c[0] - c[1]), abs(c[1] - c[2]), abs(c[0] - c[2])]) < 25
 
     new_color = (color[0] // 2, color[1] // 2, color[2] // 2)
     default_warned_color = (120, 100, 100)
-    if sum(new_color)/3 < 100 and is_grey(new_color):
+    if sum(new_color) / 3 < 100 and is_grey(new_color):
         return default_warned_color
     else:
         return new_color
@@ -239,11 +243,11 @@ def time_string(seconds: int) -> str:
     if seconds < 60:
         return f"{seconds}sec"
     elif minutes < 60:
-        return f"{minutes}min" + (f"{seconds%60}sec" if seconds % 60 != 0 else "")
+        return f"{minutes}min" + (f"{seconds % 60}sec" if seconds % 60 != 0 else "")
     elif hours < 24:
-        return f"{hours}h" + (f"{minutes%60}min" if minutes % 60 != 0 else "")
+        return f"{hours}h" + (f"{minutes % 60}min" if minutes % 60 != 0 else "")
     else:
-        return f"{days} days" + (f"{hours%24}h" if hours % 24 != 0 else "")
+        return f"{days} days" + (f"{hours % 24}h" if hours % 24 != 0 else "")
 
 
 @bot.command()
@@ -251,7 +255,7 @@ async def ping(ctx: commands.Context):
     start = timeit.default_timer()
     embed = discord.Embed(title="Pong.")
     msg = await ctx.send(embed=embed)  # type: discord.Message
-    await msg.add_reaction("👍")
+    await see(msg)
     dur = timeit.default_timer() - start
     embed.title += f"  |  {dur:.3}s"
     await msg.edit(embed=embed)
@@ -260,8 +264,9 @@ async def ping(ctx: commands.Context):
 @bot.command()
 @commands.has_permissions(kick_members=True)
 async def warn(ctx: commands.Context, member: discord.Member, *reason):
-    await execute_warning(ctx, member, Warning(member.id, reason=reason))
-    print("Warned")
+    await execute_warning(ctx, member,
+                          RefWarning(member.id, reason=reason, expiration_time=time.time() + warning_lifetime))
+    await see(ctx.message)
 
 
 @bot.command()
@@ -270,6 +275,7 @@ async def clear(ctx: commands.Context, member: discord.Member):
     with database as db:
         db.delete_warnings(member.id)
     await remove_warned_roles(member)
+    await see(ctx.message)
 
 
 @bot.command()
@@ -278,8 +284,10 @@ async def warnings(ctx: commands.Context, member: discord.Member = None):
     def add_warning(member_id: str):
         with database as db:
             for warning in db.get_warnings(member_id):
-                desc = f"{datetime.utcfromtimestamp(int(warning.timestamp)).strftime('%Y-%m-%d')}" \
-                       f"{warning.reason if warning.reason else ', no reason'}"
+                legible_date = lambda x: datetime.utcfromtimestamp(int(x)).strftime('%Y-%m-%d')
+                expires = legible_date(warning.expiration_time) if warning.expiration_time and warning.expiration_time != warning.NEVER else "😐"
+                reason = warning.reason if warning.reason else ', no reason'
+                desc = f"**{legible_date(warning.timestamp)} - {expires}**{reason}"
                 embed.add_field(name=ctx.guild.get_member(int(member_id)), value=desc, inline=False)
 
     title = "Active warnings"

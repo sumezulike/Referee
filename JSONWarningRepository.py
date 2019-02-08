@@ -3,15 +3,15 @@ import json
 import os
 
 from abstract.WarningRepository import WarningRepository
-from models.warning import Warning
+from models.refwarning import RefWarning
 
 
-def serialize_warning(warning: Warning) -> list:
+def serialize_warning(warning: RefWarning) -> list:
     return [warning.user_id, warning.timestamp, warning.reason, warning.expiration_time]
 
 
-def deserialize_warning(s_warning: list) -> Warning:
-    return Warning(user_id=s_warning[0], timestamp=s_warning[1], reason=s_warning[2], expiration_time=s_warning[3])
+def deserialize_warning(s_warning: list) -> RefWarning:
+    return RefWarning(user_id=s_warning[0], timestamp=s_warning[1], reason=s_warning[2], expiration_time=s_warning[3])
 
 
 class JSONWarningRepository(WarningRepository):
@@ -42,7 +42,7 @@ class JSONWarningRepository(WarningRepository):
             json.dump(self.data, file)
         return False
 
-    def put_warning(self, warning: Warning) -> Warning:
+    def put_warning(self, warning: RefWarning) -> RefWarning:
         s = serialize_warning(warning)
         if warning.user_id in self.data.keys():
             self.data[warning.user_id].append(s)
@@ -50,14 +50,14 @@ class JSONWarningRepository(WarningRepository):
             self.data[warning.user_id] = [s]
         return deserialize_warning(s)
 
-    def get_warnings(self, user_id: str) -> List[Warning]:
+    def get_warnings(self, user_id: str) -> List[RefWarning]:
         user_id = str(user_id)
         return [deserialize_warning(w) for w in self.data.get(user_id, [])]
 
-    def get_all_warnings(self) -> Dict[str, List[Warning]]:
+    def get_all_warnings(self) -> Dict[str, List[RefWarning]]:
         return {user_id: [deserialize_warning(w) for w in w_list] for user_id, w_list in self.data.items()}
 
-    def delete_warning(self, warning: Warning):
+    def delete_warning(self, warning: RefWarning):
         self.data[warning.user_id] = [w for w in self.data.get(warning.user_id, []) if deserialize_warning(w) != warning]
         if not self.data[warning.user_id]:
             del self.data[warning.user_id]

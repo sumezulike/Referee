@@ -1,6 +1,6 @@
 import unittest
 from JSONWarningRepository import JSONWarningRepository
-from models.warning import Warning
+from models.refwarning import RefWarning
 import time
 import os
 
@@ -19,7 +19,7 @@ class TestJSONWarningDB(unittest.TestCase):
 
     def test_file_not_existant(self):
         filename = str(time.time())
-        warning = Warning(user_id=filename)
+        warning = RefWarning(user_id=filename)
         with JSONWarningRepository(filepath=filename) as db:
             db.put_warning(warning)
 
@@ -35,7 +35,7 @@ class TestJSONWarningDB(unittest.TestCase):
 
         open(filename, "w").close()
 
-        warning = Warning(user_id=filename)
+        warning = RefWarning(user_id=filename)
         with JSONWarningRepository(filepath=filename) as db:
             db.put_warning(warning)
 
@@ -50,7 +50,7 @@ class TestJSONWarningDB(unittest.TestCase):
         user_id = "123456789"
         message = "Hello. My name is Inigo Montoya."
 
-        warning = Warning(user_id=user_id, reason=message)
+        warning = RefWarning(user_id=user_id, reason=message)
         with JSONWarningRepository(filepath=DB_FILE) as db:
             re_warning = db.put_warning(warning)
             self.assertEqual(warning, re_warning)
@@ -59,7 +59,7 @@ class TestJSONWarningDB(unittest.TestCase):
         user_id = "123456789"
         message = "Hello. My name is Inigo Montoya."
 
-        warning = Warning(user_id=user_id, reason=message)
+        warning = RefWarning(user_id=user_id, reason=message)
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.put_warning(warning)
             re_warning = db.get_warnings(user_id=user_id)[0]
@@ -70,7 +70,7 @@ class TestJSONWarningDB(unittest.TestCase):
         user_id = "123456789"
         message = "Hello. My name is Inigo Montoya."
 
-        warning = Warning(user_id=user_id, reason=message)
+        warning = RefWarning(user_id=user_id, reason=message)
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.put_warning(warning)
 
@@ -84,10 +84,10 @@ class TestJSONWarningDB(unittest.TestCase):
         user_2 = "456"
         user_3 = "789"
 
-        warning_1 = Warning(user_id=user_1)
-        warning_1b = Warning(user_id=user_1, reason="stay")
-        warning_2 = Warning(user_id=user_2)
-        warning_3 = Warning(user_id=user_3)
+        warning_1 = RefWarning(user_id=user_1)
+        warning_1b = RefWarning(user_id=user_1, reason="stay")
+        warning_2 = RefWarning(user_id=user_2)
+        warning_3 = RefWarning(user_id=user_3)
 
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.put_warning(warning_1)
@@ -113,9 +113,9 @@ class TestJSONWarningDB(unittest.TestCase):
         user_2 = "456"
         user_3 = "789"
 
-        warning_1 = Warning(user_id=user_1)
-        warning_2 = Warning(user_id=user_2)
-        warning_3 = Warning(user_id=user_3)
+        warning_1 = RefWarning(user_id=user_1)
+        warning_2 = RefWarning(user_id=user_2)
+        warning_3 = RefWarning(user_id=user_3)
 
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.put_warning(warning_1)
@@ -139,9 +139,9 @@ class TestJSONWarningDB(unittest.TestCase):
         user_2 = "456"
         user_3 = "789"
 
-        warning_1 = Warning(user_id=user_1)
-        warning_2 = Warning(user_id=user_2)
-        warning_3 = Warning(user_id=user_3)
+        warning_1 = RefWarning(user_id=user_1)
+        warning_2 = RefWarning(user_id=user_2)
+        warning_3 = RefWarning(user_id=user_3)
 
         with JSONWarningRepository(filepath=DB_FILE) as db:
             db.put_warning(warning_1)
