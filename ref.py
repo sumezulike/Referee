@@ -46,7 +46,14 @@ def main():
 @bot.event
 async def on_ready():
     bot.remove_command("help")
+    bot.loop.create_task(bg_check())
     print("Ready!")
+
+
+async def bg_check():
+    while not bot.is_closed():
+        await check_all_warnings()
+        await asyncio.sleep(60 * 60 * 12)  # task runs every 12 h
 
 
 @bot.event
@@ -128,6 +135,19 @@ async def check_warnings(member: discord.Member):
                 db.delete_warning(w)
             if invalid == warnings:
                 await remove_warned_roles(member)
+            elif not await get_warned_roles(member):
+                await assign_warned_role(member)
+
+
+async def check_all_warnings():
+    with database as db:
+        flat = []
+        for l in db.get_all_warnings().values():
+            flat += l
+        if flat:
+            invalid = [w for w in flat if w.is_expired()]
+            for w in invalid:
+                db.delete_warning(w)
 
 
 async def assign_warned_role(member: discord.Member):
@@ -285,7 +305,8 @@ async def warnings(ctx: commands.Context, member: discord.Member = None):
         with database as db:
             for warning in db.get_warnings(member_id):
                 legible_date = lambda x: datetime.utcfromtimestamp(int(x)).strftime('%Y-%m-%d')
-                expires = legible_date(warning.expiration_time) if warning.expiration_time and warning.expiration_time != warning.NEVER else "😐"
+                expires = legible_date(
+                    warning.expiration_time) if warning.expiration_time and warning.expiration_time != warning.NEVER else "😐"
                 reason = warning.reason if warning.reason else ', no reason'
                 desc = f"**{legible_date(warning.timestamp)} - {expires}**{reason}"
                 embed.add_field(name=ctx.guild.get_member(int(member_id)), value=desc, inline=False)
