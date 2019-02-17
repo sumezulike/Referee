@@ -68,6 +68,7 @@ async def on_message(message: discord.Message):
 
             warning = RefWarning(user_id=str(member.id),
                                  reason=reason,
+                                 timestamp=time.time(),
                                  expiration_time=time.time() + warning_lifetime)
 
             await execute_warning(await bot.get_context(message), member, warning)
@@ -285,7 +286,7 @@ async def ping(ctx: commands.Context):
 @commands.has_permissions(kick_members=True)
 async def warn(ctx: commands.Context, member: discord.Member, *reason):
     await execute_warning(ctx, member,
-                          RefWarning(member.id, reason=reason, expiration_time=time.time() + warning_lifetime))
+                          RefWarning(member.id, reason=reason, timestamp=time.time(), expiration_time=time.time() + warning_lifetime))
     await see(ctx.message)
 
 

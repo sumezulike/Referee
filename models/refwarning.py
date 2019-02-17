@@ -6,7 +6,7 @@ class RefWarning:
 
     NEVER = 2**32
 
-    def __init__(self, user_id: str, timestamp: float = time.time(), **kwargs):
+    def __init__(self, user_id: str, timestamp: float, **kwargs):
         self.user_id = str(user_id)
         self.timestamp = timestamp
 
