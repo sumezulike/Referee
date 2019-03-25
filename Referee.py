@@ -24,10 +24,11 @@ bot = commands.Bot(command_prefix=conf.commandPrefixes,
                    description=conf.description,
                    activity=discord.Game(name="ref!ping"))
 
-warning_db = PGWarningRepository()
-
 
 def main():
+    global warning_db
+    warning_db = PGWarningRepository()
+
     bot.run(conf.token)
 
 
