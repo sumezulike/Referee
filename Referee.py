@@ -6,7 +6,6 @@ import os
 import logging
 import logging.handlers
 import timeit
-import time
 from datetime import datetime, timedelta
 
 from PGWarningRepository import PGWarningRepository
@@ -15,30 +14,21 @@ from config.Config import Config
 from models.refwarning import RefWarning
 
 
-conf = Config()
+conf = Config("config/options.ini")
 
-prefix = conf.commandPrefixes
-debug_level = conf.debugLevel
-
-warned_role_name = conf.warnedRoleName
 warning_lifetime = int(conf.warningLifetime)
 
-token = conf.token
-description = conf.description
-
-DYNO_ID = conf.dynoID
-
-bot = commands.Bot(command_prefix=prefix,
+bot = commands.Bot(command_prefix=conf.commandPrefixes,
                    case_insensitive=True,
                    pm_help=None,
-                   description=description,
+                   description=conf.description,
                    activity=discord.Game(name="ref!ping"))
 
 warning_db = PGWarningRepository()
 
 
 def main():
-    bot.run(token)
+    bot.run(conf.token)
 
 
 @bot.event
@@ -49,6 +39,9 @@ async def on_ready():
 
 
 async def bg_check():
+    while not bot.is_ready():
+        await asyncio.sleep(1)
+
     while not bot.is_closed():
         for guild in bot.guilds:
             await check_all_warnings(guild)
@@ -67,6 +60,7 @@ async def on_message(message: discord.Message):
                              timestamp=datetime.now(),
                              expiration_time=datetime.now() + timedelta(hours=warning_lifetime))
 
+        await save_warning(warning)
         await execute_warning(await bot.get_context(message), member, warning)
 
     # Else, if the message is a clear
@@ -89,7 +83,7 @@ def clean_content(message: discord.message) -> str:
 
 def message_is_warning(message: discord.message) -> bool:
     content = clean_content(message)
-    if message.author.id == DYNO_ID:
+    if message.author.id == conf.dynoID:
         if "has been warned" in content:
             return True
     return False
@@ -117,9 +111,16 @@ async def acknowledge(message: discord.Message):
 
 
 async def execute_warning(ctx: commands.Context, member: discord.Member, warning: RefWarning):
-    await save_warning(warning)
     await check_warnings(member)
-    num_warnings = await count_warnings(member)
+    num_warnings = len(warning_db.get_active_warnings(member.id))
+    if num_warnings > 1:
+        await ctx.channel.send(
+            "{} has been warned {} times in the last {} hours".format(
+                member.display_name,
+                num_warnings,
+                warning_lifetime
+            )
+        )
 
 
 async def check_warnings(member: discord.Member):
@@ -149,10 +150,10 @@ async def assign_warned_role(member: discord.Member):
 
     guild: discord.Guild = member.guild
     warning_color = discord.Colour.from_rgb(*get_warned_color(member.colour.to_rgb()))
-    warned_roles = [r for r in guild.roles if r.name == warned_role_name and r.colour == warning_color]
+    warned_roles = filter(lambda r: r.name == conf.warnedRoleName and r.colour == warning_color, guild.roles)
 
     if not warned_roles:
-        role = await guild.create_role(name=warned_role_name,
+        role = await guild.create_role(name=conf.warnedRoleName,
                                        colour=warning_color)
         await asyncio.sleep(0.5)
     else:
@@ -170,12 +171,8 @@ async def remove_warned_roles(member: discord.Member):
 
 
 async def get_warned_roles(member: discord.Member) -> list:
-    warned_roles = [r for r in member.roles if r.name == warned_role_name]
+    warned_roles = [r for r in member.roles if r.name == conf.warnedRoleName]
     return warned_roles
-
-
-async def count_warnings(member: discord.Member) -> int:
-    return len(warning_db.get_active_warnings(member.id))
 
 
 async def save_warning(warning: RefWarning):
@@ -183,10 +180,10 @@ async def save_warning(warning: RefWarning):
 
 
 async def mute(member: discord.Member, mute_time: int = 30 * 60):
-    muted_role = filter(lambda x: x.name == "Muted", member.guild.roles)
-    await member.add_roles(*muted_role)
+    muted_roles = filter(lambda x: x.name == "Muted", member.guild.roles)
+    await member.add_roles(*muted_roles)
     await asyncio.sleep(mute_time)
-    await member.remove_roles(*muted_role)
+    await member.remove_roles(*muted_roles)
 
 
 def set_logger() -> logging.Logger:

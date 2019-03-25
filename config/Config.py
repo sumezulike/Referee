@@ -15,7 +15,7 @@ class Config:
     def dynoID(self): return self.config["Warnings"]["DynoID"]
 
     @property
-    def description(self): return self.config["default"]["Description"]
+    def description(self): return "Be warned, Referee is watching"
 
     @property
     def token(self): return self.config["Credentials"]["Token"]
@@ -30,7 +30,7 @@ class Config:
     def debugLevel(self): return self.config["Chat"]["DebugLevel"]
 
     @property
-    def commandPrefixes(self): return self.config["Chat"]["CommandPrefix"].split()
+    def commandPrefixes(self): return self.config["Chat"]["CommandPrefixes"].split()
 
     @property
     def PG_Host(self): return self.config["PostgreSQL"]["Host"]
