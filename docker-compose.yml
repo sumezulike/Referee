@@ -6,7 +6,7 @@ services:
     volumes:
       - '.:/bot'
     working_dir: /bot
-    command: 'python launcher.py'
+    command: 'python Referee.py'
     environment:
       PORT: 8008
     ports:
