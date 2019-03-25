@@ -1,12 +1,12 @@
 from __future__ import annotations
-import time
+from datetime import datetime
 
 
 class RefWarning:
 
-    NEVER = 2**32
+    NEVER = datetime(9999, 1, 1)
 
-    def __init__(self, user_id: str, timestamp: float, **kwargs):
+    def __init__(self, user_id: str, timestamp: datetime, **kwargs):
         self.user_id = str(user_id)
         self.timestamp = timestamp
 
@@ -25,4 +25,4 @@ class RefWarning:
         return hash((self.user_id, self.timestamp, self.reason, self.expiration_time))
 
     def is_expired(self):
-        return self.expiration_time < time.time()
+        return self.expiration_time < datetime.now()

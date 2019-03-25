@@ -1,5 +1,4 @@
 import asyncio
-import configparser
 import discord
 from discord.ext import commands
 import sys
@@ -9,27 +8,24 @@ import logging.handlers
 import timeit
 import time
 from datetime import datetime
+from config.Config import Config
 
 from models.refwarning import RefWarning
-from abstract import WarningRepository
-from JSONWarningRepository import JSONWarningRepository
 
-CONFIG_FILE = "config/options.ini"
-DATABASE_FILE: str = "warnings.json"
-DYNO_ID = 155149108183695360
 
-config = configparser.ConfigParser()
-config.read(CONFIG_FILE)
-prefix = config["Chat"].get("CommandPrefix")
-debug_level = config["Chat"].get("DebugLevel")
+conf = Config()
 
-warned_role_name = config["Warnings"].get("WarnedRoleName")
-warning_lifetime = int(config["Warnings"].get("WarningLifetime"))
+prefix = conf.CommandPrefix
+debug_level = conf.DebugLevel
 
-token = config["Credentials"].get("Token")
-description = config["Credentials"].get("Description")
+warned_role_name = conf.WarnedRoleName
+warning_lifetime = int(conf.WarningLifetime)
 
-database: WarningRepository = JSONWarningRepository(DATABASE_FILE)
+token = conf.Token
+description = conf.Description
+
+DYNO_ID = conf.DynoID
+
 watchlist = []
 
 bot = commands.Bot(command_prefix=prefix,
@@ -53,12 +49,12 @@ async def on_ready():
 async def bg_check():
     while not bot.is_closed():
         await check_all_warnings()
-        await asyncio.sleep(60 * 60 * 12)  # task runs every 12 h
+        await asyncio.sleep(60 * 5)  # task runs every 5 minutes
 
 
 @bot.event
 async def on_message(message: discord.Message):
-    content = remove_formatting(message.content)
+    content = remove_formatting(message.clean_content)
     if message.author.id == DYNO_ID:
         if "has been warned" in content:
             print(content)
