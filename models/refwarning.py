@@ -24,5 +24,8 @@ class RefWarning:
     def __hash__(self):
         return hash((self.user_id, self.timestamp, self.reason, self.expiration_time))
 
+    def __str__(self):
+        return "RefWarning(User_id: '{}', {} - {}, Reason: {})".format(self.user_id, self.timestamp, self.expiration_time, self.reason or "No reason")
+
     def is_expired(self):
         return self.expiration_time < datetime.now()

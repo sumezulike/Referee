@@ -8,12 +8,14 @@ class Config:
     def __init__(self, path=CONFIG_FILE):
         self.config = configparser.ConfigParser()
         self.config.read(path)
+        if not self.config.sections():
+            raise FileNotFoundError("No config in file: {}".format(path))
 
     @property
     def dynoID(self): return self.config["Warnings"]["DynoID"]
 
     @property
-    def description(self): return self.config["@property default"]["Description"]
+    def description(self): return self.config["default"]["Description"]
 
     @property
     def token(self): return self.config["Credentials"]["Token"]

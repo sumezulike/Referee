@@ -1,4 +1,5 @@
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 from typing import Dict, List
 
 import psycopg2
@@ -6,11 +7,11 @@ import psycopg2
 from config.Config import Config
 from models.refwarning import RefWarning
 
-config = Config()
+config = Config("config/options.ini")
 
 creation = (
     """
-    DROP TABLE warnings
+    DROP TABLE IF EXISTS warnings
     """,
     """
     CREATE TABLE warnings (
@@ -26,7 +27,7 @@ creation = (
 
 class PGWarningRepository:
 
-    def __enter__(self):
+    def __init__(self):
         self.conn: psycopg2._psycopg.connection = psycopg2.connect(
             host=config.PG_Host,
             database=config.PG_Database,
@@ -34,14 +35,22 @@ class PGWarningRepository:
             password=config.PG_Password
         )
 
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-        self.conn.close()
-        return True
+    def close(self):
+        if not self.conn.closed:
+            self.conn.close()
 
     def check_database(self):
-        cur = self.conn.cursor()
+        cur: psycopg2._psycopg.cursor = self.conn.cursor()
+        test_query = "SELECT id, user_id, timestamp, expiration_time, reason from warnings LIMIT 1"
+        try:
+            cur.execute(test_query)
+        except psycopg2.ProgrammingError as e:
+            print(e)
+            cur.close()
+            self.conn.commit()
+            self.create_tables()
+        finally:
+            self.conn.commit()
 
     def create_tables(self):
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
@@ -64,7 +73,7 @@ class PGWarningRepository:
         self.conn.commit()
 
     def get_warnings(self, user_id: str) -> List[RefWarning]:
-        query = "SELECT * FROM warnings WHERE user_id LIKE '%s'"
+        query = "SELECT * FROM warnings WHERE user_id LIKE %s"
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
         cur.execute(query, (user_id,))
@@ -84,7 +93,7 @@ class PGWarningRepository:
     def get_active_warnings(self, user_id: str):
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
-        query = "SELECT * FROM warnings WHERE user_id LIKE '%s' AND expiration_time > TIMESTAMP '%s'"
+        query = "SELECT * FROM warnings WHERE user_id LIKE %s AND expiration_time > TIMESTAMP %s"
 
         cur.execute(query, (user_id, str(datetime.now())))
 
@@ -126,7 +135,7 @@ class PGWarningRepository:
 
         query_all = """
         SELECT id, user_id, timestamp, expiration_time, reason FROM warnings 
-        WHERE expiration_time > TIMESTAMP '%s' ORDER BY user_id
+        WHERE expiration_time > TIMESTAMP %s ORDER BY user_id
         """
 
         cur.execute(query_all, (str(datetime.now()),))
@@ -137,4 +146,37 @@ class PGWarningRepository:
             w = RefWarning(user_id=result[1], timestamp=result[2], expiration_time=result[3], reason=result[4])
             warnings[result[1]].append(w)
 
+        cur.close()
+
         return warnings
+
+    def expire_warnings(self, user_id: str):
+        cur: psycopg2._psycopg.cursor = self.conn.cursor()
+
+        query = "UPDATE warnings SET expiration_time = TIMESTAMP %s WHERE user_id LIKE %s"
+
+        cur.execute(query, (datetime.now(), user_id))
+
+        cur.close()
+
+        self.conn.commit()
+
+
+if __name__ == "__main__":
+    p = PGWarningRepository()
+    p.check_database()
+    p.create_tables()
+
+    for i in range(10):
+        p.put_warning(RefWarning("user_{}".format(i // 2 +1), datetime.now(), reason="Being a cunt", expiration_time=datetime.now()+timedelta(days=2)))
+        time.sleep(0.5)
+
+    print(p.get_active_warnings("user_2"))
+
+    print("<=>")
+
+    p.expire_warnings("user_2")
+
+    print(p.get_active_warnings("user_2"))
+
+    print(">=<")
