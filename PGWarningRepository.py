@@ -68,7 +68,7 @@ class PGWarningRepository:
         query = "SELECT * FROM warnings WHERE user_id LIKE %s"
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
-        cur.execute(query, (user_id,))
+        cur.execute(query, (str(user_id),))
 
         results = cur.fetchall()
 
@@ -87,7 +87,7 @@ class PGWarningRepository:
 
         query = "SELECT * FROM warnings WHERE user_id LIKE %s AND expiration_time > TIMESTAMP %s"
 
-        cur.execute(query, (user_id, str(datetime.now())))
+        cur.execute(query, (str(user_id), str(datetime.now())))
 
         results = cur.fetchall()
 
@@ -147,7 +147,7 @@ class PGWarningRepository:
 
         query = "UPDATE warnings SET expiration_time = TIMESTAMP %s WHERE user_id LIKE %s"
 
-        cur.execute(query, (datetime.now(), user_id))
+        cur.execute(query, (datetime.now(), str(user_id)))
 
         cur.close()
 
