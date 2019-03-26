@@ -27,5 +27,13 @@ class RefWarning:
     def __str__(self):
         return "RefWarning(User_id: '{}', {} - {}, Reason: {})".format(self.user_id, self.timestamp, self.expiration_time, self.reason or "No reason")
 
+    @property
+    def timestamp_str(self):
+        return self.timestamp.strftime("%b %d %Y %H:%M:%S")
+
+    @property
+    def expiration_str(self):
+        return self.expiration_time.strftime("%b %d %Y %H:%M:%S")
+
     def is_expired(self):
         return self.expiration_time < datetime.now()

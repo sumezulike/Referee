@@ -159,16 +159,3 @@ if __name__ == "__main__":
     p.check_database()
     p.recreate_tables()
 
-    for i in range(10):
-        p.put_warning(RefWarning("user_{}".format(i // 2 +1), datetime.now(), reason="Being a cunt", expiration_time=datetime.now()+timedelta(days=2)))
-        time.sleep(0.5)
-
-    print(p.get_active_warnings("user_2"))
-
-    print("<=>")
-
-    p.expire_warnings("user_2")
-
-    print(p.get_active_warnings("user_2"))
-
-    print(">=<")
