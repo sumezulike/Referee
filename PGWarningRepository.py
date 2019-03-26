@@ -14,7 +14,7 @@ creation = (
     DROP TABLE IF EXISTS warnings
     """,
     """
-    CREATE TABLE warnings (
+    CREATE TABLE IF NOT EXISTS warnings (
         id SERIAL PRIMARY KEY,
         user_id VARCHAR(32) NOT NULL,
         timestamp TIMESTAMP NOT NULL,
@@ -34,6 +34,7 @@ class PGWarningRepository:
             user=config.PG_User,
             password=config.PG_Password
         )
+        self.conn.cursor().execute(creation[1])
 
     def close(self):
         if not self.conn.closed:
@@ -42,17 +43,8 @@ class PGWarningRepository:
     def check_database(self):
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
         test_query = "SELECT id, user_id, timestamp, expiration_time, reason from warnings LIMIT 1"
-        try:
-            cur.execute(test_query)
-        except psycopg2.ProgrammingError as e:
-            print(e)
-            cur.close()
-            self.conn.commit()
-            self.create_tables()
-        finally:
-            self.conn.commit()
 
-    def create_tables(self):
+    def recreate_tables(self):
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
         for command in creation:
             cur.execute(command)
@@ -165,7 +157,7 @@ class PGWarningRepository:
 if __name__ == "__main__":
     p = PGWarningRepository()
     p.check_database()
-    p.create_tables()
+    p.recreate_tables()
 
     for i in range(10):
         p.put_warning(RefWarning("user_{}".format(i // 2 +1), datetime.now(), reason="Being a cunt", expiration_time=datetime.now()+timedelta(days=2)))
