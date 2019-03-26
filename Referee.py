@@ -45,8 +45,9 @@ async def bg_check():
 
     while not bot.is_closed():
         for guild in bot.guilds:
-            await check_all_warnings(guild)
-        await asyncio.sleep(60)  # task runs every minute
+#            await check_all_warnings(guild)
+            await check_all_members(guild)
+        await asyncio.sleep(120)  # task runs every second minute
 
 
 @bot.event
@@ -84,7 +85,7 @@ def clean_content(message: discord.message) -> str:
 
 def message_is_warning(message: discord.message) -> bool:
     content = clean_content(message)
-    if message.author.id == conf.dynoID:
+    if message.author.id == int(conf.dynoID):
         if "has been warned" in content:
             return True
     return False
@@ -136,22 +137,27 @@ async def check_warnings(member: discord.Member):
         await remove_warned_roles(member)
 
 
-async def check_all_warnings(guild):
+async def check_all_warnings(guild: discord.Guild):
     member_ids = warning_db.get_all_warnings().keys()
     for member_id in member_ids:
         await check_warnings(guild.get_member(int(member_id)))
+
+
+async def check_all_members(guild: discord.Guild):
+    for member in guild.members:
+        await check_warnings(member)
 
 
 async def assign_warned_role(member: discord.Member):
     if member.top_role.position > member.guild.me.top_role.position:
         return
 
-    if len(await get_warned_roles(member)) >= 2:
+    if len(await get_warned_roles(member)) >= 1:
         return
 
     guild: discord.Guild = member.guild
     warning_color = discord.Colour.from_rgb(*get_warned_color(member.colour.to_rgb()))
-    warned_roles = filter(lambda r: r.name == conf.warnedRoleName and r.colour == warning_color, guild.roles)
+    warned_roles = list(filter(lambda r: r.name == conf.warnedRoleName and r.colour == warning_color, guild.roles))
 
     if not warned_roles:
         role = await guild.create_role(name=conf.warnedRoleName,
@@ -181,7 +187,7 @@ async def save_warning(warning: RefWarning):
 
 
 async def mute(member: discord.Member, mute_time: int = 30 * 60):
-    muted_roles = filter(lambda x: x.name == "Muted", member.guild.roles)
+    muted_roles = list(filter(lambda x: x.name == "Muted", member.guild.roles))
     await member.add_roles(*muted_roles)
     await asyncio.sleep(mute_time)
     await member.remove_roles(*muted_roles)
@@ -239,7 +245,8 @@ def get_warned_color(color: tuple) -> tuple:
 @bot.command()
 async def ping(ctx: commands.Context):
     start = timeit.default_timer()
-    embed = discord.Embed(title="Pong.")
+    title = "Pong. "
+    embed = discord.Embed(title=title, color=discord.Color.dark_gold())
     msg = await ctx.send(embed=embed)  # type: discord.Message
     await acknowledge(msg)
     dur = timeit.default_timer() - start
@@ -272,19 +279,29 @@ async def clear(ctx: commands.Context, member: discord.Member):
 
 @bot.command()
 @commands.has_permissions(kick_members=True)
-async def warnings(ctx: commands.Context, member: discord.Member):
+async def warnings(ctx: commands.Context, member: discord.Member = None):
+
+    if not member:
+        await ctx.send("Usage: `ref!warnings @member`")
+        return
 
     all_warnings = warning_db.get_warnings(member.id)
     active_warnings = warning_db.get_active_warnings(member.id)
 
     title = "{}: {} warnings ({}) active".format(member.display_name, len(all_warnings), len(active_warnings))
-    embed = discord.Embed(title=title)
+    embed = discord.Embed(title=title, color=discord.Color.dark_gold())
 
     active_str = "".join("{} - {}\n Reason: {}".format(w.timestamp, w.expiration_time, w.reason) for w in active_warnings)
-    embed.add_field(name="Active ({})".format(len(active_warnings)), value=active_str)
+    if active_str:
+        embed.add_field(name="Active ({})".format(len(active_warnings)), value=active_str, inline=False)
 
-    expired_str = "".join("{} Reason: {}".format(w.timestamp, w.reason) for w in filter(lambda x: x.is_expired(), all_warnings))
-    embed.add_field(name="Expired ({})".format(len(all_warnings)-len(active_warnings)), value=expired_str)
+    expired_str = "".join("{} Reason: {}".format(w.timestamp, w.reason) for w in list(filter(lambda x: x.is_expired(), all_warnings)))
+    if expired_str:
+        embed.add_field(name="Expired ({})".format(len(all_warnings)-len(active_warnings)), value=expired_str, inline=False)
+
+    if not any((expired_str, active_str)):
+        embed.add_field(name="No warnings", value="good boy",
+                        inline=False)
 
     await ctx.send(embed=embed)
 
@@ -293,10 +310,10 @@ async def warnings(ctx: commands.Context, member: discord.Member):
 @commands.has_permissions(kick_members=True)
 async def active_warnings(ctx: commands.Context):
 
-    title = "Active warnings"
-    embed = discord.Embed(title=title)
-
     active_warnings = warning_db.get_all_active_warnings()
+
+    title = "Active warnings" if active_warnings else "No active warnings"
+    embed = discord.Embed(title=title, color=discord.Color.dark_gold())
 
     for member_id in active_warnings:
         warnings = warning_db.get_active_warnings(member_id)
