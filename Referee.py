@@ -13,6 +13,7 @@ from config.Config import Config
 
 from models.refwarning import RefWarning
 
+NO_REASON = "None"
 
 conf = Config("config/options.ini")
 
@@ -293,11 +294,11 @@ async def warnings(ctx: commands.Context, member: discord.Member = None):
     title = "{}: {} warnings ({} active)".format(member.display_name, len(all_warnings), len(active_warnings))
     embed = discord.Embed(title=title, color=discord.Color.dark_gold())
 
-    active_str = "\n".join("{} - {}\n Reason: {}".format(w.timestamp_str, w.expiration_str, w.reason or "-") for w in active_warnings)
+    active_str = "\n".join("**\\*{} - {}\\***\n  Reason: {}".format(w.timestamp_str, w.expiration_str, w.reason or NO_REASON) for w in active_warnings)
     if active_str:
         embed.add_field(name="Active ({})".format(len(active_warnings)), value=active_str, inline=False)
 
-    expired_str = "\n".join("{} Reason: {}".format(w.timestamp_str, w.reason or "-") for w in list(filter(lambda x: x.is_expired(), all_warnings)))
+    expired_str = "\n".join("**\\*{}\\***\n  Reason: {}".format(w.timestamp_str, w.reason or NO_REASON) for w in list(filter(lambda x: x.is_expired(), all_warnings)))
     if expired_str:
         embed.add_field(name="Expired ({})".format(len(all_warnings)-len(active_warnings)), value=expired_str, inline=False)
 
@@ -320,7 +321,7 @@ async def active_warnings(ctx: commands.Context):
     for member_id in active_warnings:
         warnings = warning_db.get_active_warnings(member_id)
         active_str = "\n".join(
-            "{} - {}\n Reason: {}".format(w.timestamp_str, w.expiration_str, w.reason or "-") for w in warnings)
+            "**\\*{} - {}\\***\n  Reason: {}".format(w.timestamp_str, w.expiration_str, w.reason or NO_REASON) for w in warnings)
         if active_str:
             embed.add_field(name=ctx.guild.get_member(int(member_id)), value=active_str, inline=False)
 

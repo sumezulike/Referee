@@ -29,11 +29,11 @@ class RefWarning:
 
     @property
     def timestamp_str(self):
-        return self.timestamp.strftime("%b %d %Y %H:%M:%S")
+        return self.timestamp.strftime("%b %d %Y %H:%M")
 
     @property
     def expiration_str(self):
-        return self.expiration_time.strftime("%b %d %Y %H:%M:%S")
+        return self.expiration_time.strftime("%b %d %Y %H:%M")
 
     def is_expired(self):
         return self.expiration_time < datetime.now()

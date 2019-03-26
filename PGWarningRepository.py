@@ -76,9 +76,8 @@ class PGWarningRepository:
         self.conn.commit()
 
         warnings = []
-        for result in results:
-            print(result)
-            warnings.append(RefWarning(user_id=result[1], timestamp=result[2], expiration_time=result[3], reason=result[4]))
+        for row in results:
+            warnings.append(RefWarning(user_id=row[1], timestamp=row[2], expiration_time=row[3], reason=row[4]))
 
         return warnings
 
@@ -91,7 +90,7 @@ class PGWarningRepository:
 
         results = cur.fetchall()
 
-        warnings = [RefWarning(user_id=result[1], timestamp=result[2], expiration_time=result[3], reason=result[4]) for result in results]
+        warnings = [RefWarning(user_id=row[1], timestamp=row[2], expiration_time=row[3], reason=row[4]) for row in results]
 
         return warnings
 
@@ -110,20 +109,16 @@ class PGWarningRepository:
 
         results = cur.fetchall()
 
-        for result in results:
-            w = RefWarning(user_id=result[1], timestamp=result[2], expiration_time=result[3], reason=result[4])
-            warnings[result[1]].append(w)
+        for row in results:
+            w = RefWarning(user_id=row[1], timestamp=row[2], expiration_time=row[3], reason=row[4])
+            warnings[row[1]].append(w)
 
         return warnings
 
     def get_all_active_warnings(self) -> Dict[str, List[RefWarning]]:
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
-        query_ids = "SELECT DISTINCT user_id FROM warnings"
-        cur.execute(query_ids)
-        user_ids = cur.fetchall()
-
-        warnings = {user_id[0]: [] for user_id in user_ids}
+        warnings = {}
 
         query_all = """
         SELECT id, user_id, timestamp, expiration_time, reason FROM warnings 
@@ -134,9 +129,11 @@ class PGWarningRepository:
 
         results = cur.fetchall()
 
-        for result in results:
-            w = RefWarning(user_id=result[1], timestamp=result[2], expiration_time=result[3], reason=result[4])
-            warnings[result[1]].append(w)
+        for row in results:
+            w = RefWarning(user_id=row[1], timestamp=row[2], expiration_time=row[3], reason=row[4])
+            if w.user_id not in warnings:
+                warnings[w.user_id] = []
+            warnings[w.user_id].append(w)
 
         cur.close()
 
