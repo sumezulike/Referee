@@ -1,5 +1,17 @@
 version: '3'
 services:
+  db:
+    image: postgres:latest
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: 'tooreferee'
+      POSTGRES_USER: 'referee'
+      POSTGRES_DB: 'referee'
+    volumes:
+      - database_data:/var/lib/postgresql/data
+
   bot:
     build: .
     restart: unless-stopped
@@ -8,6 +20,10 @@ services:
     working_dir: /bot
     command: 'python Referee.py'
     environment:
-      PORT: 8008
+      PORT: 8002
     ports:
-      - '8008:8008'
+      - '8002:8002'
+
+volumes:
+  database_data:
+    driver: local
