@@ -98,6 +98,7 @@ def get_name_reason(message: discord.message) -> tuple:
     content = clean_content(message)
     name, reason = content.split(" has been warned.", 1)
     name = name.split("> ")[1]
+    reason = reason.replace(", ", "", 1)
     return name, reason
 
 
