@@ -21,6 +21,9 @@ creation = (
         expiration_time TIMESTAMP NOT NULL,
         reason VARCHAR(255)
         )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS warnings_user_id_idx ON warnings (user_id);
     """
 )
 
@@ -34,15 +37,10 @@ class PGWarningRepository:
             user=config.PG_User,
             password=config.PG_Password
         )
-        self.conn.cursor().execute(creation[1])
 
     def close(self):
         if not self.conn.closed:
             self.conn.close()
-
-    def check_database(self):
-        cur: psycopg2._psycopg.cursor = self.conn.cursor()
-        test_query = "SELECT id, user_id, timestamp, expiration_time, reason from warnings LIMIT 1"
 
     def recreate_tables(self):
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
@@ -92,6 +90,8 @@ class PGWarningRepository:
 
         warnings = [RefWarning(user_id=row[1], timestamp=row[2], expiration_time=row[3], reason=row[4]) for row in results]
 
+        cur.close()
+
         return warnings
 
     def get_all_warnings(self) -> Dict[str, List[RefWarning]]:
@@ -112,6 +112,8 @@ class PGWarningRepository:
         for row in results:
             w = RefWarning(user_id=row[1], timestamp=row[2], expiration_time=row[3], reason=row[4])
             warnings[row[1]].append(w)
+
+        cur.close()
 
         return warnings
 
@@ -153,6 +155,5 @@ class PGWarningRepository:
 
 if __name__ == "__main__":
     p = PGWarningRepository()
-    p.check_database()
     p.recreate_tables()
 
