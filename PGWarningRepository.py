@@ -37,6 +37,10 @@ class PGWarningRepository:
             user=config.PG_User,
             password=config.PG_Password
         )
+        cur = self.conn.cursor()
+        cur.execute(creation[1])  # create table if not exist
+        cur.execute(creation[2])  # create index if not exist
+        cur.close()
 
     def close(self):
         if not self.conn.closed:
