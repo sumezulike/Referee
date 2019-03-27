@@ -1,2 +1,2 @@
 async-timeout==3.0.1
-discord.py==1.0.0a1650+g1222bce
+discord.py-1.0.0a1790+g43b4475
