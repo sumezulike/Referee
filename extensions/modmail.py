@@ -67,7 +67,7 @@ class ModMail(commands.Cog):
 
         await report_message.edit(embed=embed)
 
-    @commands.command(aliases=["respond"])
+    @commands.command(aliases=["respond", "a", "res", "ans"])
     @commands.has_permissions(kick_members=True)
     async def answer(self, ctx: commands.Context, modmail_id: int, *, message: str):
         modmail = self.db.get_modmail(modmail_id)
@@ -113,7 +113,7 @@ class ModMail(commands.Cog):
         self.db.put_answer(answer)
         await self.update_modmail_answer(modmail_id=modmail.modmail_id, mod_id=answer.mod_id)
 
-    @commands.command(aliases=["answers_to", "answers"])
+    @commands.command(aliases=["answers_to", "get_ans", "a?"])
     @commands.has_permissions(kick_members=True)
     async def get_answers(self, ctx: commands.Context, modmail_id: int = None):
         if modmail_id is None:
