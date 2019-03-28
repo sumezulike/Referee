@@ -6,6 +6,7 @@ CONFIG_FILE = "options.ini"
 class Config:
 
     def __init__(self, path=CONFIG_FILE):
+
         self.config = configparser.ConfigParser()
         self.config.read(path)
         if not self.config.sections():
@@ -24,7 +25,7 @@ class Config:
     def token(self): return self.config["Credentials"]["Token"]
 
     @property
-    def warningLifetime(self): return self.config["Warnings"]["WarningLifetime"]
+    def warningLifetime(self): return int(self.config["Warnings"]["WarningLifetime"])
 
     @property
     def warnedRoleName(self): return self.config["Warnings"]["WarnedRoleName"]
@@ -43,3 +44,6 @@ class Config:
 
     @property
     def PG_Password(self): return self.config["PostgreSQL"]["Password"]
+
+
+config = Config()
