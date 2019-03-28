@@ -1,9 +1,5 @@
 import discord
 from discord.ext import commands
-import sys
-import os
-import logging
-import logging.handlers
 import timeit
 from config.Config import config
 
@@ -28,42 +24,6 @@ async def on_ready():
     bot.remove_command("help")
     print("Ready!")
 
-def set_logger() -> logging.Logger:
-    if not os.path.exists("logs"):
-        print("Creating logs folder...")
-        os.makedirs("logs")
-
-    logger = logging.getLogger("referee")
-    logger.setLevel(logging.INFO)
-
-    ref_format = logging.Formatter(
-        '%(asctime)s %(levelname)s %(funcName)s %(lineno)d: '
-        '%(message)s',
-        datefmt="[%d/%m/%Y %H:%M]")
-
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setFormatter(ref_format)
-
-    fhandler = logging.handlers.RotatingFileHandler(
-        filename='logs/ref.log', encoding='utf-8', mode='a',
-        maxBytes=10 ** 7, backupCount=5)
-    fhandler.setFormatter(ref_format)
-
-    logger.addHandler(fhandler)
-    logger.addHandler(stdout_handler)
-
-    dpy_logger = logging.getLogger("discord")
-
-    handler = logging.FileHandler(
-        filename='logs/discord.log', encoding='utf-8', mode='a')
-    handler.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d: '
-        '%(message)s',
-        datefmt="[%d/%m/%Y %H:%M]"))
-    dpy_logger.addHandler(handler)
-
-    return logger
-
 
 @bot.command()
 async def ping(ctx: commands.Context):
@@ -75,6 +35,12 @@ async def ping(ctx: commands.Context):
     dur = timeit.default_timer() - start
     embed.title += f"  |  {dur:.3}s"
     await msg.edit(embed=embed)
+
+
+@bot.command(aliases=["game"])
+@commands.has_permissions(kick_members=True)
+async def status(ctx: commands.Context, *, status: str):
+    await bot.change_presence(activity=discord.Game(name=status))
 
 if __name__ == '__main__':
     main()
