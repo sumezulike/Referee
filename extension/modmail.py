@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
 
-from PGModmailDB import PGModmailDB
+from db_classes.PGModmailDB import PGModmailDB
 
-from models import modmail
+from models import modmail_models
 
 MOD_CHANNEL_ID = 539570743168466958
 
@@ -20,9 +20,18 @@ class ModMail(commands.Cog):
             await self.process_modmail(message)
 
     async def process_modmail(self, message: discord.Message):
-        mail = modmail.ModMail(author_id=message.author.id, author_name=message.author.discriminator, timestamp=message.created_at, content=message.content)
+        mail = modmail_models.ModMail(author_id=message.author.id, author_name=message.author.discriminator, timestamp=message.created_at, content=message.content)
         self.db.put_modmail(mail)
+        await self.report(mail)
+
+    async def report(self, mail: modmail_models.ModMail):
+        embed = discord.Embed(title=f"New ModMail by {mail.author_name}")
+        embed.add_field(name="Content", value=mail.content)
+        embed.add_field(name="Answered", value="")
+
+
         await self.mod_channel.send()
+
 
     @commands.command
     @commands.has_permissions(kick_members=True)
@@ -33,6 +42,7 @@ class ModMail(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def recent(self, ctx: commands.Context, number: int = 5):
         pass
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(ModMail(bot))

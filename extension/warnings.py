@@ -3,13 +3,14 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
 
-from PGWarningDB import PGWarningDB
+from db_classes.PGWarningDB import PGWarningDB
 from config.Config import Config, config
 
 import asyncio
 
 from models.refwarning import RefWarning
 
+from utils import emoji
 
 NO_REASON = "None"
 
@@ -90,7 +91,7 @@ class Warnings(commands.Cog):
         return "<:dynoSuccess:314691591484866560> Cleared" in content and "warnings for " in content
 
     async def acknowledge(self, message: discord.Message):
-        await message.add_reaction("👁")
+        await message.add_reaction(emoji.eye)
 
     async def execute_warning(self, ctx: commands.Context, member: discord.Member, warning: RefWarning):
         await self.check_warnings(member)

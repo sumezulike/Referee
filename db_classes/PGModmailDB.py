@@ -3,7 +3,7 @@ from typing import List
 import psycopg2
 
 from config.Config import Config
-from models.modmail import ModMail, ModMailAnswer
+from models.modmail_models import ModMail, ModMailAnswer
 
 config = Config("config/options.ini")
 
