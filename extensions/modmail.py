@@ -51,19 +51,18 @@ class ModMail(commands.Cog):
         msg = await self.mod_channel.send(embed=embed)
         return msg.id
 
-    async def update_modmail_answer(self, modmail_id: int, mod_id: int):
+    async def update_modmail_answer(self, modmail_id: int, answer: modmail_models.ModMailAnswer):
         modmail = self.db.get_modmail(modmail_id)
         report_message: discord.Message = (await self.mod_channel.fetch_message(modmail.message_id))
         embed: discord.Embed = report_message.embeds[0]
         name = f"Answered: {emoji.white_check_mark}"
-        mod_name = self.mod_channel.guild.get_member(mod_id)
         if emoji.x in embed.fields[1].name:
-            embed.set_field_at(1, name=name, value=f"1. {mod_name}", inline=False)
+            embed.set_field_at(1, name=name, value=f"**1. {answer.mod_name}:** \"{answer.content}\"", inline=False)
 
         else:
             content = embed.fields[1].value
             num_answers = len(content.split("\n"))
-            embed.set_field_at(1, name=name, value=f"{content}\n{num_answers+1}. {mod_name}", inline=False)
+            embed.set_field_at(1, name=name, value=f"{content}\n{num_answers+1}. {answer.mod_name}", inline=False)
 
         await report_message.edit(embed=embed)
 
