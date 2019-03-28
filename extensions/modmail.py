@@ -21,7 +21,7 @@ class ModMail(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.guild is None and not message.author.bot:
+        if await self.is_valid_mail(message):
             await self.process_modmail(message)
 
     @commands.Cog.listener()
@@ -29,6 +29,12 @@ class ModMail(commands.Cog):
         self.mod_channel: discord.TextChannel = self.bot.get_channel(MOD_CHANNEL_ID)
         if not self.mod_channel:
             raise RuntimeError("Modchannel is None")
+
+    async def is_valid_mail(self, message):
+        return \
+            message.guild is None and \
+            not message.author.bot and \
+            message.content
 
     async def process_modmail(self, message: discord.Message):
         author_name = f"{message.author.display_name}#{message.author.discriminator}"
@@ -65,9 +71,10 @@ class ModMail(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def answer(self, ctx: commands.Context, modmail_id: int, *, message: str):
         modmail = self.db.get_modmail(modmail_id)
-        embed = discord.Embed(title="Answer preview", color=discord.Color.dark_gold())
+        embed = discord.Embed(title="Preview", color=discord.Color.dark_gold())
         embed.add_field(name=f"Request by {modmail.author_name}", value=modmail.content, inline=False)
-        embed.add_field(name=f"Answered by {ctx.author.display_name}", value=message, inline=False)
+        embed.add_field(name=f"Answer by {ctx.author.display_name}", value=message, inline=False)
+        embed.add_field(name=f"**Confirm or cancel below**", value=message, inline=False)
 
         preview: discord.Message = await ctx.send(embed=embed)
         await preview.add_reaction(emoji.white_check_mark)
