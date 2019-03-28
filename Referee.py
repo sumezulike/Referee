@@ -65,7 +65,7 @@ def set_logger() -> logging.Logger:
     return logger
 
 
-@commands.command()
+@bot.command()
 async def ping(ctx: commands.Context):
     start = timeit.default_timer()
     title = "Pong. "

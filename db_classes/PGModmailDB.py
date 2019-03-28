@@ -11,22 +11,22 @@ creation = (
     """
     CREATE TABLE IF NOT EXISTS modmail (
         id SERIAL PRIMARY KEY NOT NULL,
-        author_id INTEGER NOT NULL,
+        author_id BIGINT NOT NULL,
         author_name VARCHAR NOT NULL ,
         timestamp TIMESTAMP NOT NULL,
         content TEXT NOT NULL ,
         answer_count INTEGER,
-        message_id INTEGER
+        message_id BIGINT
         )
     """,
     """
     CREATE TABLE IF NOT EXISTS answers (
         id SERIAL PRIMARY KEY,
-        mod_id INTEGER NOT NULL,
+        mod_id BIGINT NOT NULL,
         mod_name VARCHAR NOT NULL ,
         timestamp TIMESTAMP NOT NULL,
         content TEXT NOT NULL ,
-        modmail_id INTEGER NOT NULL 
+        modmail_id BIGINT NOT NULL 
         )
     """,
     """
@@ -39,6 +39,10 @@ creation = (
 
     """
     CREATE INDEX IF NOT EXISTS modmail_id_idx ON modmailanswers (modmail_id);
+    """,
+
+    """
+    CREATE INDEX IF NOT EXISTS answer_id_idx ON modmailanswers (answer_id);
     """
 )
 

@@ -25,6 +25,7 @@ class Warnings(commands.Cog):
         self.bot = bot
         self.warning_db = PGWarningDB()
 
+    @commands.Cog.listener()
     async def on_ready(self):
         self.bot.loop.create_task(self.bg_check())
 
@@ -38,6 +39,7 @@ class Warnings(commands.Cog):
                 await self.check_all_members(guild)
             await asyncio.sleep(120)  # task runs every second minute
 
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if self.message_is_warning(message):
             name, reason = self.get_name_reason(message)
@@ -62,10 +64,12 @@ class Warnings(commands.Cog):
             await self.remove_warned_roles(member)
 
 
+    @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         await self.check_warnings(member)
 
-    def clean_content(self, message: discord.message) -> str:
+    @staticmethod
+    def clean_content(message: discord.message) -> str:
         content = message.clean_content
 
         content = content.replace("***", "").replace("\\_", "_").replace("\\*", "*").replace("\\\\", "\\")

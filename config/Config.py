@@ -1,6 +1,6 @@
 import configparser
 
-CONFIG_FILE = "options.ini"
+CONFIG_FILE = "config/options.ini"
 
 
 class Config:
@@ -13,7 +13,7 @@ class Config:
             raise FileNotFoundError("No config in file: {}".format(path))
 
     @property
-    def extensions(self): return self.config["Bot"]["Extensions"]
+    def extensions(self): return self.config["Bot"]["Extensions"].split()
 
     @property
     def dynoID(self): return self.config["Warnings"]["DynoID"]
