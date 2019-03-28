@@ -97,11 +97,8 @@ class Warnings(commands.Cog):
         num_warnings = len(self.warning_db.get_active_warnings(member.id))
         if num_warnings > 1:
             await ctx.channel.send(
-                "{} has been warned {} times in the last {} hours".format(
-                    member.display_name,
-                    num_warnings,
-                    warning_lifetime
-                )
+                f"{member.display_name} has been warned {num_warnings} times in the last {warning_lifetime} hours",
+                delete_after=60
             )
 
     async def check_warnings(self, member: discord.Member):
@@ -203,7 +200,7 @@ class Warnings(commands.Cog):
     async def warnings(self, ctx: commands.Context, member: discord.Member = None):
 
         if not member:
-            await ctx.send("Usage: `ref!warnings @member`")
+            await ctx.send("Usage: `ref!warnings @member`", delete_after=30)
             return
 
         all_warnings = self.warning_db.get_warnings(member.id)
