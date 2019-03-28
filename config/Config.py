@@ -12,6 +12,9 @@ class Config:
             raise FileNotFoundError("No config in file: {}".format(path))
 
     @property
+    def extensions(self): return self.config["Bot"]["Extensions"]
+
+    @property
     def dynoID(self): return self.config["Warnings"]["DynoID"]
 
     @property
@@ -25,9 +28,6 @@ class Config:
 
     @property
     def warnedRoleName(self): return self.config["Warnings"]["WarnedRoleName"]
-
-    @property
-    def debugLevel(self): return self.config["Chat"]["DebugLevel"]
 
     @property
     def commandPrefixes(self): return self.config["Chat"]["CommandPrefixes"].split()
