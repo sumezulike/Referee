@@ -71,10 +71,9 @@ class ModMail(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def answer(self, ctx: commands.Context, modmail_id: int, *, message: str):
         modmail = self.db.get_modmail(modmail_id)
-        embed = discord.Embed(title="Preview", color=discord.Color.dark_gold())
+        embed = discord.Embed(title="Preview **(Confirm or cancel below)**", color=discord.Color.dark_gold())
         embed.add_field(name=f"Request by {modmail.author_name}", value=modmail.content, inline=False)
         embed.add_field(name=f"Answer by {ctx.author.display_name}", value=message, inline=False)
-        embed.add_field(name=f"**Confirm or cancel below**", value=message, inline=False)
 
         preview: discord.Message = await ctx.send(embed=embed)
         await preview.add_reaction(emoji.white_check_mark)
