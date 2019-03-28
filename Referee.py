@@ -1,4 +1,3 @@
-import asyncio
 import discord
 from discord.ext import commands
 import sys
@@ -6,12 +5,8 @@ import os
 import logging
 import logging.handlers
 import timeit
-from datetime import datetime, timedelta
-
-from PGWarningRepository import PGWarningRepository
 from config.Config import config
 
-from models.refwarning import RefWarning
 
 bot = commands.Bot(command_prefix=config.commandPrefixes,
                    case_insensitive=True,
@@ -20,8 +15,6 @@ bot = commands.Bot(command_prefix=config.commandPrefixes,
 
 
 def main():
-
-    # get extensions
 
     for ext in config.extensions:
         bot.load_extension(f"extensions.{ext}")
@@ -33,7 +26,6 @@ def main():
 @bot.event
 async def on_ready():
     bot.remove_command("help")
-    bot.loop.create_task(bg_check())
     print("Ready!")
 
 def set_logger() -> logging.Logger:
