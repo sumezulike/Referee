@@ -1,5 +1,4 @@
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List
 
 import psycopg2
@@ -28,7 +27,7 @@ creation = (
 )
 
 
-class PGWarningRepository:
+class PGWarningDB:
 
     def __init__(self):
         self.conn: psycopg2._psycopg.connection = psycopg2.connect(
@@ -158,6 +157,6 @@ class PGWarningRepository:
 
 
 if __name__ == "__main__":
-    p = PGWarningRepository()
+    p = PGWarningDB()
     p.recreate_tables()
 
