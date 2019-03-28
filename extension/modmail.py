@@ -1,9 +1,13 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 
 from db_classes.PGModmailDB import PGModmailDB
 
 from models import modmail_models
+
+from utils import emoji
 
 MOD_CHANNEL_ID = 539570743168466958
 
@@ -21,27 +25,86 @@ class ModMail(commands.Cog):
 
     async def process_modmail(self, message: discord.Message):
         mail = modmail_models.ModMail(author_id=message.author.id, author_name=message.author.discriminator, timestamp=message.created_at, content=message.content)
-        self.db.put_modmail(mail)
-        await self.report(mail)
+        modmail_id = self.db.put_modmail(mail)
+        message_id = await self.report(mail)
+        self.db.assign_message_id(modmail_id=modmail_id, message_id=message_id)
 
-    async def report(self, mail: modmail_models.ModMail):
-        embed = discord.Embed(title=f"New ModMail by {mail.author_name}")
-        embed.add_field(name="Content", value=mail.content)
-        embed.add_field(name="Answered", value="")
+    async def report(self, mail: modmail_models.ModMail) -> int:
+        embed = discord.Embed(title=f"New ModMail by {mail.author_name}", color=discord.Color.dark_gold())
+        embed.add_field(name="Message", value=mail.content, inline=False)
+        embed.add_field(name=f"Answered: {emoji.x}", value=f"{emoji.x}", inline=False)
 
+        msg_id = await self.mod_channel.send(embed=embed)
+        return msg_id
 
-        await self.mod_channel.send()
+    async def update_modmail_answer(self, modmail_id: int, mod_id: int):
+        modmail = self.db.get_modmail(modmail_id)
+        embed: discord.Embed = (await self.mod_channel.fetch_message(modmail.message_id)).embeds[0]
+        name = f"Answered: {emoji.white_check_mark}"
+        mod_name = self.mod_channel.guild.get_member(mod_id)
+        if emoji.x in embed.fields[1].name:
+            embed.set_field_at(1, name=name, value=f"1. {mod_name}", inline=False)
 
+        else:
+            content = embed.fields[1].value
+            num_answers = len(content.split("\n"))
+            embed.set_field_at(1, name=name, value=f"{content}\n{num_answers+1}. {mod_name}", inline=False)
 
-    @commands.command
+    @commands.command(aliases=["respond"])
     @commands.has_permissions(kick_members=True)
     async def answer(self, ctx: commands.Context, modmail_id: int, *, message: str):
-        pass
+        modmail = self.db.get_modmail(modmail_id)
+        embed = discord.Embed(title="Answer preview", color=discord.Color.dark_gold())
+        embed.add_field(name=f"Request by {modmail.author_name}", value=modmail.content, inline=False)
+        embed.add_field(name=f"Answered by {ctx.author.display_name}", value=message, inline=False)
 
-    @commands.command
+        preview: discord.Message = await ctx.send(embed=embed)
+        await preview.add_reaction(emoji.white_check_mark)
+        await preview.add_reaction(emoji.x)
+
+        def check(reaction, user):
+            return user == ctx.author and str(reaction.emoji) in [emoji.x, emoji.white_check_mark]
+
+        def cancel_answer():
+            ctx.send(f"Cancelled answer to **({modmail_id})** from {modmail.author_name}")
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            cancel_answer()
+        else:
+            if reaction == emoji.white_check_mark:
+                answer = modmail_models.ModMailAnswer(content=message, mod_id=ctx.author.id, mod_name=ctx.author.display_name, modmail=modmail, timestamp=ctx.message.created_at)
+                await self.answer_user(modmail, answer)
+            else:
+                cancel_answer()
+        finally:
+            await preview.delete()
+
+    async def answer_user(self, modmail: modmail_models.ModMail, answer: modmail_models.ModMailAnswer):
+        embed = discord.Embed(name="ModMail", color=discord.Color.dark_gold())
+        embed.add_field(name=f"Your request from {modmail.timestamp_str}", value=modmail.content, inline=False)
+        embed.add_field(name=f"Answered by {answer.mod_name}", value=answer.content, inline=False)
+
+        user = await self.bot.fetch_user(modmail.author_id)
+        await user.send(embed=embed)
+        self.db.put_answer(answer)
+
+    @commands.command(aliases=["answers_to", "answers"])
     @commands.has_permissions(kick_members=True)
-    async def recent(self, ctx: commands.Context, number: int = 5):
-        pass
+    async def get_answers(self, ctx: commands.Context, modmail_id: int = None):
+        if modmail_id is None:
+            await ctx.send(f"Usage: `!get_answers <ID>`", delete_after=30)
+            return
+
+        answers = self.db.get_answers(modmail=self.db.get_modmail(modmail_id=modmail_id))
+        if not answers:
+            await ctx.send(f"No answers to **({modmail_id})**")
+        else:
+            embed = discord.Embed(name=f"Answers to **({modmail_id})** from {answers[0].modmail.author_name}", color=discord.Color.dark_gold())
+            for ans in answers:
+                embed.add_field(name=f"{ans.mod_name}, {ans.timestamp_str}", value=f"{ans.content}", inline=False)
+            await ctx.send(embed=embed)
 
 
 def setup(bot: commands.Bot):

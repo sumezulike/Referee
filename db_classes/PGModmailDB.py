@@ -11,17 +11,18 @@ creation = (
     """
     CREATE TABLE IF NOT EXISTS modmail (
         id SERIAL PRIMARY KEY NOT NULL,
-        author_id VARCHAR(32) NOT NULL,
+        author_id INTEGER NOT NULL,
         author_name VARCHAR NOT NULL ,
         timestamp TIMESTAMP NOT NULL,
         content TEXT NOT NULL ,
-        answer_count INTEGER
+        answer_count INTEGER,
+        message_id INTEGER
         )
     """,
     """
     CREATE TABLE IF NOT EXISTS answers (
         id SERIAL PRIMARY KEY,
-        mod_id VARCHAR(32) NOT NULL,
+        mod_id INTEGER NOT NULL,
         mod_name VARCHAR NOT NULL ,
         timestamp TIMESTAMP NOT NULL,
         content TEXT NOT NULL ,
@@ -93,7 +94,18 @@ class PGModmailDB:
 
         return modmail_id
 
-    def put_answer(self, answer: ModMailAnswer):
+    def assign_message_id(self, modmail_id: int, message_id: int):
+        update = """UPDATE modmail SET message_id = %s WHERE id = %s"""
+        cur = self.conn.cursor()
+
+        cur.execute(update, (message_id, modmail_id))
+
+        cur.close()
+
+        self.conn.commit()
+        return
+
+    def put_answer(self, answer: ModMailAnswer) -> int:
 
         insert = """INSERT into answers(mod_id, mod_name, timestamp, content, modmail_id) 
                     VALUES(%s, %s, %s, %s, %s) RETURNING id
@@ -123,14 +135,14 @@ class PGModmailDB:
         self.conn.commit()
 
     def get_modmail(self, modmail_id: int) -> ModMail:
-        query = "SELECT author_id, author_name, timestamp, content, answer_count, id FROM modmail WHERE id = %s"
+        query = "SELECT author_id, author_name, timestamp, content, answer_count, id, message_id FROM modmail WHERE id = %s"
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
         cur.execute(query, (modmail_id,))
 
         row = cur.fetchone()
 
-        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[], modmail_id=row[5])
+        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[], modmail_id=row[5], message_id=row[6])
         if row[4] > 0:  # answers_count
             mail.answers = self.get_answers(mail)
 

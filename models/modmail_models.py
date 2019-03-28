@@ -5,14 +5,15 @@ from typing import List
 
 class ModMail:
 
-    def __init__(self, author_id: str, author_name: str, timestamp: datetime, content: str,
-                 answers: List[ModMailAnswer] = None, modmail_id: int = None):
+    def __init__(self, author_id: int, author_name: str, timestamp: datetime, content: str,
+                 answers: List[ModMailAnswer] = None, modmail_id: int = None, message_id: int = None):
         self.author_id = author_id
         self.author_name = author_name
         self.timestamp = timestamp
         self.content = content
         self.answers = answers
         self.modmail_id = modmail_id
+        self.message_id = message_id
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
