@@ -110,7 +110,7 @@ class ModMail(commands.Cog):
         user = await self.bot.fetch_user(modmail.author_id)
         await user.send(embed=embed)
         self.db.put_answer(answer)
-        await self.update_modmail_answer(modmail_id=modmail.modmail_id, mod_id=answer.mod_id)
+        await self.update_modmail_answer(modmail_id=modmail.modmail_id, answer=answer)
 
     @commands.command(aliases=["answers_to", "get_ans", "a?"])
     @commands.has_permissions(kick_members=True)
