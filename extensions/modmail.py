@@ -76,7 +76,7 @@ class ModMail(commands.Cog):
             message = modmail_id + " " + message
 
         embed = discord.Embed(title="Preview **(Confirm or cancel below)**", color=discord.Color.dark_gold())
-        embed.add_field(name=f"Request by {modmail.author_name}", value=modmail.content, inline=False)
+        embed.add_field(name=f"Message by {modmail.author_name}", value=modmail.content, inline=False)
         embed.add_field(name=f"Answer by {ctx.author.display_name}", value=message, inline=False)
 
         preview: discord.Message = await ctx.send(embed=embed)
