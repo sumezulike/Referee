@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 import timeit
@@ -31,10 +33,22 @@ async def ping(ctx: commands.Context):
     title = "Pong. "
     embed = discord.Embed(title=title, color=discord.Color.dark_gold())
     msg = await ctx.send(embed=embed)  # type: discord.Message
-    await msg.add_reaction(discord.utils.get(ctx.guild.emojis, name="zoop"))
+    zoop = discord.utils.get(ctx.guild.emojis, name="zoop")
+    await msg.add_reaction(zoop)
     dur = timeit.default_timer() - start
     embed.title += f"  |  {dur:.3}s"
     await msg.edit(embed=embed)
+
+    def check(reaction, user):
+        return user == ctx.author and reaction.emoji == zoop
+
+    try:
+        reaction, user = await bot.wait_for("reaction_added", check=check, timeout=120)
+    except asyncio.TimeoutError:
+        pass
+    await ctx.message.delete()
+
+
 
 
 @bot.command(aliases=["game"])
