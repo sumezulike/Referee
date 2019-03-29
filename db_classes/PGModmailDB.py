@@ -154,6 +154,22 @@ class PGModmailDB:
         self.conn.commit()
         return mail
 
+    def get_latest_modmail(self) -> ModMail:
+        query = "SELECT author_id, author_name, timestamp, content, answer_count, id, message_id FROM modmail ORDER BY id DESC LIMIT 1"
+        cur: psycopg2._psycopg.cursor = self.conn.cursor()
+
+        cur.execute(query)
+
+        row = cur.fetchone()
+
+        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[], modmail_id=row[5], message_id=row[6])
+        if row[4] > 0:  # answers_count
+            mail.answers = self.get_answers(mail)
+
+        cur.close()
+        self.conn.commit()
+        return mail
+
     def get_answers(self, modmail: ModMail) -> List[ModMailAnswer]:
         id_query = """SELECT answer_id from modmailanswers WHERE modmail_id = %s"""
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
