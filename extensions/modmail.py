@@ -87,7 +87,7 @@ class ModMail(commands.Cog):
             return user == ctx.author and str(reaction.emoji) in [emoji.x, emoji.white_check_mark]
 
         async def cancel_answer():
-            cancel_embed = discord.Embed(title=f"{emoji.x} Cancelled answer to {modmail_id}")
+            cancel_embed = discord.Embed(title=f"{emoji.x} Cancelled answer to {modmail.modmail_id}")
             await ctx.send(embed=cancel_embed, delete_after=30)
 
         try:
