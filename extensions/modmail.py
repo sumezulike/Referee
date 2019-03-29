@@ -44,7 +44,7 @@ class ModMail(commands.Cog):
         self.db.assign_message_id(modmail_id=modmail_id, message_id=message_id)
 
     async def report(self, mail: modmail_models.ModMail) -> int:
-        embed = discord.Embed(title=f"**({mail.modmail_id})** New ModMail by {mail.author_name}", color=discord.Color.dark_gold())
+        embed = discord.Embed(title=f"**({mail.modmail_id})** *{mail.author_name}* says:", color=discord.Color.dark_gold())
         embed.add_field(name="Message", value=mail.content, inline=False)
         embed.add_field(name=f"Answered: {emoji.x}", value=f"Use `ref!answer {mail.modmail_id} <your answer>` to respond", inline=False)
 
@@ -68,8 +68,12 @@ class ModMail(commands.Cog):
 
     @commands.command(aliases=["respond", "a", "res", "ans"])
     @commands.has_permissions(kick_members=True)
-    async def answer(self, ctx: commands.Context, modmail_id: int, *, message: str):
-        modmail = self.db.get_modmail(modmail_id)
+    async def answer(self, ctx: commands.Context, modmail_id: int = None, *, message: str):
+        if modmail_id is None:
+            modmail = self.db.get_latest_modmail()
+        else:
+            modmail = self.db.get_modmail(modmail_id)
+
         embed = discord.Embed(title="Preview **(Confirm or cancel below)**", color=discord.Color.dark_gold())
         embed.add_field(name=f"Request by {modmail.author_name}", value=modmail.content, inline=False)
         embed.add_field(name=f"Answer by {ctx.author.display_name}", value=message, inline=False)
