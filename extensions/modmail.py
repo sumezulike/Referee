@@ -74,6 +74,7 @@ class ModMail(commands.Cog):
         except ValueError:
             modmail = self.db.get_latest_modmail()
             message = modmail_id + " " + message
+            modmail_id = modmail.modmail_id
 
         embed = discord.Embed(title="Preview **(Confirm or cancel below)**", color=discord.Color.dark_gold())
         embed.add_field(name=f"Message by {modmail.author_name}", value=modmail.content, inline=False)
@@ -87,7 +88,7 @@ class ModMail(commands.Cog):
             return user == ctx.author and str(reaction.emoji) in [emoji.x, emoji.white_check_mark]
 
         async def cancel_answer():
-            cancel_embed = discord.Embed(title=f"{emoji.x} Cancelled answer to {modmail.modmail_id}")
+            cancel_embed = discord.Embed(title=f"{emoji.x} Cancelled answer to {modmail_id}")
             await ctx.send(embed=cancel_embed, delete_after=30)
 
         try:
