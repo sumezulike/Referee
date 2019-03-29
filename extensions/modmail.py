@@ -62,7 +62,7 @@ class ModMail(commands.Cog):
         else:
             content = embed.fields[1].value
             num_answers = len(content.split("\n"))
-            embed.set_field_at(1, name=name, value=f"{content}\n{num_answers+1}. {answer.mod_name}", inline=False)
+            embed.set_field_at(1, name=name, value=f"{content}\n**{num_answers+1}. {answer.mod_name}:** \"{answer.content}\"", inline=False)
 
         await report_message.edit(embed=embed)
 
