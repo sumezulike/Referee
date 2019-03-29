@@ -68,11 +68,12 @@ class ModMail(commands.Cog):
 
     @commands.command(aliases=["respond", "a", "res", "ans"])
     @commands.has_permissions(kick_members=True)
-    async def answer(self, ctx: commands.Context, modmail_id: int = None, *, message: str):
-        if modmail_id is None:
+    async def answer(self, ctx: commands.Context, modmail_id: str, *, message: str):
+        try:
+            modmail = self.db.get_modmail(int(modmail_id))
+        except ValueError:
             modmail = self.db.get_latest_modmail()
-        else:
-            modmail = self.db.get_modmail(modmail_id)
+            message = modmail_id + " " + message
 
         embed = discord.Embed(title="Preview **(Confirm or cancel below)**", color=discord.Color.dark_gold())
         embed.add_field(name=f"Request by {modmail.author_name}", value=modmail.content, inline=False)
