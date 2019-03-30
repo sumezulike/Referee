@@ -1,6 +1,9 @@
 *.json
 *.pyc
-options.ini
 __pycache__
 .idea
 *.log
+
+options.ini
+modmail.ini
+warnings.ini

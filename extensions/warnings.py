@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 from db_classes.PGWarningDB import PGWarningDB
-from config.Config import Config, config
+from config import warnings_config
 
 import asyncio
 
@@ -14,9 +14,7 @@ from utils import emoji
 
 NO_REASON = "None"
 
-conf = Config("config/options.ini")
-
-warning_lifetime = int(conf.warningLifetime)
+warning_lifetime = int(warnings_config.warningLifetime)
 
 
 class Warnings(commands.Cog):
@@ -63,7 +61,6 @@ class Warnings(commands.Cog):
             self.warning_db.expire_warnings(member.id)
             await self.remove_warned_roles(member)
 
-
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         await self.check_warnings(member)
@@ -78,7 +75,7 @@ class Warnings(commands.Cog):
 
     def message_is_warning(self, message: discord.message) -> bool:
         content = self.clean_content(message)
-        if message.author.id == int(config.dynoID):
+        if message.author.id == warnings_config.dynoID:
             if "has been warned" in content:
                 return True
         return False
@@ -136,10 +133,10 @@ class Warnings(commands.Cog):
         guild: discord.Guild = member.guild
         warning_color = discord.Colour.from_rgb(*self.get_warned_color(member.colour.to_rgb()))
         warned_roles = list(
-            filter(lambda r: r.name == config.warnedRoleName and r.colour == warning_color, guild.roles))
+            filter(lambda r: r.name == warnings_config.warnedRoleName and r.colour == warning_color, guild.roles))
 
         if not warned_roles:
-            role = await guild.create_role(name=config.warnedRoleName,
+            role = await guild.create_role(name=warnings_config.warnedRoleName,
                                            colour=warning_color)
             await asyncio.sleep(0.5)
         else:
@@ -155,7 +152,7 @@ class Warnings(commands.Cog):
         await member.remove_roles(*warned_roles)
 
     async def get_warned_roles(self, member: discord.Member) -> list:
-        warned_roles = [r for r in member.roles if r.name == config.warnedRoleName]
+        warned_roles = [r for r in member.roles if r.name == warnings_config.warnedRoleName]
         return warned_roles
 
     async def save_warning(self, warning: RefWarning):
@@ -199,7 +196,6 @@ class Warnings(commands.Cog):
         await self.remove_warned_roles(member)
         await self.acknowledge(ctx.message)
 
-
     @commands.command(aliases=["warns", "warning", "?"])
     @commands.has_permissions(kick_members=True)
     async def warnings(self, ctx: commands.Context, member: discord.Member = None):
@@ -231,7 +227,6 @@ class Warnings(commands.Cog):
                             inline=False)
 
         await ctx.send(embed=embed)
-
 
     @commands.command(aliases=["active", "!"])
     @commands.has_permissions(kick_members=True)

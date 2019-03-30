@@ -31,7 +31,11 @@ class ModMail:
 
     @property
     def timestamp_str(self):
-        return self.timestamp.strftime("%b %d %Y %H:%M")
+        return self.timestamp.strftime("%b-%d-%Y %H:%M")
+
+    @property
+    def date_str(self):
+        return self.timestamp.strftime("%b-%d-%Y")
 
 
 class ModMailAnswer:
@@ -61,4 +65,6 @@ class ModMailAnswer:
     def timestamp_str(self):
         return self.timestamp.strftime("%b %d %Y %H:%M")
 
-
+    @property
+    def date_str(self):
+        return self.timestamp.strftime("%b-%d-%Y")

@@ -2,10 +2,8 @@ from typing import List
 
 import psycopg2
 
-from config.Config import Config
+from config import modmail_config
 from models.modmail_models import ModMail, ModMailAnswer
-
-config = Config("config/options.ini")
 
 creation = (
     """
@@ -63,10 +61,10 @@ class PGModmailDB:
 
     def __init__(self):
         self.conn: psycopg2._psycopg.connection = psycopg2.connect(
-            host=config.PG_Host,
-            database=config.PG_Database,
-            user=config.PG_User,
-            password=config.PG_Password
+            host=modmail_config.PG_Host,
+            database=modmail_config.PG_Database,
+            user=modmail_config.PG_User,
+            password=modmail_config.PG_Password
         )
         self.create_tables()
 

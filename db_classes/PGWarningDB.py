@@ -1,17 +1,11 @@
 from datetime import datetime
 from typing import Dict, List
-
 import psycopg2
 
-from config.Config import Config
 from models.refwarning import RefWarning
-
-config = Config("config/options.ini")
+from config import warnings_config
 
 creation = (
-    """
-    DROP TABLE IF EXISTS warnings
-    """,
     """
     CREATE TABLE IF NOT EXISTS warnings (
         id SERIAL PRIMARY KEY,
@@ -31,14 +25,14 @@ class PGWarningDB:
 
     def __init__(self):
         self.conn: psycopg2._psycopg.connection = psycopg2.connect(
-            host=config.PG_Host,
-            database=config.PG_Database,
-            user=config.PG_User,
-            password=config.PG_Password
+            host=warnings_config.PG_Host,
+            database=warnings_config.PG_Database,
+            user=warnings_config.PG_User,
+            password=warnings_config.PG_Password
         )
         cur = self.conn.cursor()
-        cur.execute(creation[1])  # create table if not exist
-        cur.execute(creation[2])  # create index if not exist
+        for query in creation:
+            cur.execute(query)
         cur.close()
 
     def close(self):
