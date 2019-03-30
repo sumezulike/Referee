@@ -60,17 +60,16 @@ async def ping(ctx: commands.Context):
     await ctx.message.delete()
 
 
-
-
+# noinspection PyUnusedLocal
 @bot.command(aliases=["game"])
 @commands.has_permissions(kick_members=True)
-async def status(ctx: commands.Context, *, status: str):
+async def status(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
     :param ctx: Context object for the specific invoked ćommands
-    :param status: The string that will be displayed as activity
+    :param activity: The string that will be displayed as activity
     """
-    await bot.change_presence(activity=discord.Game(name=status))
+    await bot.change_presence(activity=discord.Game(name=activity))
 
 if __name__ == '__main__':
     main()

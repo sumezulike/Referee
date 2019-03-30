@@ -8,13 +8,25 @@ from config import warnings_config
 
 import asyncio
 
-from models.refwarning import RefWarning
+from models.warnings_models import RefWarning
 
 from utils import emoji
 
 NO_REASON = "None"
 
 warning_lifetime = int(warnings_config.warningLifetime)
+
+
+def get_warned_color(color: tuple) -> tuple:
+    def is_grey(c):
+        return max([abs(c[0] - c[1]), abs(c[1] - c[2]), abs(c[0] - c[2])]) < 25
+
+    new_color = (color[0] // 2, color[1] // 2, color[2] // 2)
+    default_warned_color = (120, 100, 100)
+    if sum(new_color) / 3 < 100 and is_grey(new_color):
+        return default_warned_color
+    else:
+        return new_color
 
 
 class Warnings(commands.Cog):
@@ -44,9 +56,10 @@ class Warnings(commands.Cog):
 
             member: discord.Member = await commands.MemberConverter().convert(await self.bot.get_context(message), name)
 
-            warning = RefWarning(user_id=str(member.id),
+            warning = RefWarning(user_id=member.id,
                                  reason=reason,
                                  timestamp=datetime.now(),
+                                 mod_name="Some mod",
                                  expiration_time=datetime.now() + timedelta(hours=warning_lifetime))
 
             await self.save_warning(warning)
@@ -80,6 +93,11 @@ class Warnings(commands.Cog):
                 return True
         return False
 
+    @staticmethod
+    async def get_warned_roles(member: discord.Member) -> list:
+        warned_roles = [r for r in member.roles if r.name == warnings_config.warnedRoleName]
+        return warned_roles
+
     def get_name_reason(self, message: discord.message) -> tuple:
         content = self.clean_content(message)
         name, reason = content.split(" has been warned.", 1)
@@ -91,9 +109,11 @@ class Warnings(commands.Cog):
         content = self.clean_content(message)
         return "<:dynoSuccess:314691591484866560> Cleared" in content and "warnings for " in content
 
-    async def acknowledge(self, message: discord.Message):
+    @staticmethod
+    async def acknowledge(message: discord.Message):
         await message.add_reaction(emoji.eye)
 
+    # noinspection PyUnusedLocal
     async def execute_warning(self, ctx: commands.Context, member: discord.Member, warning: RefWarning):
         await self.check_warnings(member)
         num_warnings = len(self.warning_db.get_active_warnings(member.id))
@@ -102,6 +122,7 @@ class Warnings(commands.Cog):
                 f"{member.display_name} has been warned {num_warnings} times in the last {warning_lifetime} hours",
                 delete_after=60
             )
+            # TODO: punishments
 
     async def check_warnings(self, member: discord.Member):
         is_warned = bool(await self.get_warned_roles(member))
@@ -131,7 +152,7 @@ class Warnings(commands.Cog):
             return
 
         guild: discord.Guild = member.guild
-        warning_color = discord.Colour.from_rgb(*self.get_warned_color(member.colour.to_rgb()))
+        warning_color = discord.Colour.from_rgb(*get_warned_color(member.colour.to_rgb()))
         warned_roles = list(
             filter(lambda r: r.name == warnings_config.warnedRoleName and r.colour == warning_color, guild.roles))
 
@@ -151,29 +172,28 @@ class Warnings(commands.Cog):
         warned_roles = await self.get_warned_roles(member)
         await member.remove_roles(*warned_roles)
 
-    async def get_warned_roles(self, member: discord.Member) -> list:
-        warned_roles = [r for r in member.roles if r.name == warnings_config.warnedRoleName]
-        return warned_roles
-
     async def save_warning(self, warning: RefWarning):
         self.warning_db.put_warning(warning)
 
-    async def mute(self, member: discord.Member, mute_time: int = 30 * 60):
-        muted_roles = list(filter(lambda x: x.name == "Muted", member.guild.roles))
+    @staticmethod
+    async def mute(member: discord.Member, mute_time: int):
+        muted_roles = discord.utils.get(member.guild.roles, name="Muted")
         await member.add_roles(*muted_roles)
         await asyncio.sleep(mute_time)
         await member.remove_roles(*muted_roles)
 
-    def get_warned_color(self, color: tuple) -> tuple:
-        def is_grey(c):
-            return max([abs(c[0] - c[1]), abs(c[1] - c[2]), abs(c[0] - c[2])]) < 25
-
-        new_color = (color[0] // 2, color[1] // 2, color[2] // 2)
-        default_warned_color = (120, 100, 100)
-        if sum(new_color) / 3 < 100 and is_grey(new_color):
-            return default_warned_color
-        else:
-            return new_color
+    async def warning_str(self, warning: RefWarning, expiration: bool = False, warned_name: bool = False) -> str:
+        warn_str = ""
+        if warned_name:
+            user: discord.User = await self.bot.fetch_user(warning.user_id)
+            name = f"name = {user.display_name}#{user.discriminator}" if user else "User not found"
+            warn_str += f"**User:** {name}\n"
+        warn_str += f"**Date:** {warning.date_str}\n"
+        if expiration:
+            warn_str += f"**Expires: {warning.expiration_str}**"
+        warn_str += f"**Reason:** {warning.reason}\n"
+        warn_str += f"**Mod:** {warning.mod_name}\n"
+        return warn_str
 
     @commands.command()
     @commands.has_permissions(kick_members=True)
@@ -182,8 +202,9 @@ class Warnings(commands.Cog):
             ctx, member,
             RefWarning(
                 member.id,
-                reason=reason,
+                reason=str(reason),
                 timestamp=datetime.now(),
+                mod_name=f"{ctx.author.display_name}#{ctx.author.discriminator}",
                 expiration_time=datetime.now() + timedelta(hours=warning_lifetime)
             )
         )
@@ -206,24 +227,21 @@ class Warnings(commands.Cog):
 
         all_warnings = self.warning_db.get_warnings(member.id)
         active_warnings = self.warning_db.get_active_warnings(member.id)
+        expired_warnings = list(filter(lambda x: x not in active_warnings, all_warnings))
 
-        title = "{}: {} warnings ({} active)".format(member.display_name, len(all_warnings), len(active_warnings))
+        if all_warnings:
+            title = "{}: {} warnings ({} active)".format(member.display_name, len(all_warnings), len(active_warnings))
+        else:
+            title = f"No warnings for {member.display_name}#{member.discriminator}"
         embed = discord.Embed(title=title, color=discord.Color.dark_gold())
 
-        active_str = "\n".join(
-            "**\\*{} - {}\\***\n  Reason: {}".format(w.timestamp_str, w.expiration_str, w.reason or NO_REASON) for w in
-            active_warnings)
-        if active_str:
+        if active_warnings:
+            active_str = "\n".join(await self.warning_str(w, expiration=True) for w in active_warnings)
             embed.add_field(name="Active ({})".format(len(active_warnings)), value=active_str, inline=False)
 
-        expired_str = "\n".join("**\\*{}\\***\n  Reason: {}".format(w.timestamp_str, w.reason or NO_REASON) for w in
-                                list(filter(lambda x: x.is_expired(), all_warnings)))
-        if expired_str:
+        if expired_warnings:
+            expired_str = "\n".join(await self.warning_str(w) for w in expired_warnings)
             embed.add_field(name="Expired ({})".format(len(all_warnings) - len(active_warnings)), value=expired_str,
-                            inline=False)
-
-        if not any((expired_str, active_str)):
-            embed.add_field(name="No warnings", value="noice",
                             inline=False)
 
         await ctx.send(embed=embed)
@@ -239,9 +257,7 @@ class Warnings(commands.Cog):
 
         for member_id in active_warnings:
             warnings = self.warning_db.get_active_warnings(member_id)
-            active_str = "\n".join(
-                "**\\*{} - {}\\***\n  Reason: {}".format(w.timestamp_str, w.expiration_str, w.reason or NO_REASON) for w
-                in warnings)
+            active_str = "\n".join(await self.warning_str(w, warned_name=True, expiration=True) for w in warnings)
             if active_str:
                 embed.add_field(name=ctx.guild.get_member(int(member_id)), value=active_str, inline=False)
 

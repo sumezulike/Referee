@@ -27,7 +27,7 @@ class ModMail:
         return hash((self.author_id, self.timestamp, self.content, self.answers, self.modmail_id))
 
     def __str__(self):
-        return f"ModMail '{self.modmail_id}' (From: {self.author_name}({self.author_id}), {self.timestamp_str}: {self.content})"
+        return str(self.__dict__)
 
     @property
     def timestamp_str(self):
@@ -59,7 +59,7 @@ class ModMailAnswer:
         return hash((self.mod_id, self.timestamp, self.content))
 
     def __str__(self):
-        return f"ModMailAnswer(By {self.mod_name} to {self.modmail.author_name}), {self.timestamp_str}: {self.content})"
+        return str(self.__dict__)
 
     @property
     def timestamp_str(self):

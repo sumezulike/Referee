@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands
 
-from db_classes.PGModmailDB import PGModmailDB
+from db_classes.PGModMailDB import PGModMailDB
 from models import modmail_models
 from utils import emoji
 from config import modmail_config
@@ -13,7 +13,7 @@ class ModMail(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.db = PGModmailDB()
+        self.db = PGModMailDB()
         self.mod_channel = None
 
     @commands.Cog.listener()
@@ -34,7 +34,8 @@ class ModMail(commands.Cog):
         if not self.mod_channel:
             raise RuntimeError(f"Channel with ID {modmail_config.mod_channel_id} not found")
 
-    async def is_valid_mail(self, message: discord.Message):
+    @staticmethod
+    async def is_valid_mail(message: discord.Message):
         """
         Checks whether a message should be forwarded to the mods
         :param message: Message object as passed to :meth:`on_message`
@@ -130,8 +131,8 @@ class ModMail(commands.Cog):
         await preview.add_reaction(emoji.white_check_mark)
         await preview.add_reaction(emoji.x)
 
-        def check(reaction, user):
-            return user == ctx.author and str(reaction.emoji) in [emoji.x, emoji.white_check_mark]
+        def check(_reaction, _user):
+            return _user == ctx.author and str(_reaction.emoji) in [emoji.x, emoji.white_check_mark]
 
         async def send_cancelled_answer():
             """

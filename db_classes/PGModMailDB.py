@@ -57,7 +57,8 @@ deletion = (
 )
 
 
-class PGModmailDB:
+# noinspection PyProtectedMember
+class PGModMailDB:
 
     def __init__(self):
         self.conn: psycopg2._psycopg.connection = psycopg2.connect(
@@ -114,7 +115,8 @@ class PGModmailDB:
                  """
         cur = self.conn.cursor()
 
-        cur.execute(insert, (answer.mod_id, answer.mod_name, answer.timestamp, answer.content, answer.modmail.modmail_id))
+        cur.execute(insert,
+                    (answer.mod_id, answer.mod_name, answer.timestamp, answer.content, answer.modmail.modmail_id))
 
         answer_id = cur.fetchone()[0]
 
@@ -137,14 +139,16 @@ class PGModmailDB:
         self.conn.commit()
 
     def get_modmail(self, modmail_id: int) -> ModMail:
-        query = "SELECT author_id, author_name, timestamp, content, answer_count, id, message_id FROM modmail WHERE id = %s"
+        query = "SELECT author_id, author_name, timestamp, content, answer_count, id, message_id FROM modmail " \
+                "WHERE id = %s"
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
         cur.execute(query, (modmail_id,))
 
         row = cur.fetchone()
 
-        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[], modmail_id=row[5], message_id=row[6])
+        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[],
+                       modmail_id=row[5], message_id=row[6])
         if row[4] > 0:  # answers_count
             mail.answers = self.get_answers(mail)
 
@@ -153,14 +157,16 @@ class PGModmailDB:
         return mail
 
     def get_latest_modmail(self) -> ModMail:
-        query = "SELECT author_id, author_name, timestamp, content, answer_count, id, message_id FROM modmail ORDER BY id DESC LIMIT 1"
+        query = "SELECT author_id, author_name, timestamp, content, answer_count, id, message_id FROM modmail " \
+                "ORDER BY id DESC LIMIT 1"
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
         cur.execute(query)
 
         row = cur.fetchone()
 
-        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[], modmail_id=row[5], message_id=row[6])
+        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[],
+                       modmail_id=row[5], message_id=row[6])
         if row[4] > 0:  # answers_count
             mail.answers = self.get_answers(mail)
 
@@ -223,14 +229,13 @@ class PGModmailDB:
 
         open_ids = [r[0] for r in cur.fetchall()]
 
-        open = [self.get_modmail(i) for i in open_ids]
+        unanswered = [self.get_modmail(i) for i in open_ids]
 
         cur.close()
 
-        return open
+        return unanswered
 
 
 if __name__ == "__main__":
-    p = PGModmailDB()
+    p = PGModMailDB()
     p.create_tables()
-
