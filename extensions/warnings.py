@@ -34,6 +34,8 @@ class Warnings(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.warning_db = PGWarningDB()
+        self.latest_warning_mod_id = None
+        self.moderator_roles = dict()
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -51,15 +53,27 @@ class Warnings(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        if message.guild.id not in self.moderator_roles:
+            self.moderator_roles[message.guild.id] = list(
+                filter(lambda r: r.permissions.kick_members, message.guild.roles)
+            )
+        if message.author.top_role in self.moderator_roles[message.guild.id]:
+            if "?warn" in message.content:
+                self.latest_warning_mod_id = message.author.id
+
         if self.message_is_warning(message):
             name, reason = self.get_name_reason(message)
 
             member: discord.Member = await commands.MemberConverter().convert(await self.bot.get_context(message), name)
 
+            await message.channel
+
+            mod: discord.User = self.bot.fetch_user(self.latest_warning_mod_id)
+
             warning = RefWarning(user_id=member.id,
                                  reason=reason,
                                  timestamp=datetime.now(),
-                                 mod_name="Some mod",
+                                 mod_name=f"{mod.display_name}#{mod.discriminator}",
                                  expiration_time=datetime.now() + timedelta(hours=warning_lifetime))
 
             await self.save_warning(warning)

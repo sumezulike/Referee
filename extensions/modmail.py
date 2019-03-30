@@ -1,4 +1,5 @@
 import asyncio
+import typing
 
 import discord
 from discord.ext import commands
@@ -99,9 +100,30 @@ class ModMail(commands.Cog):
 
         await report_message.edit(embed=embed)
 
+    async def answer_user(self, modmail: modmail_models.ModMail, answer: modmail_models.ModMailAnswer):
+        """
+        Generates an embed answer and sends it to the user
+        :param modmail: The :class:`ModMail` that has been answered
+        :param answer: The answer as a :class:`ModMailAnswer`
+        """
+        embed = discord.Embed(name="ModMail", color=discord.Color.dark_gold())
+        embed.add_field(name=f"Your request from {modmail.timestamp_str}", value=modmail.content, inline=False)
+
+        if modmail_config.anonymize_responses:
+            name = f"Answer from mods"
+        else:
+            name = f"Answer from {answer.mod_name}"
+
+        embed.add_field(name=name, value=answer.content, inline=False)
+
+        user = await self.bot.fetch_user(modmail.author_id)
+        await user.send(embed=embed)
+        self.db.put_answer(answer)
+        await self.update_modmail_answer(modmail=modmail, answer=answer)
+
     @commands.command(aliases=["respond", "a", "res", "ans"])
     @commands.has_permissions(kick_members=True)
-    async def answer(self, ctx: commands.Context, modmail_id: str, *, message: str = ""):
+    async def answer(self, ctx: commands.Context, modmail_id: typing.Optional[int], *, message: str = ""):
         """
 
         :param ctx: Context object for the specific invoked ćommands, passed by api
@@ -109,14 +131,11 @@ class ModMail(commands.Cog):
         a cast to int will fail and the bot will try to respond to the latest message
         :param message: The string that should be sent back to the user
         """
-        try:
+        if modmail_id:
             modmail = self.db.get_modmail(int(modmail_id))
-            if not message:  # ID, but no message
-                raise RuntimeError(ctx.message.content)
 
-        except ValueError:  # User omitted id
+        else:  # User omitted id
             modmail = self.db.get_latest_modmail()
-            message = modmail_id + " " + message
             modmail_id = modmail.modmail_id
 
         embed = discord.Embed(title="Preview **(Confirm or cancel below)**", color=discord.Color.dark_gold())
@@ -167,27 +186,6 @@ class ModMail(commands.Cog):
         finally:
             await preview.delete()
             await ctx.message.delete()
-
-    async def answer_user(self, modmail: modmail_models.ModMail, answer: modmail_models.ModMailAnswer):
-        """
-        Generates an embed answer and sends it to the user
-        :param modmail: The :class:`ModMail` that has been answered
-        :param answer: The answer as a :class:`ModMailAnswer`
-        """
-        embed = discord.Embed(name="ModMail", color=discord.Color.dark_gold())
-        embed.add_field(name=f"Your request from {modmail.timestamp_str}", value=modmail.content, inline=False)
-
-        if modmail_config.anonymize_responses:
-            name = f"Answer from mods"
-        else:
-            name = f"Answer from {answer.mod_name}"
-
-        embed.add_field(name=name, value=answer.content, inline=False)
-
-        user = await self.bot.fetch_user(modmail.author_id)
-        await user.send(embed=embed)
-        self.db.put_answer(answer)
-        await self.update_modmail_answer(modmail=modmail, answer=answer)
 
 
 def setup(bot: commands.Bot):
