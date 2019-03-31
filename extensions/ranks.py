@@ -8,8 +8,20 @@ from db_classes.PGRanksDB import PGRanksDB
 from models.ranks_models import Rank
 from utils import emoji
 
-
 class Ranks(commands.Cog):
+
+    class Role(commands.RoleConverter):
+
+        async def convert(self, ctx: commands.Context, argument) -> discord.Role:
+            try:
+                role = await super().convert(ctx, argument)
+                return role
+            except commands.BadArgument:
+                existing_roles = list(filter(lambda r: r.name.lower() == argument.lower(), ctx.guild.roles))
+                if existing_roles:
+                    return existing_roles[0]
+                else:
+                    raise commands.BadArgument
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -53,28 +65,24 @@ class Ranks(commands.Cog):
 
     @commands.command(aliases=["add_role", "add_ranks", "add_roles"])
     @commands.has_permissions(kick_members=True)
-    async def add_rank(self, ctx: commands.Context, ranks: commands.Greedy[typing.Union[discord.Role, str]]):
+    async def add_rank(self, ctx: commands.Context, ranks: commands.Greedy[Role]):
         for rank in ranks:
-            if isinstance(rank, str):  # Try to get an existant role
-                existing_roles = list(filter(lambda r: r.name.lower() == rank.lower(), ctx.guild.roles))
-                if existing_roles:
-                    rank = existing_roles[0]
-
             if isinstance(rank, str):
                 rank_name = rank
                 new_role = await ctx.guild.create_role(name=rank_name.capitalize(), mentionable=True,
                                                        color=discord.Color.dark_grey())
-                await self.create_rank(name=rank_name, role=new_role)
+                await self.create_rank_message(name=rank_name, role=new_role)
 
             elif isinstance(rank, discord.Role):
                 if not self.db.get_rank(role_id=rank.id):
-                    await self.create_rank(name=rank.name, role=rank)
+                    await self.create_rank_message(name=rank.name, role=rank)
                 else:
                     await ctx.send(f"Rank {rank.name} already exists", delete_after=5)
         await ctx.message.delete()
 
+    @commands.command()
     @commands.has_permissions(kick_members=True)
-    async def delete_rank(self, ctx: commands.Context, *, role: discord.Role):
+    async def delete_rank(self, ctx: commands.Context, *, role: Role):
         rank = self.db.get_rank(role_id=role.id)
         delete_role = await self.quick_embed_query(ctx=ctx,
                                                    question=f"Also delete role {role.name}?",
@@ -106,13 +114,18 @@ class Ranks(commands.Cog):
         else:
             await ctx.send(embed=discord.Embed(title=reaction.emoji), delete_after=5)
             if reaction.emoji == emoji.white_check_mark:
-                msg.delete()
+                await msg.delete()
                 return True
             else:
-                msg.delete()
+                await msg.delete()
                 return False
 
-    async def create_rank(self, name: str, role: discord.Role):
+    async def create_rank_message(self, name: str, role: discord.Role):
+        """
+        This function sends the "Button" to the ranks channel and enters it to the db
+        :param name: Name of the new rank
+        :param role: The existing discord tole to be linked with the rank
+        """
         channel = role.guild.get_channel(ranks_config.ranks_channel_id)
         msg = await channel.send(f"Get: **{role.name}**")
 
