@@ -82,16 +82,17 @@ class Ranks(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(kick_members=True)
-    async def delete_rank(self, ctx: commands.Context, *, role: Role):
-        rank = self.db.get_rank(role_id=role.id)
-        delete_role = await self.quick_embed_query(ctx=ctx,
-                                                   question=f"Also delete role {role.name}?",
-                                                   reraise_timeout=False
-                                                   )
-        if delete_role:
-            await self.bot.http.delete_role(ctx.guild.id, rank.role_id)
-        self.db.delete_rank(role_id=rank.role_id)
-        await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
+    async def delete_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
+        for role in roles:
+            rank = self.db.get_rank(role_id=role.id)
+            delete_role = await self.quick_embed_query(ctx=ctx,
+                                                       question=f"Also delete role {role.name}?",
+                                                       reraise_timeout=False
+                                                       )
+            if delete_role:
+                await self.bot.http.delete_role(ctx.guild.id, rank.role_id)
+            self.db.delete_rank(role_id=rank.role_id)
+            await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
 
     async def quick_embed_query(self, ctx: commands.Context, question: str, reraise_timeout: bool = True) -> bool:
         def check(_reaction, _user):
