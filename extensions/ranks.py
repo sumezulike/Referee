@@ -54,6 +54,16 @@ class Ranks(commands.Cog):
                                     f"Remove a rank first to add a different one.")
         await member.send(embed=embed)
 
+    @staticmethod
+    async def notify_role_added(member: discord.Member, role: discord.Role):
+        embed = discord.Embed(title=f"**{role.name}** was added to your roles")
+        await member.send(embed=embed)
+
+    @staticmethod
+    async def notify_role_removed(member: discord.Member, role: discord.Role):
+        embed = discord.Embed(title=f"**{role.name}** was removed from your roles")
+        await member.send(embed=embed)
+
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.channel_id == ranks_config.ranks_channel_id and payload.user_id != self.bot.user.id:
@@ -62,13 +72,13 @@ class Ranks(commands.Cog):
             await self.process_cooldown(payload.user_id)
             guild: discord.Guild = self.bot.get_guild(payload.guild_id)
             member: discord.Member = guild.get_member(payload.user_id)
-            if str(payload.emoji) == emoji.white_check_mark and len([ro.id for ro in member.roles if
-                    ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
-                await self.warn_limit_exceeded(member)
-                await self.bot.http.remove_reaction(
-                    payload.message_id, payload.channel_id, payload.emoji, payload.user_id
-                )
-                return
+            if str(payload.emoji) == emoji.white_check_mark:
+                if len([ro.id for ro in member.roles if ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
+                    await self.warn_limit_exceeded(member)
+                    await self.bot.http.remove_reaction(
+                        payload.message_id, payload.channel_id, payload.emoji, payload.user_id
+                    )
+                    return
             rank = self.db.get_rank(message_id=payload.message_id)
 
             if rank:
@@ -76,8 +86,10 @@ class Ranks(commands.Cog):
 
                 if str(payload.emoji) == emoji.white_check_mark:
                     await member.add_roles(role)
+                    await self.notify_role_added(member, role)
                 elif str(payload.emoji) == emoji.x:
                     await member.remove_roles(role)
+                    await self.notify_role_removed(member, role)
 
             await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
 
@@ -97,6 +109,7 @@ class Ranks(commands.Cog):
                 else:
                     await ctx.send(f"Rank {rank.name} already exists", delete_after=5)
         await ctx.message.delete()
+        await self.update_self_ranks()
 
     @commands.command(aliases=["delete_ranks", "remove_rank", "remove_ranks"])
     @commands.has_permissions(kick_members=True)
@@ -112,6 +125,7 @@ class Ranks(commands.Cog):
             self.db.delete_rank(role_id=rank.role_id)
             await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
         await ctx.message.delete()
+        await self.update_self_ranks()
 
     async def quick_embed_query(self, ctx: commands.Context, question: str, reraise_timeout: bool = True) -> bool:
         def check(_reaction, _user):
