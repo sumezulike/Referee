@@ -63,7 +63,7 @@ class Ranks(commands.Cog):
 
             await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
 
-    @commands.command(aliases=["add_role", "add_ranks", "add_roles"])
+    @commands.command(aliases=["create_rank", "add_ranks", "create_ranks"])
     @commands.has_permissions(kick_members=True)
     async def add_rank(self, ctx: commands.Context, ranks: commands.Greedy[Role]):
         for rank in ranks:
@@ -80,7 +80,7 @@ class Ranks(commands.Cog):
                     await ctx.send(f"Rank {rank.name} already exists", delete_after=5)
         await ctx.message.delete()
 
-    @commands.command()
+    @commands.command(aliases=["delete_ranks", "remove_rank", "remove_ranks"])
     @commands.has_permissions(kick_members=True)
     async def delete_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
         for role in roles:
