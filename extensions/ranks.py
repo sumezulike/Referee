@@ -49,9 +49,9 @@ class Ranks(commands.Cog):
             self.on_cooldown.append(user_id)
 
     @staticmethod
-    async def warn_limit_exceeded(member: discord.Member):
+    async def warn_limit_exceeded(member: discord.Member, role: discord.Role):
         embed = discord.Embed(title=f"You can not have more than **{ranks_config.rank_count_limit}** ranks.\n"
-                                    f"Remove a rank first to add a different one.")
+                                    f"Remove a rank first to add **{role.name}**.")
         await member.send(embed=embed)
 
     @staticmethod
@@ -72,24 +72,27 @@ class Ranks(commands.Cog):
             await self.process_cooldown(payload.user_id)
             guild: discord.Guild = self.bot.get_guild(payload.guild_id)
             member: discord.Member = guild.get_member(payload.user_id)
-            if str(payload.emoji) == emoji.white_check_mark:
-                if len([ro.id for ro in member.roles if ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
-                    await self.warn_limit_exceeded(member)
-                    await self.bot.http.remove_reaction(
-                        payload.message_id, payload.channel_id, payload.emoji, payload.user_id
-                    )
-                    return
+
             rank = self.db.get_rank(message_id=payload.message_id)
 
             if rank:
                 role = guild.get_role(rank.role_id)
 
                 if str(payload.emoji) == emoji.white_check_mark:
+                    if len([ro.id for ro in member.roles if
+                            ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
+                        await self.warn_limit_exceeded(member, role)
+                        await self.bot.http.remove_reaction(
+                            payload.message_id, payload.channel_id, payload.emoji, payload.user_id
+                        )
+                        return
+
+                if str(payload.emoji) == emoji.white_check_mark:
                     if role not in member.roles:
                         await member.add_roles(role)
                         await self.notify_role_added(member, role)
                 elif str(payload.emoji) == emoji.x:
-                    if role not in member.roles:
+                    if role in member.roles:
                         await member.remove_roles(role)
                         await self.notify_role_removed(member, role)
 
