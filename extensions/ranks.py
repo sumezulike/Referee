@@ -1,5 +1,5 @@
 import asyncio
-import typing
+from typing import List
 import discord
 from discord.ext import commands
 
@@ -28,10 +28,15 @@ class Ranks(commands.Cog):
         self.db = PGRanksDB()
         self.on_cooldown = []
         self.latest_reactions = {}
+        self.ranks: List[Rank] = []
 
     @commands.Cog.listener()
     async def on_ready(self):
         self.bot.loop.create_task(self.clear_cooldowns())
+        await self.update_self_ranks()
+
+    async def update_self_ranks(self):
+        self.ranks = self.db.get_all_ranks()
 
     async def clear_cooldowns(self):
         while not self.bot.is_closed():
@@ -43,15 +48,24 @@ class Ranks(commands.Cog):
         if self.latest_reactions.get(user_id) > ranks_config.cooldown_count:
             self.on_cooldown.append(user_id)
 
+    async def warn_limit_exceeded(self, member: discord.Member):
+        embed = discord.Embed(title=f"You can not have more than **{ranks_config.rank_count_limit}** ranks.\n Remove a rank first to add a different one.")
+        await member.send(embed=embed)
+
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if payload.channel_id == ranks_config.ranks_channel_id and payload.user_id != self.bot.user.id:
             if payload.user_id in self.on_cooldown:
                 return
             await self.process_cooldown(payload.user_id)
-            rank = self.db.get_rank(message_id=payload.message_id)
             guild: discord.Guild = self.bot.get_guild(payload.guild_id)
-            member = guild.get_member(payload.user_id)
+            member: discord.Member = guild.get_member(payload.user_id)
+
+            if len([ro.id for ro in member.roles if ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
+                await self.warn_limit_exceeded(member)
+                return
+
+            rank = self.db.get_rank(message_id=payload.message_id)
 
             if rank:
                 role = guild.get_role(rank.role_id)

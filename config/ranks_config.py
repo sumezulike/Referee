@@ -14,6 +14,8 @@ cooldown_count = int(config["Ranks"]["CooldownCount"])
 
 cooldown_time = int(config["Ranks"]["CooldownTime"])
 
+rank_count_limit = int(config["Ranks"]["RankCountLimit"])
+
 
 PG_Host = config["PostgreSQL"]["Host"]
 

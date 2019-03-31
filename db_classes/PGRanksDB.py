@@ -93,6 +93,20 @@ class PGRanksDB:
         cur.close()
         self.conn.commit()
 
+    def get_all_ranks(self):
+        cur: psycopg2._psycopg.cursor = self.conn.cursor()
+
+        query = "SELECT name, role_id, message_id FROM ranks"
+
+        cur.execute(query)
+        rows = cur.fetchall()
+        results = []
+        for row in rows:
+            results.append(Rank(*row))
+
+        cur.close()
+        return results
+
 
 if __name__ == "__main__":
     p = PGRanksDB()
