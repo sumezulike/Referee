@@ -79,18 +79,13 @@ class Ranks(commands.Cog):
                 role = guild.get_role(rank.role_id)
 
                 if str(payload.emoji) == emoji.white_check_mark:
-                    if len([ro.id for ro in member.roles if
-                            ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
-                        await self.warn_limit_exceeded(member, role)
-                        await self.bot.http.remove_reaction(
-                            payload.message_id, payload.channel_id, payload.emoji, payload.user_id
-                        )
-                        return
-
-                if str(payload.emoji) == emoji.white_check_mark:
                     if role not in member.roles:
-                        await member.add_roles(role)
-                        await self.notify_role_added(member, role)
+                        if len([ro.id for ro in member.roles if
+                                ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
+                            await self.warn_limit_exceeded(member, role)
+                        else:
+                            await member.add_roles(role)
+                            await self.notify_role_added(member, role)
                 elif str(payload.emoji) == emoji.x:
                     if role in member.roles:
                         await member.remove_roles(role)
