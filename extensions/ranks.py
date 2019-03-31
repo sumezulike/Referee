@@ -62,15 +62,13 @@ class Ranks(commands.Cog):
             await self.process_cooldown(payload.user_id)
             guild: discord.Guild = self.bot.get_guild(payload.guild_id)
             member: discord.Member = guild.get_member(payload.user_id)
-
-            if len([ro.id for ro in member.roles if
+            if str(payload.emoji) == emoji.white_check_mark and len([ro.id for ro in member.roles if
                     ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
                 await self.warn_limit_exceeded(member)
                 await self.bot.http.remove_reaction(
                     payload.message_id, payload.channel_id, payload.emoji, payload.user_id
                 )
                 return
-
             rank = self.db.get_rank(message_id=payload.message_id)
 
             if rank:
