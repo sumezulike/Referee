@@ -93,6 +93,7 @@ class Ranks(commands.Cog):
                 await self.bot.http.delete_role(ctx.guild.id, rank.role_id)
             self.db.delete_rank(role_id=rank.role_id)
             await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
+        await ctx.message.delete()
 
     async def quick_embed_query(self, ctx: commands.Context, question: str, reraise_timeout: bool = True) -> bool:
         def check(_reaction, _user):
