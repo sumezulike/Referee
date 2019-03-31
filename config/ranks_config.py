@@ -10,6 +10,10 @@ if not config.sections():
 
 ranks_channel_id = int(config["Ranks"]["RanksChannelID"])
 
+cooldown_count = int(config["Ranks"]["CooldownCount"])
+
+cooldown_time = int(config["Ranks"]["CooldownTime"])
+
 
 PG_Host = config["PostgreSQL"]["Host"]
 

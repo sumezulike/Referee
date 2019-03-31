@@ -76,7 +76,11 @@ class PGRanksDB:
             query = "SELECT name, role_id, message_id FROM ranks where message_id = %s"
 
         cur.execute(query, (role_id or name or message_id,))
-        result = Rank(*cur.fetchone())
+        row = cur.fetchone()
+        if row:
+            result = Rank(*row)
+        else:
+            result = None
         cur.close()
         return result
 
