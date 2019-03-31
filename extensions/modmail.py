@@ -25,6 +25,8 @@ class ModMail(commands.Cog):
         """
         if await self.is_valid_mail(message):
             await self.process_modmail(message)
+            ok_embed = discord.Embed(title="Forwarded to mod team!", color=discord.Color.dark_gold())
+            await message.channel.send(embed=ok_embed, delete_after=30)
 
     @commands.Cog.listener()
     async def on_ready(self):
