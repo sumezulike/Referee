@@ -85,11 +85,13 @@ class Ranks(commands.Cog):
                 role = guild.get_role(rank.role_id)
 
                 if str(payload.emoji) == emoji.white_check_mark:
-                    await member.add_roles(role)
-                    await self.notify_role_added(member, role)
+                    if role not in member.roles:
+                        await member.add_roles(role)
+                        await self.notify_role_added(member, role)
                 elif str(payload.emoji) == emoji.x:
-                    await member.remove_roles(role)
-                    await self.notify_role_removed(member, role)
+                    if role not in member.roles:
+                        await member.remove_roles(role)
+                        await self.notify_role_removed(member, role)
 
             await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
 
