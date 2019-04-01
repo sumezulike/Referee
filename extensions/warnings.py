@@ -110,6 +110,8 @@ class Warnings(commands.Cog):
         if message.author.id == warnings_config.dynoID:
             if "has been warned" in content:
                 return True
+            elif "They were not warned" in content:
+                return True
         return False
 
     @staticmethod
@@ -119,8 +121,15 @@ class Warnings(commands.Cog):
 
     def get_name_reason(self, message: discord.message) -> tuple:
         content = self.clean_content(message)
-        name, reason = content.split(" has been warned.", 1)
-        name = name.split("> ")[1]
+        if "has been warned." in content:
+            name, reason = content.split(" has been warned.", 1)
+            name = name.split("> ")[1]
+        elif "They were not warned" in content:
+            "Warning logged for Any_Sun  # 7566. They were not warned."
+            name, reason = content.split(". They were not warned.", 1)
+            name = name.split("Warning logged for ")[1]
+        else:
+            raise RuntimeError(f"'{content}' logged as warning, but can not be parsed")
         reason = reason.replace(", ", "", 1)
         return name, reason
 
