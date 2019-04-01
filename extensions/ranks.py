@@ -60,6 +60,7 @@ class Ranks(commands.Cog):
         """
         while not self.bot.is_closed():
             self.on_cooldown = []
+            logger.info(f"Cleared cooldowns")
             await asyncio.sleep(ranks_config.cooldown_time)
 
     async def process_cooldown(self, user_id: int):
@@ -69,6 +70,7 @@ class Ranks(commands.Cog):
         """
         self.latest_reactions[user_id] = self.latest_reactions.get(user_id, 1) + 1
         if self.latest_reactions.get(user_id) > ranks_config.cooldown_count:
+            logger.info(f"Placed {user_id} on cooldown")
             self.on_cooldown.append(user_id)
 
     @staticmethod
@@ -127,10 +129,12 @@ class Ranks(commands.Cog):
                             await self.warn_limit_exceeded(member, role)
                         else:
                             await member.add_roles(role)
+                            logger.info(f"Added {role.name} to {member.name}")
                             await self.notify_role_added(member, role)
                 elif str(payload.emoji) == emoji.x:
                     if role in member.roles:
                         await member.remove_roles(role)
+                        logger.info(f"Removed {role.name} from {member.name}")
                         await self.notify_role_removed(member, role)
 
             await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
