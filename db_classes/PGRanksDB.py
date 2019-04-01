@@ -40,10 +40,17 @@ class PGRanksDB:
         cur.close()
 
     def close(self):
+        """
+        Closes the connection to the db
+        """
         if not self.conn.closed:
             self.conn.close()
 
     def create_tables(self):
+        """
+        Creates the tables in the db if they don't exist.
+        This is called on every startup
+        """
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
         for command in creation:
             cur.execute(command)
@@ -51,6 +58,10 @@ class PGRanksDB:
         self.conn.commit()
 
     def add_rank(self, rank: Rank):
+        """
+        Inserts a rank row into the db
+        :param rank: The new rank object that
+        """
 
         insert = "INSERT into ranks(name, role_id, message_id) " \
                  "VALUES(%s, %s, %s)"
@@ -61,6 +72,13 @@ class PGRanksDB:
         self.conn.commit()
 
     def get_rank(self, role_id: int = None, name: str = None, message_id: int = None) -> Rank:
+        """
+        This method looks up a rank either by discord role ID, name or discord message ID
+        :param role_id: Discord id of the ranks role
+        :param name: The name of the rank
+        :param message_id: The discord id of the ranks selection message
+        :return: The found and reconstructed Rank object
+        """
         if role_id is None and name is None and message_id is None:
             raise RuntimeError("get_rank called without arguments")
 
@@ -85,6 +103,10 @@ class PGRanksDB:
         return result
 
     def delete_rank(self, role_id: int):
+        """
+        Delete a rank by discord role ID
+        :param role_id: The ID of the role connected to the rank
+        """
         query = "DELETE FROM ranks WHERE role_id = %s"
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
@@ -94,6 +116,10 @@ class PGRanksDB:
         self.conn.commit()
 
     def get_all_ranks(self):
+        """
+        Get all entries
+        :return: List of ranks
+        """
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
         query = "SELECT name, role_id, message_id FROM ranks"

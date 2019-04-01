@@ -10,8 +10,11 @@ from utils import emoji
 
 
 class Ranks(commands.Cog):
-    class Role(commands.RoleConverter):
 
+    class Role(commands.RoleConverter):
+        """
+        This class is only to be used as a converter for command arguments
+        """
         async def convert(self, ctx: commands.Context, argument) -> discord.Role:
             try:
                 role = await super().convert(ctx, argument)
@@ -32,40 +35,72 @@ class Ranks(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.bot.loop.create_task(self.clear_cooldowns())
+        """
+                On_ready eventhandler, gets called by api
+        """
+        self.bot.loop.create_task(self.bg_clear_cooldowns())
         await self.update_self_ranks()
 
     async def update_self_ranks(self):
+        """
+        Update the cache from the db
+        """
         self.ranks = self.db.get_all_ranks()
 
-    async def clear_cooldowns(self):
+    async def bg_clear_cooldowns(self):
+        """
+        Background task to reset cooldown
+        """
         while not self.bot.is_closed():
             self.on_cooldown = []
             await asyncio.sleep(ranks_config.cooldown_time)
 
     async def process_cooldown(self, user_id: int):
+        """
+        Controls whether the user has violated the rate-limit and places them on cooldown
+        :param user_id: ID of the user that added
+        """
         self.latest_reactions[user_id] = self.latest_reactions.get(user_id, 1)
         if self.latest_reactions.get(user_id) > ranks_config.cooldown_count:
             self.on_cooldown.append(user_id)
 
     @staticmethod
     async def warn_limit_exceeded(member: discord.Member, role: discord.Role):
+        """
+        Notifies a user per DM that they have too many roles
+        :param member: The user that has exceeded the role limit
+        :param role: The :class:`Role` the user was trying to add
+        """
         embed = discord.Embed(title=f"You can not have more than **{ranks_config.rank_count_limit}** ranks.\n"
                                     f"Remove a rank first to add **{role.name}**.")
         await member.send(embed=embed)
 
     @staticmethod
     async def notify_role_added(member: discord.Member, role: discord.Role):
+        """
+        Notifies a user per DM that they added a role
+        :param member: The user that has added a role
+        :param role: The :class:`Role` the user has added
+        """
         embed = discord.Embed(title=f"**{role.name}** was added to your roles")
         await member.send(embed=embed)
 
     @staticmethod
     async def notify_role_removed(member: discord.Member, role: discord.Role):
+        """
+        Notifies a user per DM that they removed a role
+        :param member: The user that has removed a role
+        :param role: The :class:`Role` the user has removed
+        """
         embed = discord.Embed(title=f"**{role.name}** was removed from your roles")
         await member.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        """
+        Called by api whenever a reaction is added.
+        :param payload: A :class:`discord.RawReactionActionEvent`
+        """
         if payload.channel_id == ranks_config.ranks_channel_id and payload.user_id != self.bot.user.id:
             if payload.user_id in self.on_cooldown:
                 return
@@ -96,6 +131,14 @@ class Ranks(commands.Cog):
     @commands.command(aliases=["create_rank", "add_ranks", "create_ranks"])
     @commands.has_permissions(kick_members=True)
     async def add_rank(self, ctx: commands.Context, ranks: commands.Greedy[Union[Role, str]]):
+        """
+        This command creates one or more new ranks and the rank selection messages that can then be used by Members.
+        If the given rank is an existing role, the role will be used, otherwise a role will be created.
+        Usage: ref!add_rank rankName1 [rankName2 rankName3 ...]
+
+        :param ctx: Context object for the specific invoked ćommand, passed by api
+        :param ranks: A list of one or more roles or strings
+        """
         for rank in ranks:
             if isinstance(rank, str):
                 rank_name = rank
@@ -114,6 +157,14 @@ class Ranks(commands.Cog):
     @commands.command(aliases=["delete_ranks", "remove_rank", "remove_ranks"])
     @commands.has_permissions(kick_members=True)
     async def delete_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
+        """
+        This command deletes one or more ranks and the ranks selection messages.
+        The invoking user will be prompted before deleting the role which belongs to the rank.
+        Usage: ref!delete_rank roleName1 [roleName2 roleName3 ...]
+
+        :param ctx: Context object for the specific invoked ćommand, passed by api
+        :param roles: A list of one or more roles
+        """
         for role in roles:
             rank = self.db.get_rank(role_id=role.id)
             delete_role = await self.quick_embed_query(ctx=ctx,
@@ -128,6 +179,13 @@ class Ranks(commands.Cog):
         await self.update_self_ranks()
 
     async def quick_embed_query(self, ctx: commands.Context, question: str, reraise_timeout: bool = True) -> bool:
+        """
+        Sends a yes/no query to a context
+        :param ctx: The :class:`commands.Context` to which the query should be sent
+        :param question: The content of the query
+        :param reraise_timeout: Whether an exception should be raised on timeout, defaults to False
+        :return: bool answer
+        """
         def check(_reaction, _user):
             return _user == ctx.author and str(_reaction.emoji) in [emoji.x, emoji.white_check_mark]
 
