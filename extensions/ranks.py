@@ -1,5 +1,5 @@
 import asyncio
-from typing import List
+from typing import List, Union
 import discord
 from discord.ext import commands
 
@@ -95,7 +95,7 @@ class Ranks(commands.Cog):
 
     @commands.command(aliases=["create_rank", "add_ranks", "create_ranks"])
     @commands.has_permissions(kick_members=True)
-    async def add_rank(self, ctx: commands.Context, ranks: commands.Greedy[Role]):
+    async def add_rank(self, ctx: commands.Context, ranks: commands.Greedy[Union[Role, str]]):
         for rank in ranks:
             if isinstance(rank, str):
                 rank_name = rank
