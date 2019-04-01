@@ -1,5 +1,5 @@
 import asyncio
-from typing import List, Union
+from typing import List, Union, Dict
 import discord
 from discord.ext import commands
 
@@ -29,9 +29,9 @@ class Ranks(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.db = PGRanksDB()
-        self.on_cooldown = []
-        self.latest_reactions = {}
-        self.ranks: List[Rank] = []
+        self.on_cooldown: List[int] = []
+        self.latest_reactions: Dict[int: int] = {}
+        self.ranks_cache: List[Rank] = []
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -39,13 +39,13 @@ class Ranks(commands.Cog):
                 On_ready eventhandler, gets called by api
         """
         self.bot.loop.create_task(self.bg_clear_cooldowns())
-        await self.update_self_ranks()
+        await self.update_ranks_cache()
 
-    async def update_self_ranks(self):
+    async def update_ranks_cache(self):
         """
         Update the cache from the db
         """
-        self.ranks = self.db.get_all_ranks()
+        self.ranks_cache = self.db.get_all_ranks()
 
     async def bg_clear_cooldowns(self):
         """
@@ -60,7 +60,7 @@ class Ranks(commands.Cog):
         Controls whether the user has violated the rate-limit and places them on cooldown
         :param user_id: ID of the user that added
         """
-        self.latest_reactions[user_id] = self.latest_reactions.get(user_id, 1)
+        self.latest_reactions[user_id] = self.latest_reactions.get(user_id, 1) + 1
         if self.latest_reactions.get(user_id) > ranks_config.cooldown_count:
             self.on_cooldown.append(user_id)
 
@@ -116,7 +116,7 @@ class Ranks(commands.Cog):
                 if str(payload.emoji) == emoji.white_check_mark:
                     if role not in member.roles:
                         if len([ro.id for ro in member.roles if
-                                ro.id in [ra.role_id for ra in self.ranks]]) >= ranks_config.rank_count_limit:
+                                ro.id in [ra.role_id for ra in self.ranks_cache]]) >= ranks_config.rank_count_limit:
                             await self.warn_limit_exceeded(member, role)
                         else:
                             await member.add_roles(role)
@@ -152,7 +152,7 @@ class Ranks(commands.Cog):
                 else:
                     await ctx.send(f"Rank {rank.name} already exists", delete_after=5)
         await ctx.message.delete()
-        await self.update_self_ranks()
+        await self.update_ranks_cache()
 
     @commands.command(aliases=["delete_ranks", "remove_rank", "remove_ranks"])
     @commands.has_permissions(kick_members=True)
@@ -176,7 +176,7 @@ class Ranks(commands.Cog):
             self.db.delete_rank(role_id=rank.role_id)
             await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
         await ctx.message.delete()
-        await self.update_self_ranks()
+        await self.update_ranks_cache()
 
     async def quick_embed_query(self, ctx: commands.Context, question: str, reraise_timeout: bool = True) -> bool:
         """
