@@ -78,7 +78,7 @@ class Warnings(commands.Cog):
                                  expiration_time=datetime.now() + timedelta(hours=warnings_config.warningLifetime))
 
             await self.save_warning(warning)
-            await self.execute_warning(await self.bot.get_context(message), member, warning)
+            await self.enforce_punishments(await self.bot.get_context(message), member, warning)
 
         # Else, if the message is a clear
         elif self.message_is_clear(message):
@@ -140,7 +140,13 @@ class Warnings(commands.Cog):
         await message.add_reaction(emoji.eye)
 
     # noinspection PyUnusedLocal
-    async def execute_warning(self, ctx: commands.Context, member: discord.Member, warning: RefWarning):
+    async def enforce_punishments(self, ctx: commands.Context, member: discord.Member, warning: RefWarning):
+        """
+        This method checks a users number of active warnings and enacts the punishments
+        :param ctx: The command context, passed by api
+        :param member:
+        :param warning:
+        """
         await self.check_warnings(member)
         num_warnings = len(self.warning_db.get_active_warnings(member.id))
         if num_warnings > 1:
@@ -151,6 +157,11 @@ class Warnings(commands.Cog):
             # TODO: punishments
 
     async def check_warnings(self, member: discord.Member):
+        """
+        This method compares a users roles to the status in the db and marks or unmarks them as warned
+        :param member:
+        :return:
+        """
         is_warned = bool(await self.get_warned_roles(member))
 
         active_warnings = self.warning_db.get_active_warnings(str(member.id))
@@ -224,16 +235,14 @@ class Warnings(commands.Cog):
     @commands.command()
     @commands.has_permissions(kick_members=True)
     async def warn(self, ctx: commands.Context, member: discord.Member, *reason):
-        await self.execute_warning(
-            ctx, member,
-            RefWarning(
+        warning = RefWarning(
                 member.id,
                 reason=str(reason),
                 timestamp=datetime.now(),
                 mod_name=f"{ctx.author.display_name}#{ctx.author.discriminator}",
-                expiration_time=datetime.now() + timedelta(hours=warnings_config.warningLifetime)
-            )
-        )
+                expiration_time=datetime.now() + timedelta(hours=warnings_config.warningLifetime))
+        await self.save_warning(warning)
+        await self.enforce_punishments(ctx, member, warning)
         await self.acknowledge(ctx.message)
 
     @commands.command()
