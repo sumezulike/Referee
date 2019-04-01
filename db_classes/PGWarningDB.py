@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Dict, List
 import psycopg2
@@ -27,6 +28,7 @@ deletion = (
     """,
 )
 
+logger = logging.getLogger("Referee")
 
 # noinspection PyProtectedMember
 class PGWarningDB:
@@ -66,7 +68,7 @@ class PGWarningDB:
         self.conn.commit()
 
     def get_warnings(self, user_id: str) -> List[RefWarning]:
-        query = "SELECT user_id, timestamp, mod_name, expiration_time, reason FROM warnings WHERE user_id = %s"
+        query = "SELECT user_id, timestamp, mod_name, reason, expiration_time FROM warnings WHERE user_id = %s"
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
         cur.execute(query, (str(user_id),))
@@ -76,16 +78,14 @@ class PGWarningDB:
         cur.close()
         self.conn.commit()
 
-        warnings = []
-        for row in results:
-            warnings.append(RefWarning(*row))
+        warnings = [RefWarning(*row) for row in results]
 
         return warnings
 
     def get_active_warnings(self, user_id: str):
         cur: psycopg2._psycopg.cursor = self.conn.cursor()
 
-        query = "SELECT user_id, timestamp, mod_name, expiration_time, reason FROM warnings " \
+        query = "SELECT user_id, timestamp, mod_name, reason, expiration_time FROM warnings " \
                 "WHERE user_id = %s AND expiration_time > TIMESTAMP %s"
 
         cur.execute(query, (str(user_id), str(datetime.now())))
@@ -95,6 +95,8 @@ class PGWarningDB:
         warnings = [RefWarning(*row) for row in results]
 
         cur.close()
+
+        logger.debug(str(warnings))
 
         return warnings
 
@@ -107,7 +109,7 @@ class PGWarningDB:
 
         warnings = {user_id[0]: [] for user_id in user_ids}
 
-        query_all = "SELECT user_id, timestamp, mod_name, expiration_time, reason FROM warnings ORDER BY user_id"
+        query_all = "SELECT user_id, timestamp, mod_name, reason, expiration_time FROM warnings ORDER BY user_id"
 
         cur.execute(query_all)
 
@@ -127,7 +129,7 @@ class PGWarningDB:
         warnings = {}
 
         query_all = """
-        SELECT user_id, timestamp, mod_name, expiration_time, reason FROM warnings 
+        SELECT user_id, timestamp, mod_name, reason, expiration_time FROM warnings 
         WHERE expiration_time > TIMESTAMP %s ORDER BY user_id
         """
 

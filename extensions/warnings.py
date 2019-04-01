@@ -234,13 +234,13 @@ class Warnings(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(kick_members=True)
-    async def warn(self, ctx: commands.Context, member: discord.Member, *reason):
+    async def warn(self, ctx: commands.Context, member: discord.Member, *, reason: str):
         warning = RefWarning(
-                member.id,
-                reason=str(reason),
-                timestamp=datetime.now(),
-                mod_name=f"{ctx.author.display_name}#{ctx.author.discriminator}",
-                expiration_time=datetime.now() + timedelta(hours=warnings_config.warningLifetime))
+            user_id=member.id,
+            reason=reason,
+            timestamp=datetime.now(),
+            mod_name=f"{ctx.author.display_name}#{ctx.author.discriminator}",
+            expiration_time=datetime.now() + timedelta(hours=warnings_config.warningLifetime))
         await self.save_warning(warning)
         await self.enforce_punishments(ctx, member, warning)
         await self.acknowledge(ctx.message)
