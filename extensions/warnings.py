@@ -292,7 +292,7 @@ class Warnings(commands.Cog):
 
         for member_id in active_warnings:
             warnings = self.warning_db.get_active_warnings(member_id)
-            active_str = "\n".join(await self.warning_str(w, warned_name=True, expiration=True) for w in warnings)
+            active_str = "\n".join([await self.warning_str(w, warned_name=True, expiration=True) for w in warnings])
             if active_str:
                 embed.add_field(name=ctx.guild.get_member(int(member_id)), value=active_str, inline=False)
 
