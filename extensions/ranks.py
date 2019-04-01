@@ -99,7 +99,7 @@ class Ranks(commands.Cog):
         for rank in ranks:
             if isinstance(rank, str):
                 rank_name = rank
-                new_role = await ctx.guild.create_role(name=rank_name.capitalize(), mentionable=True,
+                new_role = await ctx.guild.create_role(name=rank_name, mentionable=True,
                                                        color=discord.Color.dark_grey())
                 await self.create_rank_message(name=rank_name, role=new_role)
 
