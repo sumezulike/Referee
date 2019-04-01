@@ -11,10 +11,11 @@ import asyncio
 from models.warnings_models import RefWarning
 
 from utils import emoji
+import logging
+
+logger = logging.getLogger("Referee")
 
 NO_REASON = "None"
-
-warning_lifetime = int(warnings_config.warningLifetime)
 
 
 def get_warned_color(color: tuple) -> tuple:
@@ -52,6 +53,10 @@ class Warnings(commands.Cog):
             await asyncio.sleep(120)  # task runs every second minute
 
     @commands.Cog.listener()
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
+        logger.error(error)
+
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.guild.id not in self.moderator_roles:
             self.moderator_roles[message.guild.id] = list(
@@ -74,7 +79,7 @@ class Warnings(commands.Cog):
                                  reason=reason,
                                  timestamp=datetime.now(),
                                  mod_name=f"{mod.display_name}#{mod.discriminator}",
-                                 expiration_time=datetime.now() + timedelta(hours=warning_lifetime))
+                                 expiration_time=datetime.now() + timedelta(hours=warnings_config.warningLifetime))
 
             await self.save_warning(warning)
             await self.execute_warning(await self.bot.get_context(message), member, warning)
@@ -133,7 +138,7 @@ class Warnings(commands.Cog):
         num_warnings = len(self.warning_db.get_active_warnings(member.id))
         if num_warnings > 1:
             await ctx.channel.send(
-                f"{member.display_name} has been warned {num_warnings} times in the last {warning_lifetime} hours",
+                f"{member.display_name} has been warned {num_warnings} times in the last {warnings_config.warningLifetime} hours",
                 delete_after=60
             )
             # TODO: punishments
@@ -219,7 +224,7 @@ class Warnings(commands.Cog):
                 reason=str(reason),
                 timestamp=datetime.now(),
                 mod_name=f"{ctx.author.display_name}#{ctx.author.discriminator}",
-                expiration_time=datetime.now() + timedelta(hours=warning_lifetime)
+                expiration_time=datetime.now() + timedelta(hours=warnings_config.warningLifetime)
             )
         )
         await self.acknowledge(ctx.message)

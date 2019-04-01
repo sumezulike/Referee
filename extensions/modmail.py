@@ -8,6 +8,9 @@ from db_classes.PGModMailDB import PGModMailDB
 from models import modmail_models
 from utils import emoji
 from config import modmail_config
+import logging
+
+logger = logging.getLogger("Referee")
 
 
 class ModMail(commands.Cog):
@@ -16,6 +19,7 @@ class ModMail(commands.Cog):
         self.bot = bot
         self.db = PGModMailDB()
         self.mod_channel = None
+        logger.info(__name__ + "loaded")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -23,7 +27,9 @@ class ModMail(commands.Cog):
         Eventlistener for messages, gets called by api
         :param message: The message object that caused the event
         """
+        logger.debug(str(message.__dict__))
         if await self.is_valid_mail(message):
+            logger.info(f"Recieved valid mail: '{message.content}' from {message.author.name}#{message.author.discriminator}")
             await self.process_modmail(message)
             ok_embed = discord.Embed(title="Forwarded to mod team!", color=discord.Color.dark_gold())
             await message.channel.send(embed=ok_embed, delete_after=30)
@@ -35,7 +41,13 @@ class ModMail(commands.Cog):
         """
         self.mod_channel: discord.TextChannel = self.bot.get_channel(modmail_config.mod_channel_id)
         if not self.mod_channel:
+            logger.error(f"Channel with ID {modmail_config.mod_channel_id} not found")
             raise RuntimeError(f"Channel with ID {modmail_config.mod_channel_id} not found")
+        logger.info(__name__ + "ready")
+
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
+        logger.error(error)
 
     @staticmethod
     async def is_valid_mail(message: discord.Message):
@@ -63,7 +75,9 @@ class ModMail(commands.Cog):
                                       timestamp=message.created_at, content=message.content)
 
         modmail_id = self.db.put_modmail(mail)  # Save to database
+        logger.info(f"Saved mail to db: '{mail.content}'. db_id: {modmail_id}")
         message_id = await self.report(mail)  # Send to mod_channel
+        logger.info(f"Sent mail to mods: '{mail.content}'. msg_id: {message_id}")
         self.db.assign_message_id(modmail_id=modmail_id,
                                   message_id=message_id)  # Save discord message ID to db for updating
 
@@ -100,6 +114,7 @@ class ModMail(commands.Cog):
                                value=f"{content}\n**{num_answers + 1}. {answer.mod_name}:** \"{answer.content}\"",
                                inline=False)
 
+        logger.info(f"Updated modmail: '{modmail.modmail_id}'. Answer: {answer.content}")
         await report_message.edit(embed=embed)
 
     async def answer_user(self, modmail: modmail_models.ModMail, answer: modmail_models.ModMailAnswer):
@@ -120,7 +135,9 @@ class ModMail(commands.Cog):
 
         user = await self.bot.fetch_user(modmail.author_id)
         await user.send(embed=embed)
+        logger.info(f"Sent answer to user: '{modmail.modmail_id}'. Answer: {answer.content}")
         self.db.put_answer(answer)
+        logger.info(f"Saved answer to db: '{modmail.modmail_id}'. Answer: {answer.content}")
         await self.update_modmail_answer(modmail=modmail, answer=answer)
 
     @commands.command(aliases=["respond", "a", "res", "ans"])
