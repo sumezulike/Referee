@@ -107,6 +107,15 @@ async def activity(ctx: commands.Context, *, activity: str):
     """
     await bot.change_presence(activity=discord.Game(name=activity))
 
+
+# noinspection PyUnusedLocal
+@bot.command(aliases=["stats"])
+@commands.has_permissions(kick_members=True)
+async def stat(ctx: commands.Context):
+    embed = discord.Embed(title=f"Referee stats")
+    embed.add_field(name="Loaded modules", value="\n".join(config.extensions))
+
+
 if __name__ == '__main__':
     logger: logging.Logger = setup_logger()
     main()
