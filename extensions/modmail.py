@@ -27,7 +27,6 @@ class ModMail(commands.Cog):
         Eventlistener for messages, gets called by api
         :param message: The message object that caused the event
         """
-        logger.debug(str(message.__dict__))
         if await self.is_valid_mail(message):
             logger.info(f"Recieved valid mail: '{message.content}' from {message.author.name}#{message.author.discriminator}")
             await self.process_modmail(message)
