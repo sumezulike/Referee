@@ -227,7 +227,7 @@ class Warnings(commands.Cog):
             warn_str += f"**User:** {name}\n"
         warn_str += f"**Date:** {warning.date_str}\n"
         if expiration:
-            warn_str += f"**Expires: {warning.expiration_str}**"
+            warn_str += f"**Expires**: {warning.expiration_str}\n"
         warn_str += f"**Reason:** {warning.reason}\n"
         warn_str += f"**Mod:** {warning.mod_name}\n"
         return warn_str
