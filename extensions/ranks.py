@@ -112,6 +112,8 @@ class Ranks(commands.Cog):
         """
         if payload.channel_id == ranks_config.ranks_channel_id and payload.user_id != self.bot.user.id:
             if payload.user_id in self.on_cooldown:
+                await asyncio.sleep(1)
+                await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
                 return
             await self.process_cooldown(payload.user_id)
             guild: discord.Guild = self.bot.get_guild(payload.guild_id)
