@@ -53,27 +53,23 @@ class Warnings(commands.Cog):
             await asyncio.sleep(120)  # task runs every second minute
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        logger.error(error)
-
-    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.guild.id not in self.moderator_roles:
+        if message.guild.id not in self.moderator_roles.keys():
             self.moderator_roles[message.guild.id] = list(
                 filter(lambda r: r.permissions.kick_members, message.guild.roles)
             )
         if message.author.top_role in self.moderator_roles[message.guild.id]:
-            if "?warn" in message.content:
+            if message.content.startswith("?warn "):
+                logger.info(f"Identified warn command: '{message.content}' from {message.author.name}#{message.author.discriminator}")
                 self.latest_warning_mod_id = message.author.id
 
         if self.message_is_warning(message):
             name, reason = self.get_name_reason(message)
+            logger.info(f"Identified warning: '{message.content}'. {name}, {reason}")
 
             member: discord.Member = await commands.MemberConverter().convert(await self.bot.get_context(message), name)
 
-            await message.channel
-
-            mod: discord.User = self.bot.fetch_user(self.latest_warning_mod_id)
+            mod: discord.User = await self.bot.fetch_user(self.latest_warning_mod_id)
 
             warning = RefWarning(user_id=member.id,
                                  reason=reason,
@@ -86,6 +82,7 @@ class Warnings(commands.Cog):
 
         # Else, if the message is a clear
         elif self.message_is_clear(message):
+            logger.info(f"Identified clear: '{message.content}'")
 
             name = self.clean_content(message)[:-1].split("for ")[-1]
             member: discord.Member = await commands.MemberConverter().convert(await self.bot.get_context(message), name)
@@ -106,6 +103,7 @@ class Warnings(commands.Cog):
         return content
 
     def message_is_warning(self, message: discord.message) -> bool:
+        logger.debug(f"Checking message {message.content} from {message.author.name}")
         content = self.clean_content(message)
         if message.author.id == warnings_config.dynoID:
             if "has been warned" in content:

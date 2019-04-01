@@ -65,7 +65,17 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx: commands.Context, error: commands.CommandError):
-    logger.error(error)
+    logger.error(f"Error in {ctx.message.content} from {ctx.author.name}#{ctx.author.discriminator}: "+str(error))
+
+
+@bot.event
+async def on_command(ctx: commands.Context):
+    logger.info(f"STARTED: '{ctx.message.content}' from {ctx.author.name}#{ctx.author.discriminator}")
+
+
+@bot.event
+async def on_command_completion(ctx: commands.Context):
+    logger.info(f"COMPLETED: '{ctx.message.content}' from {ctx.author.name}#{ctx.author.discriminator}")
 
 
 @bot.command()

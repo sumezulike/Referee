@@ -18,8 +18,7 @@ class ModMail(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.db = PGModMailDB()
-        self.mod_channel = None
-        logger.info(__name__ + "loaded")
+        self.mod_channel = None  # will be loaded in on_ready
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -42,11 +41,6 @@ class ModMail(commands.Cog):
         if not self.mod_channel:
             logger.error(f"Channel with ID {modmail_config.mod_channel_id} not found")
             raise RuntimeError(f"Channel with ID {modmail_config.mod_channel_id} not found")
-        logger.info(__name__ + "ready")
-
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        logger.error(error)
 
     @staticmethod
     async def is_valid_mail(message: discord.Message):

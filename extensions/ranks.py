@@ -44,9 +44,6 @@ class Ranks(commands.Cog):
         self.bot.loop.create_task(self.bg_clear_cooldowns())
         await self.update_ranks_cache()
 
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        logger.error(error)
 
     async def update_ranks_cache(self):
         """
