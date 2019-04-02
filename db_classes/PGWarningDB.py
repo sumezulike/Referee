@@ -163,8 +163,3 @@ class PGWarningDB:
 
         async with self.pool.acquire() as con:
             con.execute(query, (user_id, ))
-
-
-if __name__ == "__main__":
-    p = PGWarningDB()
-    p.create_tables()
