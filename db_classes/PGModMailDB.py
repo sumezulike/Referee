@@ -1,6 +1,7 @@
+import asyncio
 from typing import List
 
-import psycopg2
+import asyncpg
 
 from config import modmail_config
 from models.modmail_models import ModMail, ModMailAnswer
@@ -61,181 +62,102 @@ deletion = (
 class PGModMailDB:
 
     def __init__(self):
-        self.conn: psycopg2._psycopg.connection = psycopg2.connect(
+        self.pool = asyncpg.create_pool(
             host=modmail_config.PG_Host,
             database=modmail_config.PG_Database,
             user=modmail_config.PG_User,
             password=modmail_config.PG_Password
         )
-        self.create_tables()
+        asyncio.get_event_loop().run_until_complete(self.create_tables())
 
-    def close(self):
-        if not self.conn.closed:
-            self.conn.close()
+    async def close(self):
+        await self.pool.close()
 
-    def create_tables(self):
-        cur: psycopg2._psycopg.cursor = self.conn.cursor()
-        for command in creation:
-            cur.execute(command)
-        cur.close()
-        self.conn.commit()
+    async def create_tables(self):
+        async with self.pool.acquire() as con:
+            for command in creation:
+                con.execute(command)
 
-    def put_modmail(self, mail: ModMail) -> int:
-
+    async def put_modmail(self, mail: ModMail) -> int:
         insert = """INSERT into modmail(author_id, author_name, timestamp, content, answer_count) 
                     VALUES(%s, %s, %s, %s, 0) RETURNING id
                  """
-        cur = self.conn.cursor()
+        async with self.pool.acquire() as con:
+            row = con.fetchone(insert, (mail.author_id, mail.author_name, mail.timestamp, mail.content))
 
-        cur.execute(insert, (mail.author_id, mail.author_name, mail.timestamp, mail.content))
+        mail.modmail_id = row["id"]
+        return mail.modmail_id
 
-        modmail_id = cur.fetchone()[0]
-        mail.modmail_id = modmail_id
-
-        cur.close()
-        self.conn.commit()
-
-        return modmail_id
-
-    def assign_message_id(self, modmail_id: int, message_id: int):
+    async def assign_message_id(self, modmail_id: int, message_id: int):
         update = """UPDATE modmail SET message_id = %s WHERE id = %s"""
-        cur = self.conn.cursor()
+        async with self.pool.acquire() as con:
+            con.execute(update, (message_id, modmail_id))
 
-        cur.execute(update, (message_id, modmail_id))
-
-        cur.close()
-
-        self.conn.commit()
-        return
-
-    def put_answer(self, answer: ModMailAnswer) -> int:
-
+    async def put_answer(self, answer: ModMailAnswer) -> int:
         insert = """INSERT into answers(mod_id, mod_name, timestamp, content, modmail_id) 
                     VALUES(%s, %s, %s, %s, %s) RETURNING id
                  """
-        cur = self.conn.cursor()
+        async with self.pool.acquire() as con:
+            answer_id = con.fetchone(insert,
+                                     (answer.mod_id, answer.mod_name, answer.timestamp, answer.content,
+                                      answer.modmail.modmail_id)
+                                     )
 
-        cur.execute(insert,
-                    (answer.mod_id, answer.mod_name, answer.timestamp, answer.content, answer.modmail.modmail_id))
-
-        answer_id = cur.fetchone()[0]
-
-        cur.close()
-        self.conn.commit()
-
-        self._put_modmailanswer(answer.modmail.modmail_id, answer_id)
-
+        await self._put_modmailanswer(answer.modmail.modmail_id, answer_id)
         return answer_id
 
-    def _put_modmailanswer(self, modmail_id: int, answer_id: int):
-
+    async def _put_modmailanswer(self, modmail_id: int, answer_id: int):
         insert = """INSERT into modmailanswers(modmail_id, answer_id) 
                     VALUES(%s, %s)
                  """
-        cur = self.conn.cursor()
+        async with self.pool.acquire() as con:
+            con.execute(insert, (modmail_id, answer_id))
 
-        cur.execute(insert, (modmail_id, answer_id))
-        cur.close()
-        self.conn.commit()
-
-    def get_modmail(self, modmail_id: int) -> ModMail:
-        query = "SELECT author_id, author_name, timestamp, content, answer_count, id, message_id FROM modmail " \
+    async def get_modmail(self, modmail_id: int) -> ModMail:
+        query = "SELECT author_id, author_name, timestamp, content, id, message_id, answer_count FROM modmail " \
                 "WHERE id = %s"
-        cur: psycopg2._psycopg.cursor = self.conn.cursor()
+        async with self.pool.acquire() as con:
+            row = con.fetchone(query, (modmail_id,))
 
-        cur.execute(query, (modmail_id,))
-
-        row = cur.fetchone()
-
-        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[],
-                       modmail_id=row[5], message_id=row[6])
-        if row[4] > 0:  # answers_count
+        mail = ModMail(author_id=row["author_id"], author_name=row["author_name"], timestamp=row["timestamp"], content=row["content"], answers=[],
+                       modmail_id=row["id"], message_id=row["message_id"])
+        if row["answer_count"] > 0:  # answers_count
             mail.answers = self.get_answers(mail)
 
-        cur.close()
-        self.conn.commit()
         return mail
 
-    def get_latest_modmail(self) -> ModMail:
-        query = "SELECT author_id, author_name, timestamp, content, answer_count, id, message_id FROM modmail " \
+    async def get_latest_modmail(self) -> ModMail:
+        query = "SELECT author_id, author_name, timestamp, content, id, message_id, answer_count FROM modmail " \
                 "ORDER BY id DESC LIMIT 1"
-        cur: psycopg2._psycopg.cursor = self.conn.cursor()
+        async with self.pool.acquire() as con:
+            row = con.fetchone(query)
 
-        cur.execute(query)
-
-        row = cur.fetchone()
-
-        mail = ModMail(author_id=row[0], author_name=row[1], timestamp=row[2], content=row[3], answers=[],
-                       modmail_id=row[5], message_id=row[6])
-        if row[4] > 0:  # answers_count
+        mail = ModMail(author_id=row["author_id"], author_name=row["author_name"], timestamp=row["timestamp"], content=row["content"], answers=[],
+                       modmail_id=row["id"], message_id=row["message_id"])
+        if row["answer_count"] > 0:  # answers_count
             mail.answers = self.get_answers(mail)
 
-        cur.close()
-        self.conn.commit()
         return mail
 
-    def get_answers(self, modmail: ModMail) -> List[ModMailAnswer]:
+    async def get_answers(self, modmail: ModMail) -> List[ModMailAnswer]:
         id_query = """SELECT answer_id from modmailanswers WHERE modmail_id = %s"""
-        cur: psycopg2._psycopg.cursor = self.conn.cursor()
+        async with self.pool.acquire() as con:
+            rows = con.fetch(id_query, (modmail.modmail_id,))
 
-        cur.execute(id_query, (modmail.modmail_id,))
+        answer_ids = [r["answer_id"] for r in rows]
+        answers = [await self.get_answer(a_id, modmail) for a_id in answer_ids]
 
-        answer_ids = [r[0] for r in cur.fetchall()]
-        answers = [self.get_answer(a_id, modmail) for a_id in answer_ids]
-
-        cur.close()
         return answers
 
-    def get_answer(self, answer_id: int, modmail: ModMail = None) -> ModMailAnswer:
-
+    async def get_answer(self, answer_id: int, modmail: ModMail = None) -> ModMailAnswer:
         query = "SELECT mod_id, mod_name, timestamp, content, modmail_id, id FROM answers WHERE id = %s"
-        cur: psycopg2._psycopg.cursor = self.conn.cursor()
+        async with self.pool.acquire() as con:
+            row = con.fetchone(query, (answer_id,))
 
-        cur.execute(query, (answer_id,))
-
-        row = cur.fetchone()
-
-        answer = ModMailAnswer(mod_id=row[0], mod_name=row[1], timestamp=row[2], content=row[3], modmail=modmail)
+        answer = ModMailAnswer(mod_id=row["mod_id"], mod_name=row["mod_name"], timestamp=row["timestamp"], content=row["content"], modmail=modmail)
 
         if not modmail:
-            modmail = self.get_modmail(row[4])
+            modmail = await self.get_modmail(row["modmail_id"])
             answer.modmail = modmail
 
-        cur.close()
-        self.conn.commit()
         return answer
-
-    def get_recent_modmail(self, limit):
-        last_id_query = "SELECT id from modmail ORDER BY timestamp DESC LIMIT %s"
-
-        cur: psycopg2._psycopg.cursor = self.conn.cursor()
-
-        cur.execute(last_id_query, (limit,))
-
-        last_ids = [r[0] for r in cur.fetchall()]
-
-        recent = [self.get_modmail(i) for i in last_ids]
-
-        cur.close()
-
-        return recent
-
-    def get_unanswered_modmail(self, limit):
-        id_query = "SELECT id from modmail WHERE answer_count != 0 LIMIT %s"
-
-        cur: psycopg2._psycopg.cursor = self.conn.cursor()
-
-        cur.execute(id_query, (limit,))
-
-        open_ids = [r[0] for r in cur.fetchall()]
-
-        unanswered = [self.get_modmail(i) for i in open_ids]
-
-        cur.close()
-
-        return unanswered
-
-
-if __name__ == "__main__":
-    p = PGModMailDB()
-    p.create_tables()

@@ -48,7 +48,7 @@ class PGWarningDB:
         """
         Closes the connection to the db
         """
-        self.pool.close()
+        await self.pool.close()
 
     async def create_tables(self):
         """
