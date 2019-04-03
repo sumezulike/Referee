@@ -13,6 +13,8 @@ anonymize_responses = config["ModMail"]["AnonymizeResponses"].lower() in ('yes',
 
 mod_channel_id = int(config["ModMail"]["ModChannelID"])
 
+cooldown = int(config["ModMail"]["Cooldown"])
+
 
 PG_Host = config["PostgreSQL"]["Host"]
 

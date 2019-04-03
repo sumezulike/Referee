@@ -10,6 +10,8 @@ from utils import emoji
 from config import modmail_config
 import logging
 
+from datetime import datetime
+
 logger = logging.getLogger("Referee")
 
 
@@ -18,7 +20,8 @@ class ModMail(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.db = PGModMailDB()
-        self.mod_channel = None  # will be loaded in on_ready
+        self.mod_channel: discord.TextChannel = None  # will be loaded in on_ready
+        self.last_messages_times = {}
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -27,10 +30,43 @@ class ModMail(commands.Cog):
         :param message: The message object that caused the event
         """
         if await self.is_valid_mail(message):
-            logger.info(f"Recieved valid mail: '{message.content}' from {message.author.name}#{message.author.discriminator}")
-            await self.process_modmail(message)
-            ok_embed = discord.Embed(title="Forwarded to mod team!", color=discord.Color.dark_gold())
-            await message.channel.send(embed=ok_embed, delete_after=30)
+            cooldown = await self.get_cooldown(message.author.id)
+            if cooldown <= 0:
+                logger.info(f"Recieved valid mail: '{message.content}' from {message.author.name}#{message.author.discriminator}")
+                await self.process_modmail(message)
+                ok_embed = discord.Embed(title="Forwarded your message to mod team!", color=discord.Color.dark_gold())
+                await message.channel.send(embed=ok_embed, delete_after=30)
+                await self.reset_cooldown(message.author.id)
+            else:
+                cooldown_embed = discord.Embed(
+                    title="Please wait for {} minutes before submitting another request to the mod team",
+                    color=discord.Color.dark_gold()
+                )
+                await message.channel.send(embed=cooldown_embed, delete_after=30)
+
+    async def get_cooldown(self, user_id: int) -> int:
+        """
+        Get the users remaining cooldown
+        :param user_id:
+        :return: The users remaining cooldown in minutes else 0
+        """
+        if user_id not in self.last_messages_times:
+            return 0
+        else:
+            minutes_passed = (datetime.now() - self.last_messages_times[user_id]).seconds//60
+            cooldown = modmail_config.cooldown - minutes_passed
+            if cooldown <= 0:
+                del self.last_messages_times[user_id]
+                return 0
+            else:
+                return cooldown
+
+    async def reset_cooldown(self, user_id: int):
+        """
+        Restarts the users cooldown
+        :param user_id:
+        """
+        self.last_messages_times[user_id] = datetime.now()
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -42,8 +78,7 @@ class ModMail(commands.Cog):
             logger.error(f"Channel with ID {modmail_config.mod_channel_id} not found")
             raise RuntimeError(f"Channel with ID {modmail_config.mod_channel_id} not found")
 
-    @staticmethod
-    async def is_valid_mail(message: discord.Message):
+    async def is_valid_mail(self, message: discord.Message):
         """
         Checks whether a message should be forwarded to the mods
         :param message: Message object as passed to :meth:`on_message`
@@ -54,6 +89,10 @@ class ModMail(commands.Cog):
         if message.author.bot:  # Do not forward messages from bots
             return False
         if not message.content:  # Do not forward empty messages (images, files, ...)
+            return False
+        if len(message.content.split()) <= 1:
+            return False
+        if not self.mod_channel.guild.get_member(message.author.id):
             return False
         return True
 
