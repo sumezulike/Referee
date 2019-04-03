@@ -39,7 +39,7 @@ class ModMail(commands.Cog):
                 await self.reset_cooldown(message.author.id)
             else:
                 cooldown_embed = discord.Embed(
-                    title="Please wait for {} minutes before submitting another request to the mod team",
+                    title=f"Please wait for {cooldown} minutes before submitting another request to the mod team",
                     color=discord.Color.dark_gold()
                 )
                 await message.channel.send(embed=cooldown_embed, delete_after=30)
