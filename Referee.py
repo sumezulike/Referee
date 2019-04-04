@@ -139,6 +139,8 @@ async def listening(ctx: commands.Context, *, activity: str):
     :param ctx: Context object for the specific invoked ćommands
     :param activity: The string that will be displayed as activity
     """
+    if activity.startswith("to "):
+        activity = activity.replace("to ", "", 1)
     await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.listening))
 
 
