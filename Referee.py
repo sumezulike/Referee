@@ -52,6 +52,8 @@ def main():
         bot.load_extension(f"extensions.{ext}")
         logger.info(f"Loaded {ext}")
 
+    bot.help_command = commands.DefaultHelpCommand(no_category="Core")
+
     bot.run(config.token)
 
 
@@ -78,7 +80,7 @@ async def on_command_completion(ctx: commands.Context):
     logger.info(f"COMPLETED: '{ctx.message.content}' from {ctx.author.name}#{ctx.author.discriminator}")
 
 
-@bot.command()
+@bot.command(name="ping")
 async def ping(ctx: commands.Context):
     """
     Basic command to check whether bot is alive
@@ -106,9 +108,15 @@ async def ping(ctx: commands.Context):
     await ctx.message.delete()
 
 
+def is_aight():
+    def predicate(ctx: commands.Context):
+        return ctx.message.author.top_role in list(
+                filter(lambda r: r.permissions.kick_members, ctx.message.guild.roles)) + [ctx.guild.get_role(222466366597365760)]
+    return commands.check(predicate)
+
 # noinspection PyUnusedLocal
 @bot.command(name="playing")
-@commands.has_permissions(kick_members=True)
+@is_aight()
 async def playing(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
@@ -120,7 +128,7 @@ async def playing(ctx: commands.Context, *, activity: str):
 
 # noinspection PyUnusedLocal
 @bot.command(name="watching")
-@commands.has_permissions(kick_members=True)
+@is_aight()
 async def watching(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
@@ -132,7 +140,7 @@ async def watching(ctx: commands.Context, *, activity: str):
 
 # noinspection PyUnusedLocal
 @bot.command(name="listening")
-@commands.has_permissions(kick_members=True)
+@is_aight()
 async def listening(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
@@ -145,9 +153,9 @@ async def listening(ctx: commands.Context, *, activity: str):
 
 
 # noinspection PyUnusedLocal
-@bot.command(aliases=["stats"])
+@bot.command(name="stats", hidden=True)
 @commands.has_permissions(kick_members=True)
-async def stat(ctx: commands.Context):
+async def stats(ctx: commands.Context):
     embed = discord.Embed(title=f"Referee stats")
     embed.add_field(name="Loaded modules", value="\n".join(config.extensions))
     await ctx.send(embed=embed)

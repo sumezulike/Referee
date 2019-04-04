@@ -176,11 +176,7 @@ class ModMail(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def answer(self, ctx: commands.Context, modmail_id: typing.Optional[int], *, message: str = ""):
         """
-
-        :param ctx: Context object for the specific invoked ćommands, passed by api
-        :param modmail_id: Should be an int indicating which modmail to answer to. If this is omitted,
-        a cast to int will fail and the bot will try to respond to the latest message
-        :param message: The string that should be sent back to the user
+        Answers to a users request. Usage: r!answer [id] <your answer>
         """
         if modmail_id:
             modmail = await self.db.get_modmail(int(modmail_id))

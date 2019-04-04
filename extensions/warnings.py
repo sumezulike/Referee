@@ -225,7 +225,7 @@ class Warnings(commands.Cog):
         warn_str = ""
         if warned_name:
             user: discord.User = await self.bot.fetch_user(warning.user_id)
-            name = f"name = {user.display_name}#{user.discriminator}" if user else "User not found"
+            name = f"{user.name}#{user.discriminator}" if user else f"Not found({warning.user_id})"
             warn_str += f"**User:** {name}\n"
         warn_str += f"**Date:** {warning.date_str}\n"
         if expiration:

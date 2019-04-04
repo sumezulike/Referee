@@ -44,7 +44,6 @@ class Ranks(commands.Cog):
         self.bot.loop.create_task(self.bg_clear_cooldowns())
         await self.update_ranks_cache()
 
-
     async def update_ranks_cache(self):
         """
         Update the cache from the db
@@ -111,7 +110,12 @@ class Ranks(commands.Cog):
         if payload.channel_id == ranks_config.ranks_channel_id and payload.user_id != self.bot.user.id:
             if payload.user_id in self.on_cooldown:
                 await asyncio.sleep(1)
-                await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
+                await self.bot.http.remove_reaction(
+                    payload.message_id,
+                    payload.channel_id,
+                    payload.emoji,
+                    payload.user_id
+                )
                 return
             await self.process_cooldown(payload.user_id)
             guild: discord.Guild = self.bot.get_guild(payload.guild_id)
@@ -127,6 +131,7 @@ class Ranks(commands.Cog):
                         if len([ro.id for ro in member.roles if
                                 ro.id in [ra.role_id for ra in self.ranks_cache]]) >= ranks_config.rank_count_limit:
                             await self.warn_limit_exceeded(member, role)
+                            logger.info(f"Stopped {member.name} from adding {role.name}, too many roles")
                         else:
                             await member.add_roles(role)
                             logger.info(f"Added {role.name} to {member.name}")
