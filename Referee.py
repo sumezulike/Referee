@@ -62,10 +62,10 @@ async def on_ready():
     """
     logger.info("Ready!")
 
-
-@bot.event
-async def on_command_error(ctx: commands.Context, error: commands.CommandError):
-    logger.error(f"Error in {ctx.message.content} from {ctx.author.name}#{ctx.author.discriminator}: "+str(error))
+#
+# @bot.event
+# async def on_command_error(ctx: commands.Context, error: commands.CommandError):
+#     logger.error(f"Error in {ctx.message.content} from {ctx.author.name}#{ctx.author.discriminator}: "+str(error))
 
 
 @bot.event

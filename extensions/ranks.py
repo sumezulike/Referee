@@ -49,7 +49,7 @@ class Ranks(commands.Cog):
         """
         Update the cache from the db
         """
-        self.ranks_cache = self.db.get_all_ranks()
+        self.ranks_cache = await self.db.get_all_ranks()
 
     async def bg_clear_cooldowns(self):
         """
@@ -117,7 +117,7 @@ class Ranks(commands.Cog):
             guild: discord.Guild = self.bot.get_guild(payload.guild_id)
             member: discord.Member = guild.get_member(payload.user_id)
 
-            rank = self.db.get_rank(message_id=payload.message_id)
+            rank = await self.db.get_rank(message_id=payload.message_id)
 
             if rank:
                 role = guild.get_role(rank.role_id)
@@ -158,7 +158,7 @@ class Ranks(commands.Cog):
                 await self.create_rank_message(name=rank_name, role=new_role)
 
             elif isinstance(rank, discord.Role):
-                if not self.db.get_rank(role_id=rank.id):
+                if not await self.db.get_rank(role_id=rank.id):
                     await self.create_rank_message(name=rank.name, role=rank)
                 else:
                     await ctx.send(f"Rank {rank.name} already exists", delete_after=5)
@@ -177,14 +177,14 @@ class Ranks(commands.Cog):
         :param roles: A list of one or more roles
         """
         for role in roles:
-            rank = self.db.get_rank(role_id=role.id)
+            rank = await self.db.get_rank(role_id=role.id)
             delete_role = await self.quick_embed_query(ctx=ctx,
                                                        question=f"Also delete role {role.name}?",
                                                        reraise_timeout=False
                                                        )
             if delete_role:
                 await self.bot.http.delete_role(ctx.guild.id, rank.role_id)
-            self.db.delete_rank(role_id=rank.role_id)
+            await self.db.delete_rank(role_id=rank.role_id)
             await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
         await ctx.message.delete()
         await self.update_ranks_cache()
@@ -233,7 +233,7 @@ class Ranks(commands.Cog):
         msg = await channel.send(f"Get: **{role.name}**")
 
         rank = Rank(name=name, role_id=role.id, message_id=msg.id)
-        self.db.add_rank(rank=rank)
+        await self.db.add_rank(rank=rank)
         await msg.add_reaction(emoji.white_check_mark)
         await msg.add_reaction(emoji.x)
 

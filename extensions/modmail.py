@@ -67,11 +67,11 @@ class ModMail(commands.Cog):
         mail = modmail_models.ModMail(author_id=message.author.id, author_name=author_name,
                                       timestamp=message.created_at, content=message.content)
 
-        modmail_id = self.db.put_modmail(mail)  # Save to database
+        modmail_id = await self.db.put_modmail(mail)  # Save to database
         logger.info(f"Saved mail to db: '{mail.content}'. db_id: {modmail_id}")
         message_id = await self.report(mail)  # Send to mod_channel
         logger.info(f"Sent mail to mods: '{mail.content}'. msg_id: {message_id}")
-        self.db.assign_message_id(modmail_id=modmail_id,
+        await self.db.assign_message_id(modmail_id=modmail_id,
                                   message_id=message_id)  # Save discord message ID to db for updating
 
     async def report(self, mail: modmail_models.ModMail) -> int:
@@ -129,7 +129,7 @@ class ModMail(commands.Cog):
         user = await self.bot.fetch_user(modmail.author_id)
         await user.send(embed=embed)
         logger.info(f"Sent answer to user: '{modmail.modmail_id}'. Answer: {answer.content}")
-        self.db.put_answer(answer)
+        await self.db.put_answer(answer)
         logger.info(f"Saved answer to db: '{modmail.modmail_id}'. Answer: {answer.content}")
         await self.update_modmail_answer(modmail=modmail, answer=answer)
 
@@ -144,10 +144,10 @@ class ModMail(commands.Cog):
         :param message: The string that should be sent back to the user
         """
         if modmail_id:
-            modmail = self.db.get_modmail(int(modmail_id))
+            modmail = await self.db.get_modmail(int(modmail_id))
 
         else:  # User omitted id
-            modmail = self.db.get_latest_modmail()
+            modmail = await self.db.get_latest_modmail()
             modmail_id = modmail.modmail_id
 
         embed = discord.Embed(title="Preview **(Confirm or cancel below)**", color=discord.Color.dark_gold())

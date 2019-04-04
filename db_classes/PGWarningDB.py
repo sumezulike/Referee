@@ -55,9 +55,10 @@ class PGWarningDB:
         Creates the tables in the db if they don't exist.
         This is called on every startup
         """
+        self.pool = await self.pool
         async with self.pool.acquire() as con:
             for query in creation:
-                con.execute(query)
+                await con.execute(query)
 
     async def put_warning(self, warning: RefWarning):
         """
@@ -66,21 +67,20 @@ class PGWarningDB:
         """
 
         insert = (
-            "INSERT into warnings(user_id, timestamp, mod_name, reason, expiration_time) VALUES(%s, %s, %s, %s, %s)"
+            "INSERT into warnings(user_id, timestamp, mod_name, reason, expiration_time) VALUES($1, $2, $3, $4, $5)"
         )
         async with self.pool.acquire() as con:
-            con.execute(insert,
-                        (warning.user_id, warning.timestamp, warning.mod_name, warning.reason, warning.expiration_time))
+            await con.execute(insert, warning.user_id, warning.timestamp, warning.mod_name, warning.reason, warning.expiration_time)
 
-    async def get_warnings(self, user_id: str) -> List[RefWarning]:
+    async def get_warnings(self, user_id: int) -> List[RefWarning]:
         """
         Get a list of all logged warnings for a user
         :param user_id:
         :return:
         """
-        query = "SELECT user_id, timestamp, mod_name, reason, expiration_time FROM warnings WHERE user_id = %s"
+        query = "SELECT user_id, timestamp, mod_name, reason, expiration_time FROM warnings WHERE user_id = $1"
         async with self.pool.acquire() as con:
-            results = con.fetch(query, (user_id,))
+            results = await con.fetch(query, user_id)
 
         warnings = [RefWarning(
             user_id=row["user_id"],
@@ -92,13 +92,13 @@ class PGWarningDB:
 
         return warnings
 
-    async def get_active_warnings(self, user_id: str):
+    async def get_active_warnings(self, user_id: int):
 
         query = "SELECT user_id, timestamp, mod_name, reason, expiration_time FROM warnings " \
-                "WHERE user_id = %s AND expiration_time > NOW()"
+                "WHERE user_id = $1 AND expiration_time > NOW()"
 
         async with self.pool.acquire() as con:
-            results = con.fetch(query, (user_id, ))
+            results = await con.fetch(query, user_id)
 
         warnings = [RefWarning(
             user_id=row["user_id"],
@@ -116,7 +116,7 @@ class PGWarningDB:
         query_all = "SELECT user_id, timestamp, mod_name, reason, expiration_time FROM warnings ORDER BY user_id"
 
         async with self.pool.acquire() as con:
-            results = con.fetch(query_all)
+            results = await con.fetch(query_all)
 
         for row in results:
             w = RefWarning(
@@ -142,7 +142,7 @@ class PGWarningDB:
         """
 
         async with self.pool.acquire() as con:
-            results = con.fetch(query_all)
+            results = await con.fetch(query_all)
 
         for row in results:
             w = RefWarning(
@@ -158,8 +158,8 @@ class PGWarningDB:
 
         return warnings
 
-    async def expire_warnings(self, user_id: str):
-        query = "UPDATE warnings SET expiration_time = NOW() WHERE user_id = %s"
+    async def expire_warnings(self, user_id: int):
+        query = "UPDATE warnings SET expiration_time = NOW() WHERE user_id = $1"
 
         async with self.pool.acquire() as con:
-            con.execute(query, (user_id, ))
+            await con.execute(query, user_id)

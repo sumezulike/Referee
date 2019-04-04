@@ -50,9 +50,10 @@ class PGRanksDB:
         Creates the tables in the db if they don't exist.
         This is called on every startup
         """
+        self.pool = await self.pool
         async with self.pool.acquire() as con:
             for query in creation:
-                con.execute(query)
+                await con.execute(query)
 
     async def add_rank(self, rank: Rank):
         """
@@ -61,9 +62,9 @@ class PGRanksDB:
         """
 
         insert = "INSERT into ranks(name, role_id, message_id) " \
-                 "VALUES(%s, %s, %s)"
+                 "VALUES($1, $2, $3)"
         async with self.pool.acquire() as con:
-            con.execute(insert, (rank.name, rank.role_id, rank.message_id))
+            await con.execute(insert, rank.name, rank.role_id, rank.message_id)
 
     async def get_rank(self, role_id: int = None, name: str = None, message_id: int = None) -> Rank:
         """
@@ -77,16 +78,16 @@ class PGRanksDB:
             raise RuntimeError("get_rank called without arguments")
 
         if role_id:
-            query = "SELECT name, role_id, message_id FROM ranks where role_id = %s"
+            query = "SELECT name, role_id, message_id FROM ranks where role_id = $1"
 
         elif name:
-            query = "SELECT name, role_id, message_id FROM ranks where name = %s"
+            query = "SELECT name, role_id, message_id FROM ranks where name = $1"
 
         else:  # message_id
-            query = "SELECT name, role_id, message_id FROM ranks where message_id = %s"
+            query = "SELECT name, role_id, message_id FROM ranks where message_id = $1"
 
         async with self.pool.acquire() as con:
-            result: asyncpg.Record = con.fetchrow(query, (role_id or name or message_id,))
+            result: asyncpg.Record = await con.fetchrow(query, role_id or name or message_id)
 
         if result:
             return Rank(name=result["name"], role_id=result["role_id"], message_id=result["message_id"])
@@ -96,10 +97,10 @@ class PGRanksDB:
         Delete a rank by discord role ID
         :param role_id: The ID of the role connected to the rank
         """
-        query = "DELETE FROM ranks WHERE role_id = %s"
+        query = "DELETE FROM ranks WHERE role_id = $1"
 
         async with self.pool.acquire() as con:
-            con.execute(query, (role_id,))
+            await con.execute(query, role_id)
 
     async def get_all_ranks(self):
         """
@@ -109,5 +110,5 @@ class PGRanksDB:
         async with self.pool.acquire() as con:
             query = "SELECT name, role_id, message_id FROM ranks"
 
-            rows = con.fetch(query)
+            rows = await con.fetch(query)
             return [Rank(name=row["name"], role_id=row["role_id"], message_id=row["message_id"]) for row in rows]

@@ -34,7 +34,7 @@ class Warnings(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.warning_db = PGWarningDB()
+        self.db = PGWarningDB()
         self.latest_warning_mod_id = None
         self.moderator_roles = dict()
 
@@ -54,7 +54,9 @@ class Warnings(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.guild.id not in self.moderator_roles.keys():
+        if not message.guild:
+            return
+        elif message.guild.id not in self.moderator_roles.keys():
             self.moderator_roles[message.guild.id] = list(
                 filter(lambda r: r.permissions.kick_members, message.guild.roles)
             )
@@ -87,7 +89,7 @@ class Warnings(commands.Cog):
             name = self.clean_content(message)[:-1].split("for ")[-1]
             member: discord.Member = await commands.MemberConverter().convert(await self.bot.get_context(message), name)
 
-            self.warning_db.expire_warnings(member.id)
+            await self.db.expire_warnings(member.id)
             await self.remove_warned_roles(member)
 
     @commands.Cog.listener()
@@ -148,7 +150,7 @@ class Warnings(commands.Cog):
         :param warning:
         """
         await self.check_warnings(member)
-        num_warnings = len(self.warning_db.get_active_warnings(member.id))
+        num_warnings = len(await self.db.get_active_warnings(member.id))
         if num_warnings > 1:
             await ctx.channel.send(
                 f"{member.display_name} has been warned {num_warnings} times in the last {warnings_config.warningLifetime} hours",
@@ -164,7 +166,7 @@ class Warnings(commands.Cog):
         """
         is_warned = bool(await self.get_warned_roles(member))
 
-        active_warnings = self.warning_db.get_active_warnings(str(member.id))
+        active_warnings = await self.db.get_active_warnings(member.id)
 
         if active_warnings:
             if not is_warned:
@@ -173,7 +175,7 @@ class Warnings(commands.Cog):
             await self.remove_warned_roles(member)
 
     async def check_all_warnings(self, guild: discord.Guild):
-        member_ids = self.warning_db.get_all_warnings().keys()
+        member_ids = (await self.db.get_all_warnings()).keys()
         for member_id in member_ids:
             await self.check_warnings(guild.get_member(int(member_id)))
 
@@ -210,7 +212,7 @@ class Warnings(commands.Cog):
         await member.remove_roles(*warned_roles)
 
     async def save_warning(self, warning: RefWarning):
-        self.warning_db.put_warning(warning)
+        await self.db.put_warning(warning)
 
     @staticmethod
     async def mute(member: discord.Member, mute_time: int):
@@ -248,7 +250,7 @@ class Warnings(commands.Cog):
     @commands.command()
     @commands.has_permissions(kick_members=True)
     async def clear(self, ctx: commands.Context, member: discord.Member):
-        self.warning_db.expire_warnings(member.id)
+        await self.db.expire_warnings(member.id)
         await self.remove_warned_roles(member)
         await self.acknowledge(ctx.message)
 
@@ -260,8 +262,8 @@ class Warnings(commands.Cog):
             await ctx.send("Usage: `ref!warnings @member`", delete_after=30)
             return
 
-        all_warnings = self.warning_db.get_warnings(member.id)
-        active_warnings = self.warning_db.get_active_warnings(member.id)
+        all_warnings = await self.db.get_warnings(member.id)
+        active_warnings = await self.db.get_active_warnings(member.id)
         expired_warnings = list(filter(lambda x: x not in active_warnings, all_warnings))
 
         if all_warnings:
@@ -285,16 +287,16 @@ class Warnings(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def active_warnings(self, ctx: commands.Context):
 
-        active_warnings = self.warning_db.get_all_active_warnings()
+        active_warnings = await self.db.get_all_active_warnings()
 
         title = "Active warnings" if active_warnings else "No active warnings"
         embed = discord.Embed(title=title, color=discord.Color.dark_gold())
 
         for member_id in active_warnings:
-            warnings = self.warning_db.get_active_warnings(member_id)
+            warnings = await self.db.get_active_warnings(member_id)
             active_str = "\n".join([await self.warning_str(w, warned_name=True, expiration=True) for w in warnings])
             if active_str:
-                embed.add_field(name=ctx.guild.get_member(int(member_id)), value=active_str, inline=False)
+                embed.add_field(name=ctx.guild.get_member(member_id), value=active_str, inline=False)
 
         await ctx.send(embed=embed)
 
