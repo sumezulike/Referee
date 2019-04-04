@@ -18,7 +18,6 @@ bot = commands.Bot(command_prefix=config.commandPrefixes,
 
 
 def setup_logger():
-
     if not os.path.exists("logs"):
         print("Creating logs folder...")
         os.makedirs("logs")
@@ -63,6 +62,7 @@ async def on_ready():
     On_ready eventhandler, gets called by api
     """
     logger.info("Ready!")
+
 
 #
 # @bot.event
@@ -109,10 +109,24 @@ async def ping(ctx: commands.Context):
 
 
 def is_aight():
-    def predicate(ctx: commands.Context):
-        return ctx.message.author.top_role in list(
-                filter(lambda r: r.permissions.kick_members, ctx.message.guild.roles)) + [ctx.guild.get_role(222466366597365760)]
+    perms = {"kick_members": True}
+
+    def predicate(ctx):
+        ch = ctx.channel
+        permissions = ch.permissions_for(ctx.author)
+
+        missing = [perm for perm, value in perms.items() if getattr(permissions, perm, None) != value]
+
+        if not missing:
+            return True
+        elif ctx.guild.get_role(222466366597365760) in ctx.author.roles:
+            return True
+
+        raise commands.MissingPermissions(missing)
+
+
     return commands.check(predicate)
+
 
 # noinspection PyUnusedLocal
 @bot.command(name="playing")
@@ -159,6 +173,7 @@ async def stats(ctx: commands.Context):
     embed = discord.Embed(title=f"Referee stats")
     embed.add_field(name="Loaded modules", value="\n".join(config.extensions))
     await ctx.send(embed=embed)
+
 
 if __name__ == '__main__':
     logger: logging.Logger = setup_logger()
