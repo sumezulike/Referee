@@ -107,9 +107,9 @@ async def ping(ctx: commands.Context):
 
 
 # noinspection PyUnusedLocal
-@bot.command(aliases=["game"])
+@bot.command(name="playing")
 @commands.has_permissions(kick_members=True)
-async def activity(ctx: commands.Context, *, activity: str):
+async def playing(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
     :param ctx: Context object for the specific invoked ćommands
@@ -119,12 +119,36 @@ async def activity(ctx: commands.Context, *, activity: str):
 
 
 # noinspection PyUnusedLocal
+@bot.command(name="watching")
+@commands.has_permissions(kick_members=True)
+async def watching(ctx: commands.Context, *, activity: str):
+    """
+    Changes the bots current discord activity
+    :param ctx: Context object for the specific invoked ćommands
+    :param activity: The string that will be displayed as activity
+    """
+    await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.watching))
+
+
+# noinspection PyUnusedLocal
+@bot.command(name="listening")
+@commands.has_permissions(kick_members=True)
+async def listening(ctx: commands.Context, *, activity: str):
+    """
+    Changes the bots current discord activity
+    :param ctx: Context object for the specific invoked ćommands
+    :param activity: The string that will be displayed as activity
+    """
+    await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.listening))
+
+
+# noinspection PyUnusedLocal
 @bot.command(aliases=["stats"])
 @commands.has_permissions(kick_members=True)
 async def stat(ctx: commands.Context):
     embed = discord.Embed(title=f"Referee stats")
     embed.add_field(name="Loaded modules", value="\n".join(config.extensions))
-
+    await ctx.send(embed=embed)
 
 if __name__ == '__main__':
     logger: logging.Logger = setup_logger()
