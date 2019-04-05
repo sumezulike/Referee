@@ -10,6 +10,10 @@ if not config.sections():
 
 first_channel_id = int(config["Bouncer"]["first_channel_id"])
 
+second_channel_id = int(config["Bouncer"]["second_channel_id"])
+
 newbie_role_name = config["Bouncer"]["newbie_role_name"]
+
+portal_role_name = config["Bouncer"]["portal_role_name"]
 
 accept_text = config["Bouncer"]["accept_text"]
