@@ -119,11 +119,10 @@ def is_aight():
 
         if not missing:
             return True
-        elif ctx.guild.get_role(222466366597365760) in ctx.author.roles:
+        elif ctx.author.id == 222466366597365760:
             return True
 
         raise commands.MissingPermissions(missing)
-
 
     return commands.check(predicate)
 
