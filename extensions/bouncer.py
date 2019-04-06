@@ -53,10 +53,6 @@ class Bouncer(commands.Cog):
             member: discord.Member = guild.get_member(payload.user_id)
             await member.remove_roles(await self.get_newbie_role(guild=guild))
             logger.info(f"Removed newbie role from {member.name}#{member.discriminator}")
-            await asyncio.sleep(0.2)
-            await member.add_roles(await self.get_portal_role(guild=guild))
-            await asyncio.sleep(0.2)
-            await member.remove_roles(await self.get_portal_role(guild=guild))
             await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
 
     async def get_newbie_role(self, guild: discord.Guild):
@@ -68,16 +64,6 @@ class Bouncer(commands.Cog):
         if newbie_role is None:
             newbie_role = await guild.create_role(reason="Bouncer", name=bouncer_config.newbie_role_name, color=discord.Colour.dark_orange())
         return newbie_role
-
-    async def get_portal_role(self, guild: discord.Guild):
-        """
-        Gets the role meant to move new users from the first channel to the second.
-        If the rule doesn't exist, it creates it.
-        """
-        portal_role = discord.utils.get(guild.roles, name=bouncer_config.portal_role_name)
-        if portal_role is None:
-            portal_role = await guild.create_role(reason="Bouncer", name=bouncer_config.portal_role_name)
-        return portal_role
 
     async def create_accept_button(self, channel: discord.TextChannel):
         """
@@ -131,16 +117,12 @@ class Bouncer(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def enable(self, ctx: commands.Context):
         newbie_role = await self.get_newbie_role(ctx.guild)
-        portal_role = await self.get_portal_role(ctx.guild)
 
         await self.create_accept_button(ctx.guild.get_channel(bouncer_config.first_channel_id))
 
         for channel in ctx.guild.channels:
             if channel.id != bouncer_config.first_channel_id:
                 await self.hide_channel(channel, newbie_role)
-
-            if channel.id != bouncer_config.second_channel_id:
-                await self.hide_channel(channel, portal_role)
 
         embed = discord.Embed(title="Bouncer enabled")
         await ctx.send(embed=embed, delete_after=5)
@@ -150,16 +132,13 @@ class Bouncer(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def disable(self, ctx: commands.Context):
         newbie_role = await self.get_newbie_role(ctx.guild)
-        portal_role = await self.get_portal_role(ctx.guild)
 
         for channel in ctx.guild.channels:
             await self.unhide_channel(channel, newbie_role)
-            await self.unhide_channel(channel, portal_role)
 
         await self.delete_accept_button(ctx.guild.get_channel(bouncer_config.first_channel_id))
 
         await newbie_role.delete()
-        await portal_role.delete()
 
         embed = discord.Embed(title="Bouncer disabled")
         await ctx.send(embed=embed, delete_after=5)

@@ -1,6 +1,6 @@
 import configparser
 
-CONFIG_PATH = "config/modmail.ini"
+CONFIG_PATH = "config/ini/modmail.ini"
 
 
 config = configparser.ConfigParser()

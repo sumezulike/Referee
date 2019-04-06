@@ -1,6 +1,6 @@
 import configparser
 
-CONFIG_PATH = "config/warnings.ini"
+CONFIG_PATH = "config/ini/warnings.ini"
 
 
 config = configparser.ConfigParser()
