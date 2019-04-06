@@ -54,6 +54,14 @@ class Bouncer(commands.Cog):
             await member.remove_roles(await self.get_newbie_role(guild=guild))
             logger.info(f"Removed newbie role from {member.name}#{member.discriminator}")
             await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
+            await self.welcome(member)
+
+    @staticmethod
+    async def welcome(member: discord.Member):
+        embed = discord.Embed()
+        embed.set_footer(icon_url=member.guild.icon_url, text=member.guild.name)
+        embed.add_field(name=f"Welcome to {member.guild.name}!", value=bouncer_config.welcome_message, inline=True)
+        await member.send(embed=embed)
 
     async def get_newbie_role(self, guild: discord.Guild):
         """
@@ -142,6 +150,11 @@ class Bouncer(commands.Cog):
 
         embed = discord.Embed(title="Bouncer disabled")
         await ctx.send(embed=embed, delete_after=5)
+        await ctx.message.delete()
+
+    @commands.command(name="welcome_me")
+    async def welcome_me(self, ctx: commands.Context):
+        await self.welcome(ctx.author)
         await ctx.message.delete()
 
 
