@@ -51,10 +51,11 @@ class Bouncer(commands.Cog):
         if self.check_message_id == payload.message_id:
             guild: discord.Guild = self.bot.get_guild(payload.guild_id)
             member: discord.Member = guild.get_member(payload.user_id)
-            await member.remove_roles(await self.get_newbie_role(guild=guild))
-            logger.info(f"Removed newbie role from {member.name}#{member.discriminator}")
-            await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
-            await self.welcome(member)
+            if await self.get_newbie_role(guild=guild) in member.roles:
+                await member.remove_roles(await self.get_newbie_role(guild=guild))
+                logger.info(f"Removed newbie role from {member.name}#{member.discriminator}")
+                await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
+                await self.welcome(member)
 
     @staticmethod
     async def welcome(member: discord.Member):
