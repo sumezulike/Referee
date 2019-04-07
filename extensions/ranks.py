@@ -35,6 +35,7 @@ class Ranks(commands.Cog):
         self.on_cooldown: List[int] = []
         self.latest_reactions: Dict[int: int] = {}
         self.ranks_cache: List[Rank] = []
+        self.guild: discord.Guild = self.bot.guilds[0]
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -118,13 +119,12 @@ class Ranks(commands.Cog):
                 )
                 return
             await self.process_cooldown(payload.user_id)
-            guild: discord.Guild = self.bot.get_guild(payload.guild_id)
-            member: discord.Member = guild.get_member(payload.user_id)
+            member: discord.Member = self.guild.get_member(payload.user_id)
 
             rank = await self.db.get_rank(message_id=payload.message_id)
 
             if rank:
-                role = guild.get_role(rank.role_id)
+                role = self.guild.get_role(rank.role_id)
 
                 if str(payload.emoji) == emoji.white_check_mark:
                     if role not in member.roles:

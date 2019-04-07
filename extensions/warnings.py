@@ -34,7 +34,8 @@ class Warnings(commands.Cog):
         self.bot = bot
         self.db = PGWarningDB()
         self.latest_warning_mod_id = None
-        self.moderator_roles = dict()
+        self.moderator_ids = list()
+        self.guild: discord.Guild = self.bot.guilds[0]
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -48,8 +49,7 @@ class Warnings(commands.Cog):
             await asyncio.sleep(1)
 
         while not self.bot.is_closed():
-            for guild in self.bot.guilds:
-                await self.check_all_members(guild)
+            await self.check_all_members()
             await asyncio.sleep(120)  # task runs every second minute
 
     @commands.Cog.listener()
@@ -60,11 +60,11 @@ class Warnings(commands.Cog):
         """
         if not message.guild:
             return
-        elif message.guild.id not in self.moderator_roles.keys():
-            self.moderator_roles[message.guild.id] = list(
-                filter(lambda r: r.permissions.kick_members, message.guild.roles)
+        elif not self.moderator_ids:
+            self.moderator_ids = list(
+                filter(lambda m: message.channel.permissions_for(message.author).kick_members, self.guild.members)
             )
-        if message.author.top_role in self.moderator_roles[message.guild.id]:
+        if message.author.id in self.moderator_ids:
             if message.content.startswith("?warn "):
                 logger.info(f"Identified warn command: '{message.content}' from "
                             f"{message.author.name}#{message.author.discriminator}")
@@ -80,9 +80,9 @@ class Warnings(commands.Cog):
 
             warning = RefWarning(user_id=member.id,
                                  reason=reason,
-                                 timestamp=datetime.now(),
+                                 timestamp=message.created_at,
                                  mod_name=f"{mod.display_name}#{mod.discriminator}",
-                                 expiration_time=datetime.now() + timedelta(hours=warnings_config.warning_lifetime))
+                                 expiration_time=message.created_at + timedelta(hours=warnings_config.warning_lifetime))
 
             await self.db.put_warning(warning)
             await self.enforce_punishments(await self.bot.get_context(message), member, warning)
@@ -170,9 +170,7 @@ class Warnings(commands.Cog):
     async def enforce_punishments(self, ctx: commands.Context, member: discord.Member, warning: RefWarning):
         """
         This method checks a users number of active warnings and enacts the punishments
-        :param ctx: The command context, passed by api
-        :param member:
-        :param warning:
+
         """
         await self.check_warnings(member)
         num_warnings = len(await self.db.get_active_warnings(member.id))
@@ -199,11 +197,11 @@ class Warnings(commands.Cog):
         elif is_warned:
             await self.remove_warned_roles(member)
 
-    async def check_all_members(self, guild: discord.Guild):
+    async def check_all_members(self):
         """
         Checks the warnings for all members in a guiöd
         """
-        for member in guild.members:
+        for member in self.guild.members:
             await self.check_warnings(member)
 
     async def assign_warned_role(self, member: discord.Member):
@@ -216,13 +214,12 @@ class Warnings(commands.Cog):
         if self.get_warned_roles(member):
             return
 
-        guild: discord.Guild = member.guild
         warning_color = discord.Colour.from_rgb(*get_warned_color(member.colour.to_rgb()))
         warned_roles = list(
-            filter(lambda r: r.name == warnings_config.warned_role_name and r.colour == warning_color, guild.roles))
+            filter(lambda r: r.name == warnings_config.warned_role_name and r.colour == warning_color, self.guild.roles))
 
         if not warned_roles:
-            role = await guild.create_role(name=warnings_config.warned_role_name,
+            role = await self.guild.create_role(name=warnings_config.warned_role_name,
                                            colour=warning_color)
             await asyncio.sleep(0.5)
         else:

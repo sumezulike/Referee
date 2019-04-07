@@ -22,6 +22,7 @@ class ModMail(commands.Cog):
         self.db = PGModMailDB()
         self.mod_channel: discord.TextChannel = None  # will be loaded in on_ready
         self.last_messages_times = {}
+        self.guild: discord.Guild = self.bot.guilds[0]
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -92,7 +93,7 @@ class ModMail(commands.Cog):
             return False
         if len(message.content.split()) <= 1:
             return False
-        if not self.mod_channel.guild.get_member(message.author.id):
+        if not self.guild.get_member(message.author.id):
             return False
         return True
 

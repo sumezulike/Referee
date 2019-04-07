@@ -62,6 +62,7 @@ async def on_ready():
     On_ready eventhandler, gets called by api
     """
     logger.info("Ready!")
+    assert len(bot.guilds) == 1
 
 
 #

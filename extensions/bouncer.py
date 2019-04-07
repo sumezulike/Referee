@@ -25,13 +25,14 @@ class Bouncer(commands.Cog):
         except Exception as e:
             logger.warning("Could not read check_message_id")
             self.check_message_id = None
+        self.guild: discord.Guild = self.bot.guilds[0]
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         """
         Called by API everytime a member joins the bots guild
         """
-        await member.add_roles(await self.get_newbie_role(member.guild))
+        await member.add_roles(await self.get_newbie_role())
         logger.info(f"Adding newbie role to {member.name}#{member.discriminator}")
 
     @commands.Cog.listener()
@@ -39,7 +40,7 @@ class Bouncer(commands.Cog):
         """
         Called by the API when a new channel is created
         """
-        await self.hide_channel(channel, await self.get_newbie_role(channel.guild))
+        await self.hide_channel(channel, await self.get_newbie_role())
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -64,14 +65,16 @@ class Bouncer(commands.Cog):
         embed.add_field(name=f"Welcome to {member.guild.name}!", value=bouncer_config.welcome_message, inline=True)
         await member.send(embed=embed)
 
-    async def get_newbie_role(self, guild: discord.Guild):
+    async def get_newbie_role(self):
         """
         Gets the role meant to keep new users in the first channel.
         If the rule doesn't exist, it creates it.
         """
-        newbie_role = discord.utils.get(guild.roles, name=bouncer_config.newbie_role_name)
+        newbie_role = discord.utils.get(self.guild.roles, name=bouncer_config.newbie_role_name)
         if newbie_role is None:
-            newbie_role = await guild.create_role(reason="Bouncer", name=bouncer_config.newbie_role_name, color=discord.Colour.dark_orange())
+            newbie_role = await self.guild.create_role(
+                reason="Bouncer", name=bouncer_config.newbie_role_name, color=discord.Colour.dark_orange()
+            )
         return newbie_role
 
     async def create_accept_button(self, channel: discord.TextChannel):
@@ -125,7 +128,7 @@ class Bouncer(commands.Cog):
     @bouncer.command(name="enable")
     @commands.has_permissions(kick_members=True)
     async def enable(self, ctx: commands.Context):
-        newbie_role = await self.get_newbie_role(ctx.guild)
+        newbie_role = await self.get_newbie_role()
 
         await self.create_accept_button(ctx.guild.get_channel(bouncer_config.first_channel_id))
 
@@ -140,7 +143,7 @@ class Bouncer(commands.Cog):
     @bouncer.command(name="disable")
     @commands.has_permissions(kick_members=True)
     async def disable(self, ctx: commands.Context):
-        newbie_role = await self.get_newbie_role(ctx.guild)
+        newbie_role = await self.get_newbie_role()
 
         for channel in ctx.guild.channels:
             await self.unhide_channel(channel, newbie_role)
