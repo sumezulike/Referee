@@ -1,6 +1,6 @@
 import configparser
 
-CONFIG_PATH = "config/options.ini"
+CONFIG_PATH = "config/ini/options.ini"
 
 
 config = configparser.ConfigParser()

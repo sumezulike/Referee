@@ -1,6 +1,6 @@
 import configparser
 
-CONFIG_PATH = "config/ranks.ini"
+CONFIG_PATH = "config/ini/ranks.ini"
 
 
 config = configparser.ConfigParser()
