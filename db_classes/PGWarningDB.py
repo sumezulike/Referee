@@ -132,7 +132,7 @@ class PGWarningDB:
 
         return warnings
 
-    async def get_all_active_warnings(self) -> Dict[str, List[RefWarning]]:
+    async def get_all_active_warnings(self) -> Dict[int, List[RefWarning]]:
 
         warnings = {}
 

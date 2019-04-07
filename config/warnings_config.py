@@ -9,11 +9,13 @@ if not config.sections():
     raise FileNotFoundError("No config in file: {}".format(CONFIG_PATH))
 
 
-dynoID = int(config["Warnings"]["DynoID"])
+dyno_id = int(config["Warnings"]["DynoID"])
 
-warningLifetime = int(config["Warnings"]["WarningLifetime"])
+warning_lifetime = int(config["Warnings"]["WarningLifetime"])
 
-warnedRoleName = config["Warnings"]["WarnedRoleName"]
+warned_role_name = config["Warnings"]["WarnedRoleName"]
+
+default_warned_color = (int(x) for x in config["Warnings"]["defaultWarnedColor"].split())
 
 
 PG_Host = config["PostgreSQL"]["Host"]
