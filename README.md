@@ -18,4 +18,4 @@ Forces a joining new member to confirm reading a message in one of the channels 
 
 - ### misc
 Miscellaneous commands. To date:
-  - lmgtfy, aliased to "explain"
+  - - lmgtfy, aliased to "explain"
