@@ -35,7 +35,7 @@ class Ranks(commands.Cog):
         self.on_cooldown: List[int] = []
         self.latest_reactions: Dict[int: int] = {}
         self.ranks_cache: List[Rank] = []
-        self.guild: discord.Guild = self.bot.guilds[0]
+        self.guild: discord.Guild = None
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -44,6 +44,7 @@ class Ranks(commands.Cog):
         """
         self.bot.loop.create_task(self.bg_clear_cooldowns())
         await self.update_ranks_cache()
+        self.guild = self.bot.guilds[0]
 
     async def update_ranks_cache(self):
         """

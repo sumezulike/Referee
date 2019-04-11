@@ -22,7 +22,11 @@ class ModMail(commands.Cog):
         self.db = PGModMailDB()
         self.mod_channel: discord.TextChannel = None  # will be loaded in on_ready
         self.last_messages_times = {}
-        self.guild: discord.Guild = self.bot.guilds[0]
+        self.guild: discord.Guild = None
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.guild = self.bot.guilds[0]
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

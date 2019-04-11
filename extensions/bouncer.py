@@ -25,7 +25,11 @@ class Bouncer(commands.Cog):
         except Exception as e:
             logger.warning("Could not read check_message_id")
             self.check_message_id = None
-        self.guild: discord.Guild = self.bot.guilds[0]
+        self.guild: discord.Guild = None
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.guild = self.bot.guilds[0]
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):

@@ -35,11 +35,12 @@ class Warnings(commands.Cog):
         self.db = PGWarningDB()
         self.latest_warning_mod_id = None
         self.moderator_ids = list()
-        self.guild: discord.Guild = self.bot.guilds[0]
+        self.guild: discord.Guild = None  # initialized in on_ready
 
     @commands.Cog.listener()
     async def on_ready(self):
         self.bot.loop.create_task(self.bg_check())
+        self.guild = self.bot.guilds[0]
 
     async def bg_check(self):
         """
