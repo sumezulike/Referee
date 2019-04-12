@@ -7,12 +7,11 @@ import discord
 from discord.ext import commands
 
 import logging
-from utils import emoji
 
 logger = logging.getLogger("Referee")
 
 
-class Bouncer(commands.Cog):
+class Misc(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -39,4 +38,4 @@ class Bouncer(commands.Cog):
 
 
 def setup(bot: commands.Bot):
-    bot.add_cog(Bouncer(bot))
+    bot.add_cog(Misc(bot))
