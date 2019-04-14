@@ -18,8 +18,9 @@ class Misc(commands.Cog):
 
     @commands.command(name="explain")
     async def lmgtfy(self, ctx: commands.Context, *, query: str):
-        query = urllib.parse.quote_plus(query)
-        payload = {"short_url": {"url": f"http://lmgtfy.com/?q={query}"}}
+        query = query.split("<")[0].strip()
+        url_query = urllib.parse.quote_plus(query)
+        payload = {"short_url": {"url": f"http://lmgtfy.com/?q={url_query}"}}
         headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0",
                    "Accept": "application/json, text/plain, */*",
                    "Accept-Language": "en-US,en;q=0.5",
@@ -34,7 +35,7 @@ class Misc(commands.Cog):
             short = await session.post("https://api.lmgtfy.com/short_urls", json=payload)
             resp = await short.json()
             print(resp)
-            await ctx.send(embed=discord.Embed(title=f"<{resp['short_url']}>", color=discord.Colour.dark_gold()))
+            await ctx.send(embed=discord.Embed(description=f"[{query}]({resp['short_url']})", color=discord.Colour.dark_gold()))
 
 
 def setup(bot: commands.Bot):
