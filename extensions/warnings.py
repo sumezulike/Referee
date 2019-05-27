@@ -34,7 +34,7 @@ class Warnings(commands.Cog):
         self.bot = bot
         self.db = PGWarningDB()
         self.latest_warning_mod_id = None
-        self.moderator_ids = list()
+        self.moderators = list()
         self.guild: discord.Guild = None  # initialized in on_ready
 
     @commands.Cog.listener()
@@ -61,11 +61,12 @@ class Warnings(commands.Cog):
         """
         if not message.guild:
             return
-        elif not self.moderator_ids:
-            self.moderator_ids = list(
+        elif not self.moderators:
+            self.moderators = list(
                 filter(lambda m: message.channel.permissions_for(message.author).kick_members, self.guild.members)
             )
-        if message.author.id in self.moderator_ids:
+            print(self.moderators)
+        if message.author in self.moderators:
             if message.content.startswith("?warn "):
                 logger.info(f"Identified warn command: '{message.content}' from "
                             f"{message.author.name}#{message.author.discriminator}")
@@ -77,12 +78,15 @@ class Warnings(commands.Cog):
 
             member: discord.Member = await commands.MemberConverter().convert(await self.bot.get_context(message), name)
 
-            mod: discord.User = await self.bot.fetch_user(self.latest_warning_mod_id)
+            if self.latest_warning_mod_id:
+                mod: discord.User = await self.bot.fetch_user(self.latest_warning_mod_id)
+            else:
+                mod = None
 
             warning = RefWarning(user_id=member.id,
                                  reason=reason,
                                  timestamp=message.created_at,
-                                 mod_name=f"{mod.display_name}#{mod.discriminator}",
+                                 mod_name=f"{mod.display_name}#{mod.discriminator}" if mod else None,
                                  expiration_time=message.created_at + timedelta(hours=warnings_config.warning_lifetime))
 
             await self.db.put_warning(warning)
@@ -244,7 +248,9 @@ class Warnings(commands.Cog):
         Mutes a member for a certain timespan
         """
         muted_roles = discord.utils.get(member.guild.roles, name="Muted")
-        await member.add_roles(*muted_roles)
+        if isinstance(muted_roles, list):
+            muted_roles = muted_roles[0]
+        await member.add_roles(muted_roles)
         await asyncio.sleep(mute_time_seconds)
         await member.remove_roles(*muted_roles)
 
