@@ -3,6 +3,7 @@ import typing
 from base64 import b64decode
 import re
 import string
+from builtins import filter
 
 import aiohttp
 import urllib.parse
@@ -42,19 +43,32 @@ class Misc(commands.Cog):
 
     @commands.command(name="b64")
     async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
+
+        async def get_b64_strings(text: str) -> typing.Dict[str, str]:
+            enc = filter(lambda x: len(x) % 4 == 0, re.findall(r"[a-zA-Z0-9+/]+={0,2}", text))
+            solved = {}
+            for code in enc:
+                try:
+                    solved[code] = b64decode(code).decode()
+                except Exception as ex:
+                    logger.error(ex)
+            return solved
+
         if not query:
-            embed = discord.Embed(description=f"No valid base64 encoded messsages found", color=discord.Colour.dark_gold())
+            embed = discord.Embed(description=f"No valid base64 encoded messages found", color=discord.Colour.dark_gold())
             async for m in ctx.channel.history(limit=10, reverse=True):
-                results = re.findall(r"[a-zA-Z0-9+/]+={0,2}", m.content)
-                for r in results:
-                    try:
-                        answer = b64decode(r).decode()
-                        if not all(c in string.printable for c in set(answer)):
-                            raise RuntimeError("Not printable")
-                        embed = discord.Embed(description=f"{r}: **{answer}**", color=discord.Colour.dark_gold())
-                    except Exception as e:
-                        logger.error(e)
+                results = await get_b64_strings(m.content)
+                for c, d in results.items():
+                    if not all(x in string.printable for x in set(d)):
                         continue
+                    sub = await get_b64_strings(d)
+                    levels = 1
+                    while sub:
+                        sub = await get_b64_strings(d)
+                        if sub:
+                            d = sub.get(d)
+                            levels += 1
+                    embed = discord.Embed(description=f"{c}: **{d}**" + (f" | encoded {levels} times" if levels > 1 else ""), color=discord.Colour.dark_gold())
         else:
             try:
                 answer = b64decode(query).decode()
@@ -64,7 +78,6 @@ class Misc(commands.Cog):
                 embed = discord.Embed(description=f"{query} is not valid base64", color=discord.Colour.dark_gold())
 
         await ctx.send(embed=embed)
-
 
 
 def setup(bot: commands.Bot):
