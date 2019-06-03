@@ -60,7 +60,7 @@ class Misc(commands.Cog):
                         continue
         else:
             try:
-                answer = b64decode(query)
+                answer = b64decode(query).decode()
                 embed = discord.Embed(description=f"{answer}", color=discord.Colour.dark_gold())
             except Exception as e:
                 logger.error(e)
