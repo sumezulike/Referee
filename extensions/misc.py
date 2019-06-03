@@ -1,4 +1,8 @@
 import asyncio
+import typing
+from base64 import b64decode
+import re
+import string
 
 import aiohttp
 import urllib.parse
@@ -36,6 +40,34 @@ class Misc(commands.Cog):
             resp = await short.json()
             print(resp)
             await ctx.send(embed=discord.Embed(description=f"[{query}]({resp['short_url']})", color=discord.Colour.dark_gold()))
+
+    @commands.command(name="b64")
+    async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
+        if not query:
+            embed = discord.Embed(description=f"No valid base64 encoded messsages found", color=discord.Colour.dark_gold())
+            async for m in ctx.channel.history(limit=10, reverse=True):
+                results = re.findall(r"[a-zA-Z0-9+/]+={0,2}", m.content)
+                print(results)
+                for r in results:
+                    try:
+                        answer = b64decode(r).decode()
+                        print(answer)
+                        if not all(c in string.printable for c in set(answer)):
+                            raise RuntimeError("Not printable")
+                        embed = discord.Embed(description=f"{r}: **{answer}**", color=discord.Colour.dark_gold())
+                    except Exception as e:
+                        logger.error(e)
+                        continue
+        else:
+            try:
+                answer = b64decode(query)
+                embed = discord.Embed(description=f"{answer}", color=discord.Colour.dark_gold())
+            except Exception as e:
+                logger.error(e)
+                embed = discord.Embed(description=f"{query} is not valid base64", color=discord.Colour.dark_gold())
+
+        await ctx.send(embed=embed)
+
 
 
 def setup(bot: commands.Bot):

@@ -46,6 +46,31 @@ class Ranks(commands.Cog):
         await self.update_ranks_cache()
         self.guild = self.bot.guilds[0]
 
+    async def bg_check(self):
+        """
+        Runs every 24h to clear reactions that were missed
+        """
+        while not self.bot.is_ready():
+            await asyncio.sleep(1)
+
+        while not self.bot.is_closed():
+            await self.clear_user_reactions()
+            await asyncio.sleep(60 * 60 * 24)  # task runs every 24h
+
+    async def clear_user_reactions(self):
+        channel: discord.TextChannel = self.guild.get_channel(ranks_config.ranks_channel_id)
+        for rank in self.ranks_cache:
+            message: discord.Message = await channel.fetch_message(rank.message_id)
+            for reaction in message.reactions:
+                async for user in reaction.users():
+                    if not user == self.bot.user:
+                        await self.bot.http.remove_reaction(
+                            rank.message_id,
+                            ranks_config.ranks_channel_id,
+                            emoji.white_check_mark,
+                            user.id
+                        )
+
     async def update_ranks_cache(self):
         """
         Update the cache from the db
@@ -194,6 +219,11 @@ class Ranks(commands.Cog):
             await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
         await ctx.message.delete()
         await self.update_ranks_cache()
+
+    @commands.command()
+    @commands.has_permissions(kick_members=True)
+    async def clean_reactions(self, ctx: commands.Context):
+        await self.clear_user_reactions()
 
     async def quick_embed_query(self, ctx: commands.Context, question: str, reraise_timeout: bool = True) -> bool:
         """
