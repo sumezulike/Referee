@@ -38,7 +38,6 @@ class Misc(commands.Cog):
         async with aiohttp.ClientSession(headers=headers) as session:
             short = await session.post("https://api.lmgtfy.com/short_urls", json=payload)
             resp = await short.json()
-            print(resp)
             await ctx.send(embed=discord.Embed(description=f"[{query}]({resp['short_url']})", color=discord.Colour.dark_gold()))
 
     @commands.command(name="b64")
@@ -47,11 +46,9 @@ class Misc(commands.Cog):
             embed = discord.Embed(description=f"No valid base64 encoded messsages found", color=discord.Colour.dark_gold())
             async for m in ctx.channel.history(limit=10, reverse=True):
                 results = re.findall(r"[a-zA-Z0-9+/]+={0,2}", m.content)
-                print(results)
                 for r in results:
                     try:
                         answer = b64decode(r).decode()
-                        print(answer)
                         if not all(c in string.printable for c in set(answer)):
                             raise RuntimeError("Not printable")
                         embed = discord.Embed(description=f"{r}: **{answer}**", color=discord.Colour.dark_gold())
