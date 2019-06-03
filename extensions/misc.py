@@ -49,18 +49,18 @@ class Misc(commands.Cog):
             solved = {}
             for code in enc:
                 try:
-                    solved[code] = b64decode(code).decode()
+                    dec = b64decode(code).decode()
+                    if all(x in string.printable for x in set(dec)):
+                        solved[code] = dec
                 except Exception as ex:
                     logger.error(ex)
             return solved
 
         if not query:
-            embed = discord.Embed(description=f"No valid base64 encoded messages found", color=discord.Colour.dark_gold())
-            async for m in ctx.channel.history(limit=10, reverse=True):
+            found_hits = {}
+            async for m in ctx.channel.history(limit=20, reverse=True):
                 results = await get_b64_strings(m.content)
                 for c, d in results.items():
-                    if not all(x in string.printable for x in set(d)):
-                        continue
                     sub = await get_b64_strings(d)
                     levels = 1
                     while sub:
@@ -68,7 +68,12 @@ class Misc(commands.Cog):
                         if sub:
                             d = sub.get(d)
                             levels += 1
-                    embed = discord.Embed(description=f"{c}: **{d}**" + (f" | encoded {levels} times" if levels > 1 else ""), color=discord.Colour.dark_gold())
+                    found_hits[c] = (d, levels)
+            if found_hits:
+                embed = discord.Embed(description="\n\n".join([f"*{c}* - **{d[0]}**" + (f" | encoded {d[1]} times" if d[1] > 1 else "") for c, d in found_hits.items()]), color=discord.Colour.dark_gold())
+            else:
+                embed = discord.Embed(description="No valid base64 found", color=discord.Colour.dark_gold())
+            await ctx.send(embed=embed)
         else:
             try:
                 answer = b64decode(query).decode()
@@ -77,7 +82,7 @@ class Misc(commands.Cog):
                 logger.error(e)
                 embed = discord.Embed(description=f"{query} is not valid base64", color=discord.Colour.dark_gold())
 
-        await ctx.send(embed=embed)
+            await ctx.send(embed=embed)
 
 
 def setup(bot: commands.Bot):
