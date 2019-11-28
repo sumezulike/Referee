@@ -65,7 +65,6 @@ class Warnings(commands.Cog):
             self.moderators = list(
                 filter(lambda m: message.channel.permissions_for(message.author).kick_members, self.guild.members)
             )
-            print(self.moderators)
         if message.author in self.moderators:
             if message.content.startswith("?warn "):
                 logger.info(f"Identified warn command: '{message.content}' from "

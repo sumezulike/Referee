@@ -9,7 +9,7 @@ import os
 import sys
 import logging
 import logging.handlers
-
+import csv
 
 bot = commands.Bot(command_prefix=config.commandPrefixes,
                    case_insensitive=True,
@@ -165,17 +165,18 @@ async def listening(ctx: commands.Context, *, activity: str):
         activity = activity.replace("to ", "", 1)
     await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.listening))
 
+
 # noinspection PyUnusedLocal
-@bot.command(name="getme", aliases=["get"])
+@bot.command(name="doing")
 @is_aight()
-async def fetchhistory(ctx: commands.Context, member: discord.Member):
+async def doing(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
     :param ctx: Context object for the specific invoked ćommands
     :param activity: The string that will be displayed as activity
     """
-    messages = await member.history(limit=10).flatten()
-    await ctx.author.send(messages)
+    await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.unknown))
+
 
 # noinspection PyUnusedLocal
 @bot.command(name="stats", hidden=True)
