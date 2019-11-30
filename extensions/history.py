@@ -1,6 +1,7 @@
 import asyncio
 import discord
 from discord.ext import commands
+import timeit
 
 from db_classes.PGHistoryDB import PGHistoryDB
 from models.history_models import HistoryMessage
@@ -46,21 +47,25 @@ class History(commands.Cog):
 
     @commands.command(name="rebase")
     @commands.has_permissions(kick_members=True)
-    async def rebase(self, ctx: commands.Context, member: discord.Member, *, reason: str):
+    async def rebase(self, ctx: commands.Context):
         """
         Pulls the entire servers history. RIP.
         """
-
+        if ctx.author.id != 238359385888260096:
+            logger.warning(f"{ctx.author} tried to rebase")
+            await ctx.send("Ehh. Please discuss this with <@238359385888260096>")
+            return
         await ctx.send("This is going to take a while Q_Q", delete_after=30)
 
-        messages = []
+        logger.info("Attempting to rebase history")
         for channel in ctx.guild.channels:  # type: discord.TextChannel
             if type(channel) != discord.TextChannel:
                 continue
-
+            start = timeit.default_timer()
             async for message in channel.history(oldest_first=True):
                 await self.process_message(message)
-            break
+            dur = timeit.default_timer() - start
+            logger.info(f"{channel.name} pulled in {int(dur)}s")
 
 
 def setup(bot: commands.Bot):
