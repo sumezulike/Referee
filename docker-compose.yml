@@ -13,6 +13,7 @@ services:
       - database_data:/var/lib/postgresql/data
 
   bot:
+    # image: discord.py
     build: .
     restart: unless-stopped
     volumes:
