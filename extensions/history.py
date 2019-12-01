@@ -75,7 +75,7 @@ class History(commands.Cog):
 
     @commands.command(aliases=["get", "gethistory", "history"])
     @commands.has_permissions(kick_members=True)
-    async def history(self, ctx: commands.Context, member: discord.Member):
+    async def gethistory(self, ctx: commands.Context, member: discord.Member):
         messages = await self.db.get_messages(member.id)
         with open(f"report", "w") as file:
             file.write(f"# Post history of {member.display_name}#{member.discriminator}")
