@@ -73,7 +73,7 @@ class History(commands.Cog):
         await ctx.send(f"Rebase done in {int(dur)}s")
 
 
-    @commands.command(aliases=["get", "gethistory", "history"])
+    @commands.command(aliases=["history"])
     @commands.has_permissions(kick_members=True)
     async def gethistory(self, ctx: commands.Context, member: discord.Member):
         messages = await self.db.get_messages(member.id)
