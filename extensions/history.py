@@ -56,16 +56,20 @@ class History(commands.Cog):
             await ctx.send("Ehh. Please discuss this with <@238359385888260096>")
             return
         await ctx.send("This is going to take a while Q_Q", delete_after=30)
+        start_time = timeit.default_timer()
 
         logger.info("Attempting to rebase history")
-        for channel in ctx.guild.channels:  # type: discord.TextChannel
-            if type(channel) != discord.TextChannel:
-                continue
-            start = timeit.default_timer()
+        for channel in (c for c in ctx.guild.channels if type(c) == discord.TextChannel):  # type: discord.TextChannel
+
+            channel_start_time = timeit.default_timer()
             async for message in channel.history(oldest_first=True):
                 await self.process_message(message)
-            dur = timeit.default_timer() - start
+            dur = timeit.default_timer() - channel_start_time
             logger.info(f"{channel.name} pulled in {int(dur)}s")
+
+        dur = timeit.default_timer() - start_time
+        logger.info(f"Rebase done in {int(dur)}s")
+        await ctx.send(f"Rebase done in {int(dur)}s")
 
 
 def setup(bot: commands.Bot):
