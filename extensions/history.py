@@ -2,6 +2,7 @@ import asyncio
 import discord
 from discord.ext import commands
 import timeit
+import os
 
 from db_classes.PGHistoryDB import PGHistoryDB
 from models.history_models import HistoryMessage
@@ -71,6 +72,20 @@ class History(commands.Cog):
         logger.info(f"Rebase done in {int(dur)}s")
         await ctx.send(f"Rebase done in {int(dur)}s")
 
+
+    @commands.command(aliases=["get", "gethistory", "history"])
+    @commands.has_permissions(kick_members=True)
+    async def history(self, ctx: commands.Context, member: discord.Member):
+        messages = await self.db.get_messages(member.id)
+        with open(f"report", "w") as file:
+            file.write(f"# Post history of {member.display_name}#{member.discriminator}")
+            file.write("message, timestamp, channel_id")
+            file.write("\n".join("{}, {}, {}".format(m.content.replace('"', '""'), m.timestamp, m.channel_id) for m in messages))
+
+        with open("report") as file:
+            await ctx.author.send(file=file)
+
+        os.remove("report")
 
 def setup(bot: commands.Bot):
     bot.add_cog(History(bot))
