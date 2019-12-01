@@ -62,16 +62,22 @@ class History(commands.Cog):
         start_time = timeit.default_timer()
 
         logger.info("Attempting to rebase history")
-        for channel in (c for c in ctx.guild.channels if type(c) == discord.TextChannel):  # type: discord.TextChannel
+        text_channels = [c for c in ctx.guild.channels if type(c) == discord.TextChannel]
+        status_msg = await ctx.send(f"Pulling... 0/{len(text_channels)}")
+        n = 0
+        for channel in text_channels:  # type: discord.TextChannel
 
             channel_start_time = timeit.default_timer()
             async for message in channel.history(oldest_first=True, limit=None):
                 await self.process_message(message)
             dur = timeit.default_timer() - channel_start_time
             logger.info(f"{channel.name} pulled in {int(dur)}s")
+            n += 1
+            await status_msg.edit(content=f"Pulling... {n}/{len(text_channels)}")
 
         dur = timeit.default_timer() - start_time
         logger.info(f"Rebase done in {int(dur)}s")
+        await status_msg.delete()
         await ctx.send(f"Rebase done in {int(dur)}s")
 
 
