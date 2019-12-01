@@ -10,6 +10,7 @@ import logging
 
 logger = logging.getLogger("Referee")
 
+REPORT_FILEPATH = "history.csv"
 
 class History(commands.Cog):
 
@@ -42,7 +43,7 @@ class History(commands.Cog):
         msg = HistoryMessage(user_id=message.author.id,
                              channel_id=message.channel.id,
                              timestamp=message.created_at,
-                             content=message.content)
+                             content=message.clean_content)
 
         await self.db.put_message(msg)
 
@@ -77,16 +78,18 @@ class History(commands.Cog):
     @commands.command(aliases=["history"])
     @commands.has_permissions(kick_members=True)
     async def gethistory(self, ctx: commands.Context, member: discord.Member):
+        def clean(s: str):
+            return s.replace('"', '""')
+
         messages = await self.db.get_messages(member.id)
-        with open(f"report", "w") as file:
-            file.write(f"# Post history of {member.display_name}#{member.discriminator}")
-            file.write("message, timestamp, channel_id")
-            file.write("\n".join("{}, {}, {}".format(m.content.replace('"', '""'), m.timestamp, m.channel_id) for m in messages))
+        with open(REPORT_FILEPATH, "w") as file:
+            file.write(f"# Post history of {member.display_name}#{member.discriminator}\n")
+            file.write("message, timestamp, channel_id\n")
+            file.write("\n".join("\"{}\", {}, {}".format(clean(m.content), m.timestamp, m.channel_id) for m in messages))
 
-        with open("report") as file:
-            await ctx.author.send(file=file)
+        await ctx.author.send(file=discord.File(REPORT_FILEPATH))
 
-        os.remove("report")
+        os.remove(REPORT_FILEPATH)
 
 def setup(bot: commands.Bot):
     bot.add_cog(History(bot))
