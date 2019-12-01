@@ -77,7 +77,7 @@ class PGHistoryDB:
         :param user_id:
         :return:
         """
-        query = "SELECT user_id, channel_id, timestamp, content FROM messages WHERE user_id = $1"
+        query = "SELECT user_id, channel_id, timestamp, content FROM history WHERE user_id = $1"
         async with self.pool.acquire() as con:
             results = await con.fetch(query, user_id)
 
