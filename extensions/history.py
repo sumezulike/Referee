@@ -28,6 +28,7 @@ class History(commands.Cog):
         """
         Called by api whenever a message is received.
         """
+        await self.process_message(message)
 
 
     async def process_message(self, message: discord.Message):
@@ -63,7 +64,7 @@ class History(commands.Cog):
         for channel in (c for c in ctx.guild.channels if type(c) == discord.TextChannel):  # type: discord.TextChannel
 
             channel_start_time = timeit.default_timer()
-            async for message in channel.history(oldest_first=True):
+            async for message in channel.history(oldest_first=True, limit=None):
                 await self.process_message(message)
             dur = timeit.default_timer() - channel_start_time
             logger.info(f"{channel.name} pulled in {int(dur)}s")
