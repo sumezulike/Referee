@@ -136,7 +136,6 @@ class Ranks(commands.Cog):
         Called by api whenever a reaction is added.
         :param payload: A :class:`discord.RawReactionActionEvent`
         """
-        logger.info("Reaction added")
         if payload.channel_id == ranks_config.ranks_channel_id and payload.user_id != self.bot.user.id:
             if payload.user_id in self.on_cooldown:
                 await asyncio.sleep(1)
@@ -151,6 +150,8 @@ class Ranks(commands.Cog):
             member: discord.Member = self.guild.get_member(payload.user_id)
 
             rank = await self.db.get_rank(message_id=payload.message_id)
+
+            logger.info(f"Reaction added to {rank.name} by {member.display_name}")
 
             if rank:
                 role = self.guild.get_role(rank.role_id)
@@ -256,7 +257,7 @@ class Ranks(commands.Cog):
     async def count_ranks(self, ctx: commands.Context):
         embed = discord.Embed(title="")
         for rank in await self.db.get_all_ranks():
-            embed.add_field(name=rank.name)
+            embed.add_field(name=rank.name, value="0")
             await ctx.send(embed=embed)
         await ctx.message.delete()
 
