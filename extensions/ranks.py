@@ -136,6 +136,7 @@ class Ranks(commands.Cog):
         Called by api whenever a reaction is added.
         :param payload: A :class:`discord.RawReactionActionEvent`
         """
+        logger.info("Reaction added")
         if payload.channel_id == ranks_config.ranks_channel_id and payload.user_id != self.bot.user.id:
             if payload.user_id in self.on_cooldown:
                 await asyncio.sleep(1)
@@ -248,6 +249,16 @@ class Ranks(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def clean_reactions(self, ctx: commands.Context):
         await self.clear_user_reactions()
+
+
+    @commands.command(aliases=["count_roles", "count_rank"])
+    @commands.has_permissions(kick_members=True)
+    async def count_ranks(self, ctx: commands.Context):
+        embed = discord.Embed(title="")
+        for rank in await self.db.get_all_ranks():
+            embed.add_field(name=rank.name)
+            await ctx.send(embed=embed)
+        await ctx.message.delete()
 
     async def quick_embed_query(self, ctx: commands.Context, question: str, reraise_timeout: bool = True) -> bool:
         """
