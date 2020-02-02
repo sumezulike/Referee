@@ -198,7 +198,7 @@ class Ranks(commands.Cog):
         await ctx.message.delete()
         await self.update_ranks_cache()
 
-    @commands.command(aliases=["delete_ranks", "remove_rank", "remove_ranks"])
+    @commands.command(aliases=["delete_ranks", "remove_rank", "remove_ranks", "del_rank"])
     @commands.has_permissions(kick_members=True)
     async def delete_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
         """
@@ -219,6 +219,28 @@ class Ranks(commands.Cog):
                 await self.bot.http.delete_role(ctx.guild.id, rank.role_id)
             await self.db.delete_rank(role_id=rank.role_id)
             await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
+        await ctx.message.delete()
+        await self.update_ranks_cache()
+
+
+    @commands.command(aliases=["renew_rank", "refresh_rank"])
+    @commands.has_permissions(kick_members=True)
+    async def reset_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
+        """
+        This command deletes one or more ranks and the ranks selection messages.
+        The invoking user will be prompted before deleting the role which belongs to the rank.
+        Usage: ref!delete_rank roleName1 [roleName2 roleName3 ...]
+
+        :param ctx: Context object for the specific invoked ćommand, passed by api
+        :param roles: A list of one or more roles
+        """
+        for role in roles:
+            rank = await self.db.get_rank(role_id=role.id)
+            await self.db.delete_rank(role_id=rank.role_id)
+            await self.bot.http.delete_message(ranks_config.ranks_channel_id, rank.message_id)
+
+            if not await self.db.get_rank(role_id=role.id):
+                await self.create_rank_message(name=rank.name, role=role)
         await ctx.message.delete()
         await self.update_ranks_cache()
 
