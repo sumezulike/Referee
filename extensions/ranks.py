@@ -42,11 +42,13 @@ class Ranks(commands.Cog):
         """
         On_ready eventhandler, gets called by api
         """
-        await self.clear_user_reactions()
+
+        self.guild: discord.Guild = self.bot.guilds[0]
+        logger.info(f"Set guild to {self.guild}")
+
         self.bot.loop.create_task(self.bg_clear_cooldowns())
         self.bot.loop.create_task(self.bg_check())
         await self.update_ranks_cache()
-        self.guild = self.bot.guilds[0]
 
     async def bg_check(self):
         """
@@ -60,6 +62,7 @@ class Ranks(commands.Cog):
             await asyncio.sleep(60 * 60 * 24)  # task runs every 24h
 
     async def clear_user_reactions(self):
+        logger.info(f"Channel_id: {ranks_config.ranks_channel_id}")
         channel: discord.TextChannel = self.guild.get_channel(ranks_config.ranks_channel_id)
         for rank in self.ranks_cache:
             message: discord.Message = await channel.fetch_message(rank.message_id)
@@ -67,10 +70,10 @@ class Ranks(commands.Cog):
                 async for user in reaction.users():
                     if not user == self.bot.user:
                         await self.bot.http.remove_reaction(
-                            rank.message_id,
-                            ranks_config.ranks_channel_id,
-                            emoji.white_check_mark,
-                            user.id
+                            message_id=rank.message_id,
+                            channel_id=ranks_config.ranks_channel_id,
+                            emoji=emoji.white_check_mark,
+                            member_id=user.id
                         )
 
     async def update_ranks_cache(self):
@@ -140,18 +143,16 @@ class Ranks(commands.Cog):
             if payload.user_id in self.on_cooldown:
                 await asyncio.sleep(1)
                 await self.bot.http.remove_reaction(
-                    payload.message_id,
-                    payload.channel_id,
-                    payload.emoji,
-                    payload.user_id
+                    message_id=payload.message_id,
+                    channel_id=payload.channel_id,
+                    emoji=payload.emoji,
+                    member_id=payload.user_id
                 )
                 return
             await self.process_cooldown(payload.user_id)
             member: discord.Member = self.guild.get_member(payload.user_id)
 
             rank = await self.db.get_rank(message_id=payload.message_id)
-
-            logger.info(f"Reaction added to {rank.name} by {member.display_name}")
 
             if rank:
                 role = self.guild.get_role(rank.role_id)
@@ -172,7 +173,8 @@ class Ranks(commands.Cog):
                         logger.info(f"Removed {role.name} from {member.name}")
                         await self.notify_role_removed(member, role)
 
-            await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
+            logger.info(payload)
+            await self.bot.http.remove_reaction(message_id=payload.message_id, channel_id=payload.channel_id, emoji=payload.emoji, member_id=payload.user_id)
 
     @commands.command(aliases=["create_rank", "add_ranks", "create_ranks"])
     @commands.has_permissions(kick_members=True)
@@ -250,15 +252,16 @@ class Ranks(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def clean_reactions(self, ctx: commands.Context):
         await self.clear_user_reactions()
-
+        await ctx.message.delete()
 
     @commands.command(aliases=["count_roles", "count_rank"])
     @commands.has_permissions(kick_members=True)
     async def count_ranks(self, ctx: commands.Context):
         embed = discord.Embed(title="")
-        for rank in await self.db.get_all_ranks():
-            embed.add_field(name=rank.name, value="0")
-            await ctx.send(embed=embed)
+        rank_members = [(rank.name, len(self.guild.get_role(rank.role_id).members)) for rank in await self.db.get_all_ranks()]
+        for r in sorted(rank_members, key=lambda x: x[1], reverse=True):
+            embed.add_field(name=r[0], value=str(r[1]), inline=True)
+        await ctx.send(embed=embed)
         await ctx.message.delete()
 
     async def quick_embed_query(self, ctx: commands.Context, question: str, reraise_timeout: bool = True) -> bool:
