@@ -40,9 +40,11 @@ class Ranks(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         """
-                On_ready eventhandler, gets called by api
+        On_ready eventhandler, gets called by api
         """
+        await self.clear_user_reactions()
         self.bot.loop.create_task(self.bg_clear_cooldowns())
+        self.bot.loop.create_task(self.bg_check())
         await self.update_ranks_cache()
         self.guild = self.bot.guilds[0]
 
