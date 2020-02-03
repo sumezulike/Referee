@@ -62,7 +62,6 @@ class Ranks(commands.Cog):
             await asyncio.sleep(60 * 60 * 24)  # task runs every 24h
 
     async def clear_user_reactions(self):
-        logger.info(f"Channel_id: {ranks_config.ranks_channel_id}")
         channel: discord.TextChannel = self.guild.get_channel(ranks_config.ranks_channel_id)
         for rank in self.ranks_cache:
             message: discord.Message = await channel.fetch_message(rank.message_id)
@@ -257,7 +256,7 @@ class Ranks(commands.Cog):
     @commands.command(aliases=["count_roles", "count_rank"])
     @commands.has_permissions(kick_members=True)
     async def count_ranks(self, ctx: commands.Context):
-        embed = discord.Embed(title="")
+        embed = discord.Embed(title=f"Ranks distribution {ctx.message.created_at.strftime('%d.%m.%Y %H:%M')}", color=discord.Colour.teal())
         rank_members = [(rank.name, len(self.guild.get_role(rank.role_id).members)) for rank in await self.db.get_all_ranks()]
         for r in sorted(rank_members, key=lambda x: x[1], reverse=True):
             embed.add_field(name=r[0], value=str(r[1]), inline=True)

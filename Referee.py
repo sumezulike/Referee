@@ -9,7 +9,7 @@ import os
 import sys
 import logging
 import logging.handlers
-import csv
+import typing
 
 bot = commands.Bot(command_prefix=config.commandPrefixes,
                    case_insensitive=True,
@@ -151,6 +151,22 @@ async def watching(ctx: commands.Context, *, activity: str):
     """
     await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.watching))
 
+
+# noinspection PyUnusedLocal
+@bot.command(name="say", aliases=["echo"])
+@is_aight()
+async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChannel]=None, *, msg: str):
+    """
+    Repeats the passed message
+    :param channel: The channel to echo the string in, optional
+    :param ctx: Context object for the specific invoked ćommands
+    :param msg: The string that will be echoed
+    """
+    if not channel:
+        await ctx.send(msg)
+    else:
+        await channel.send(msg)
+    await ctx.message.delete()
 
 # noinspection PyUnusedLocal
 @bot.command(name="listening")
