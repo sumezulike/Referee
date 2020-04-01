@@ -20,6 +20,16 @@ class Misc(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.guild: discord.Guild = None
+
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        """
+        On_ready eventhandler, gets called by api
+        """
+        self.guild: discord.Guild = self.bot.guilds[0]
+
 
     @commands.command(name="explain")
     async def lmgtfy(self, ctx: commands.Context, *, query: str):
@@ -39,7 +49,9 @@ class Misc(commands.Cog):
         async with aiohttp.ClientSession(headers=headers) as session:
             short = await session.post("https://api.lmgtfy.com/short_urls", json=payload)
             resp = await short.json()
-            await ctx.send(embed=discord.Embed(description=f"[{query}]({resp['short_url']})", color=discord.Colour.dark_gold()))
+            await ctx.send(
+                embed=discord.Embed(description=f"[{query}]({resp['short_url']})", color=discord.Colour.dark_gold()))
+
 
     @commands.command(name="b64")
     async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
@@ -56,6 +68,7 @@ class Misc(commands.Cog):
                     logger.error(ex)
             return solved
 
+
         if not query:
             found_hits = {}
             async for m in ctx.channel.history(limit=20, reverse=True):
@@ -70,7 +83,9 @@ class Misc(commands.Cog):
                             levels += 1
                     found_hits[c] = (d, levels)
             if found_hits:
-                embed = discord.Embed(description="\n\n".join([f"*{c}* - **{d[0]}**" + (f" | encoded {d[1]} times" if d[1] > 1 else "") for c, d in found_hits.items()]), color=discord.Colour.dark_gold())
+                embed = discord.Embed(description="\n\n".join(
+                    [f"*{c}* - **{d[0]}**" + (f" | encoded {d[1]} times" if d[1] > 1 else "") for c, d in
+                     found_hits.items()]), color=discord.Colour.dark_gold())
             else:
                 embed = discord.Embed(description="No valid base64 found", color=discord.Colour.dark_gold())
             await ctx.send(embed=embed)
@@ -83,6 +98,16 @@ class Misc(commands.Cog):
                 embed = discord.Embed(description=f"{query} is not valid base64", color=discord.Colour.dark_gold())
 
             await ctx.send(embed=embed)
+
+
+    @commands.command()
+    @commands.has_permissions(kick_members=True)
+    async def april_reverse(self, ctx: commands.Context):
+        for channel in self.guild.channels:
+            try:
+                await channel.edit(reason="1. April", name=channel.name[::-1])
+            except Exception as e:
+                logger.error(e)
 
 
 def setup(bot: commands.Bot):

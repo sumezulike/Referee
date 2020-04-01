@@ -98,8 +98,10 @@ async def ping(ctx: commands.Context):
     await msg.edit(embed=embed)
     await msg.add_reaction(zoop)
 
+
     def check(reaction, user):
         return user == ctx.author and reaction.emoji == zoop
+
 
     try:
         await bot.wait_for("reaction_add", check=check, timeout=120)
@@ -111,6 +113,7 @@ async def ping(ctx: commands.Context):
 
 def is_aight():
     perms = {"kick_members": True}
+
 
     def predicate(ctx):
         ch = ctx.channel
@@ -124,6 +127,7 @@ def is_aight():
             return True
 
         raise commands.MissingPermissions(missing)
+
 
     return commands.check(predicate)
 
@@ -155,7 +159,7 @@ async def watching(ctx: commands.Context, *, activity: str):
 # noinspection PyUnusedLocal
 @bot.command(name="say", aliases=["echo"])
 @is_aight()
-async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChannel]=None, *, msg: str):
+async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChannel] = None, *, msg: str):
     """
     Repeats the passed message
     :param channel: The channel to echo the string in, optional
@@ -167,6 +171,7 @@ async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChann
     else:
         await channel.send(msg)
     await ctx.message.delete()
+
 
 # noinspection PyUnusedLocal
 @bot.command(name="listening")
