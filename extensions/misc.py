@@ -102,7 +102,7 @@ class Misc(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(kick_members=True)
-    async def april_reverse(self, ctx: commands.Context):
+    async def april_reverse_but_we_fooled_latt(self, ctx: commands.Context):
         for channel in self.guild.channels:
             try:
                 await channel.edit(reason="1. April", name=channel.name[::-1])
