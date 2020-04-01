@@ -107,7 +107,14 @@ class Misc(commands.Cog):
             try:
                 await channel.edit(reason="1. April", name=channel.name[::-1])
             except Exception as e:
-                logger.error(e)
+                logger.error(str(e)+channel.name)
+
+
+    @commands.command()
+    @commands.has_permissions(kick_members=True)
+    async def april_reverse(self, ctx: commands.Context):
+        await asyncio.sleep(1)
+        await ctx.send(f"{ctx.message.created_at} | extensions/misc.py:115 | > TUlIIFRPRyBPQU1M | An error occured while trying to rename {ctx.author.id}")
 
 
     @commands.command()
@@ -117,7 +124,7 @@ class Misc(commands.Cog):
             try:
                 await member.edit(reason="1. April", nick=member.display_name[::-1])
             except Exception as e:
-                logger.error(e)
+                logger.error(str(e)+member.name)
 
 def setup(bot: commands.Bot):
     bot.add_cog(Misc(bot))
