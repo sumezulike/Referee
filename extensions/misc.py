@@ -120,7 +120,7 @@ class Misc(commands.Cog):
     @commands.command()
     @commands.has_permissions(kick_members=True)
     async def april_reverse_names(self, ctx: commands.Context):
-        for member in self.guild.members:
+        for member in sorted(self.guild.members, key=lambda m: m.top_role, reverse=True):
             try:
                 await member.edit(reason="1. April", nick=member.display_name[::-1])
             except Exception as e:
