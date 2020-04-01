@@ -110,5 +110,10 @@ class Misc(commands.Cog):
                 logger.error(e)
 
 
+    @commands.command()
+    @commands.has_permissions(kick_members=True)
+    async def april_reverse_names(self, ctx: commands.Context):
+        pass
+
 def setup(bot: commands.Bot):
     bot.add_cog(Misc(bot))
