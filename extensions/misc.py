@@ -113,7 +113,11 @@ class Misc(commands.Cog):
     @commands.command()
     @commands.has_permissions(kick_members=True)
     async def april_reverse_names(self, ctx: commands.Context):
-        pass
+        for member in self.guild.members:
+            try:
+                await member.edit(reason="1. April", nick=member.display_name[::-1])
+            except Exception as e:
+                logger.error(e)
 
 def setup(bot: commands.Bot):
     bot.add_cog(Misc(bot))
