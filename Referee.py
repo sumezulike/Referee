@@ -62,7 +62,8 @@ async def on_ready():
     On_ready eventhandler, gets called by api
     """
     logger.info("Ready!")
-    assert len(bot.guilds) == 1
+    if (n:= len(bot.guilds)) != 1:
+        raise Exception(f"Too wrong number of guilds: {n}\n{', '.join(g.name for g in bot.guilds)}")
 
 
 #

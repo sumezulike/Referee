@@ -16,6 +16,7 @@ import logging
 
 logger = logging.getLogger("Referee")
 
+punishments = {2: 4, 3: 24}
 
 def get_warned_color(color: tuple) -> tuple:
     def is_grey(c):
@@ -33,8 +34,6 @@ class Warnings(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.db = PGWarningDB()
-        self.latest_warning_mod_id = None
-        self.moderators = list()
         self.guild: discord.Guild = None  # initialized in on_ready
 
     @commands.Cog.listener()
@@ -61,45 +60,15 @@ class Warnings(commands.Cog):
         """
         if not message.guild:
             return
-        elif not self.moderators:
-            self.moderators = list(
-                filter(lambda m: message.channel.permissions_for(message.author).kick_members, self.guild.members)
-            )
-        if message.author in self.moderators:
-            if message.content.startswith("?warn "):
-                logger.info(f"Identified warn command: '{message.content}' from "
-                            f"{message.author.name}#{message.author.discriminator}")
-                self.latest_warning_mod_id = message.author.id
 
-        if self.message_is_warning(message):
-            name, reason = self.get_name_reason(message)
-            logger.info(f"Identified warning: '{message.content}'. {name}, {reason}")
-
-            member: discord.Member = await commands.MemberConverter().convert(await self.bot.get_context(message), name)
-
-            if self.latest_warning_mod_id:
-                mod: discord.User = await self.bot.fetch_user(self.latest_warning_mod_id)
-            else:
-                mod = None
-
-            warning = RefWarning(user_id=member.id,
-                                 reason=reason,
-                                 timestamp=message.created_at,
-                                 mod_name=f"{mod.display_name}#{mod.discriminator}" if mod else None,
-                                 expiration_time=message.created_at + timedelta(hours=warnings_config.warning_lifetime))
-
-            await self.db.put_warning(warning)
-            await self.enforce_punishments(await self.bot.get_context(message), member, warning)
-
-        # Else, if the message is a clear
-        elif self.message_is_clear(message):
-            logger.info(f"Identified clear: '{message.content}'")
-
-            name = self.clean_content(message)[:-1].split("for ")[-1]
-            member: discord.Member = await commands.MemberConverter().convert(await self.bot.get_context(message), name)
-
-            await self.db.expire_warnings(member.id)
-            await self.remove_warned_roles(member)
+        if message.content.startswith("?warn "):
+            logger.info(f"Identified warn command: '{message.content}' from "
+                        f"{message.author.name}#{message.author.discriminator}")
+            if message.author.top_role >= discord.utils.find(lambda m: m.name == 'Support', self.guild.roles):
+                ctx = await self.bot.get_context(message)
+                member = await discord.ext.commands.MemberConverter().convert(ctx=ctx, argument=message.content.split()[1])
+                reason = message.content.split(" ", 2)[2]
+                await self.warn(ctx=ctx, member=member, reason=reason)
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -117,20 +86,6 @@ class Warnings(commands.Cog):
         content = content.replace("***", "").replace("\\_", "_").replace("\\*", "*").replace("\\\\", "\\")
         return content
 
-    def message_is_warning(self, message: discord.message) -> bool:
-        """
-        Checks whether a message is a warning confirmation from Dyno.
-        This could break at any time, since Dynos code could be changed without warning
-        """
-        logger.debug(f"Checking message {message.content} from {message.author.name}")
-        content = self.clean_content(message)
-        if message.author.id == warnings_config.dyno_id:
-            if "has been warned" in content:
-                return True
-            elif "They were not warned" in content:
-                return True
-        return False
-
     @staticmethod
     def get_warned_roles(member: discord.Member) -> list:
         """
@@ -138,29 +93,6 @@ class Warnings(commands.Cog):
         """
         warned_roles = list(filter(lambda r: r.name == warnings_config.warned_role_name, member.roles))
         return warned_roles
-
-    def get_name_reason(self, message: discord.message) -> Tuple[str, str]:
-        """
-        Parses a warning confirmation for name and reason
-        """
-        content = self.clean_content(message)
-        if "has been warned." in content:
-            name, reason = content.split(" has been warned.", 1)
-            name = name.split("> ")[1]
-        elif "They were not warned" in content:
-            name, reason = content.split(". They were not warned.", 1)
-            name = name.split("Warning logged for ")[1]
-        else:
-            raise RuntimeError(f"'{content}' logged as warning, but can not be parsed")
-        reason = reason.replace(", ", "", 1)
-        return name, reason
-
-    def message_is_clear(self, message: discord.message):
-        """
-        Checks whether a message is a "warnings cleared" confirmation from Dyno
-        """
-        content = self.clean_content(message)
-        return "<:dynoSuccess:314691591484866560> Cleared" in content and "warnings for " in content
 
     async def acknowledge(self, message: discord.Message):
         """
@@ -178,14 +110,14 @@ class Warnings(commands.Cog):
         """
         await self.check_warnings(member)
         num_warnings = len(await self.db.get_active_warnings(member.id))
-        if num_warnings > 1:
+        if num_warnings in punishments.keys():
             await ctx.channel.send(
                 f"{member.display_name} has been warned {num_warnings}"
-                f" times in the last {warnings_config.warning_lifetime} hours."
-                f"Automatically muting them for {4**(num_warnings-1)} hours",
+                f" times in the last {warnings_config.warning_lifetime} hours. "
+                f"Automatically muting them for {punishments.get(num_warnings)} hours",
                 delete_after=30
             )
-            await self.mute(member, 4**(num_warnings - 1) * 60 * 60)
+            await self.mute(member, punishments.get(num_warnings) * 60 * 60)
 
     async def check_warnings(self, member: discord.Member):
         """
