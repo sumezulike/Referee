@@ -30,6 +30,12 @@ class Misc(commands.Cog):
         """
         self.guild: discord.Guild = self.bot.guilds[0]
 
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.guild:
+            if "zoop" in message.content.lower():
+                zoop = discord.utils.get(self.guild.emojis, name="zoop")
+                await message.add_reaction(zoop)
 
     @commands.command(name="explain")
     async def lmgtfy(self, ctx: commands.Context, *, query: str):
