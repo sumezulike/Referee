@@ -1,5 +1,7 @@
 import re
 
+import logging
+
 import discord
 from discord.ext import commands
 
@@ -8,6 +10,7 @@ from config import reputation_config
 
 from utils import emoji
 
+logger = logging.getLogger("Referee")
 
 class Reputation(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -22,17 +25,21 @@ class Reputation(commands.Cog):
             # in the sense that it starts with our prefix
             if (m := re.match(self.regex, message.content.lower())) is not None:
                 userids = m.groups()
+                logger.info(f"Recieved thanks from {message.author.id} to {', '.join(userids)}")
                 last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
-                if last_given_diff >= reputation_config.RepDelay:
+                if last_given_diff <= reputation_config.RepDelay:
                     await message.add_reaction(emoji.hourglass)
                     return
                 for userid in userids:
                     if userid is None:
+                        logger.debug(f"Thanking {userid} canceled: userid is None")
                         continue
                     userid = int(userid)
                     if self.bot.get_user(userid).bot:
+                        logger.debug(f"Thanking {userid} canceled: User is bot")
                         continue
-                    if (not reputation_config.Debug) and (userid == message.author.id):
+                    if userid == message.author.id and not reputation_config.Debug:
+                        logger.debug(f"Thanking {userid} canceled: User thanking themselves")
                         continue
                     await self.db.thank(message.author.id, userid, message.channel.id)
                 await message.add_reaction(emoji.thumbs_up)
