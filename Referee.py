@@ -66,10 +66,9 @@ async def on_ready():
         raise Exception(f"Too wrong number of guilds: {n}\n{', '.join(g.name for g in bot.guilds)}")
 
 
-#
-# @bot.event
-# async def on_command_error(ctx: commands.Context, error: commands.CommandError):
-#     logger.error(f"Error in {ctx.message.content} from {ctx.author.name}#{ctx.author.discriminator}: "+str(error))
+@bot.event
+async def on_command_error(ctx: commands.Context, error: commands.CommandError):
+    logger.error(f"Error in {ctx.message.content} from {ctx.author.name}#{ctx.author.discriminator}: {error}")
 
 
 @bot.event
