@@ -95,6 +95,13 @@ class PGReputationDB:
         async with self.pool.acquire() as con:
             await con.execute(sql, source, target, ch)
 
+    async def get_thanks_timeframe(self, since, until):
+        sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2"
+        async with self.pool.acquire() as con:
+            results = await con.fetch(sql, since, until)
+
+        return results
+
     async def increment_reputation(self, user_id):
         sql = "INSERT INTO reputation (user_id, current_rep, last_given) VALUES($1, 1, null) ON CONFLICT " + \
               "(user_id) DO UPDATE SET current_rep = reputation.current_rep + 1"
@@ -104,6 +111,6 @@ class PGReputationDB:
     async def get_leaderboard(self):
         sql = "SELECT user_id, current_rep FROM reputation ORDER BY current_rep DESC LIMIT $1"
         async with self.pool.acquire() as con:
-            results = await con.fetch(sql, reputation_config.LB_Limit)
+            results = await con.fetch(sql, reputation_config.Leader_Limit)
 
         return results

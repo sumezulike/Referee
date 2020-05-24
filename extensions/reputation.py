@@ -8,7 +8,10 @@ from config import reputation_config
 
 from utils import emoji
 
+from datetime import datetime, date, timedelta
+
 logger = logging.getLogger("Referee")
+
 
 class Reputation(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -16,10 +19,12 @@ class Reputation(commands.Cog):
         self.db = PGReputationDB()
         self.guild = None
 
+
     @commands.Cog.listener()
     async def on_ready(self):
         self.guild = self.bot.guilds[0]
         self.self_thank_emoji = discord.utils.get(self.guild.emojis, name="cmonBruh")
+
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -79,16 +84,47 @@ class Reputation(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @commands.command(name="leaderboard")
+    @commands.group(name="leaderboard")
     async def leaderboard(self, ctx: commands.Context):
+
         embed = discord.Embed(title="Leaderboard", color=discord.Color.dark_gold())
         i = 0
-        embed.add_field(name="Highest Reputations Scores:", value="".join(
-            "{}: {}#{}: {}\n".format(
-                str(i := i + 1).zfill(len(str(reputation_config.Leader_Limit))), self.bot.get_user(x['user_id']).name,
-                self.bot.get_user(x['user_id']).discriminator, x['current_rep']
-            )
-            for x in await self.db.get_leaderboard()))
+        embed.add_field(
+            name="Highest Reputations Scores:",
+            value="".join(
+                "{}: {}#{}: {}\n".format(
+                    str(i := i + 1).zfill(len(str(reputation_config.Leader_Limit))),
+                    self.bot.get_user(x['user_id']).name,
+                    self.bot.get_user(x['user_id']).discriminator, x['current_rep']
+                )
+                for x in await self.db.get_leaderboard()))
+        await ctx.send(embed=embed)
+
+
+    @leaderboard.command()
+    async def month(self, ctx: commands.Context, month_number: int = None):
+        month_name = datetime.strptime(month_number, "%m").strftime("%B")
+
+        since = date(date.today().year, month_number, 1)
+        until = since + timedelta(days=30)
+
+        score = {}
+        for res in await self.db.get_thanks_timeframe(since, until):
+            score[res["target_user"]] = score.get(res["target_user"], 0) + 1
+
+        leaderboard = sorted(score, key=score.get, reverse=True)
+
+        embed = discord.Embed(title="Leaderboard", color=discord.Color.dark_gold())
+        i = 0
+        embed.add_field(
+            name=f"Highest Reputations Scores for {month_name}:",
+            value="".join(
+                "{}: {}#{}: {}\n".format(
+                    str(i := i + 1).zfill(len(str(reputation_config.Leader_Limit))),
+                    self.bot.get_user(key).name,
+                    self.bot.get_user(key).discriminator, score.get(key)
+                )
+                for key in leaderboard))
         await ctx.send(embed=embed)
 
 
