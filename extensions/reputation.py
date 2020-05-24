@@ -85,7 +85,7 @@ class Reputation(commands.Cog):
         i = 0
         embed.add_field(name="Highest Reputations Scores:", value="".join(
             "{}: {}#{}: {}\n".format(
-                str(i := i + 1).zfill(len(str(reputation_config.LB_Limit))), self.bot.get_user(x['user_id']).name,
+                str(i := i + 1).zfill(len(str(reputation_config.Leader_Limit))), self.bot.get_user(x['user_id']).name,
                 self.bot.get_user(x['user_id']).discriminator, x['current_rep']
             )
             for x in await self.db.get_leaderboard()))
