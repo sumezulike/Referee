@@ -4,9 +4,5 @@ __pycache__
 .idea
 *.log
 
-options.ini
-modmail.ini
-warnings.ini
-ranks.ini
-bouncer.ini
-history.ini
+config/ini/*.ini
+!config/ini/example_*.ini
