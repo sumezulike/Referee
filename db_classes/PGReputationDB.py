@@ -80,3 +80,10 @@ class PGReputationDB:
               "(user_id) DO UPDATE SET current_rep = EXCLUDED.current_rep + 1"
         async with self.pool.acquire() as con:
             await con.execute(sql, user_id)
+
+    async def get_leaderboard(self):
+        sql = "SELECT user_id, current_rep FROM reputation ORDER BY current_rep DESC LIMIT $1"
+        async with self.pool.acquire() as con:
+            results = await con.fetch(sql, reputation_config.LB_Limit)
+
+        return results

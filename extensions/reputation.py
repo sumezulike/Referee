@@ -39,6 +39,18 @@ class Reputation(commands.Cog):
                         inline=True)
         await ctx.send(embed=embed)
 
+    @commands.command(name="leaderboard")
+    async def leaderboard(self, ctx: commands.Context):
+        embed = discord.Embed(title="Leaderboard", color=discord.Color.dark_gold())
+        i = 0
+        embed.add_field(name="Highest Reputations Scores:", value="".join(
+            "{}: {}#{}: {}\n".format(
+                i := i + 1, self.bot.get_user(x['user_id']).name,
+                self.bot.get_user(x['user_id']).discriminator, x['current_rep']
+            )
+            for x in await self.db.get_leaderboard()))
+        await ctx.send(embed=embed)
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(Reputation(bot))
