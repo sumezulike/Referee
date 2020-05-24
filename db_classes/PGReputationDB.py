@@ -4,6 +4,8 @@ import asyncpg
 from config import reputation_config
 
 creation = (
+    # while this doesnt contain any new data, it's probably faster in the long run
+    # to store the reputation than counting the number of results
     """
     CREATE TABLE IF NOT EXISTS reputation (
         user_id BIGINT PRIMARY KEY,
@@ -11,12 +13,23 @@ creation = (
         last_given TIMESTAMPTZ
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS thanks (
+        source_user BIGINT,
+        target_user BIGINT,
+        channel BIGINT,
+        time TIMESTAMPTZ
+    )
+    """
 )
 
 deletion = (
     """
     DROP TABLE IF EXISTS reputation
     """,
+    """
+    DROP TABLE IF EXISTS thanks
+    """
 )
 
 logger = logging.getLogger("Referee")
@@ -74,6 +87,13 @@ class PGReputationDB:
             results = await con.fetch(sql, user_id)
 
         return 2**32 if len(results) == 0 else results[0]["diff"]
+
+    async def thank(self, source, target, ch):
+        await self.increment_reputation(target)
+        await self.update_last_given(source)
+        sql = "INSERT INTO thanks (source_user, target_user, channel, time) VALUES($1, $2, $3, NOW())"
+        async with self.pool.acquire() as con:
+            await con.execute(sql, source, target, ch)
 
     async def increment_reputation(self, user_id):
         sql = "INSERT INTO reputation (user_id, current_rep, last_given) VALUES($1, 1, null) ON CONFLICT " + \
