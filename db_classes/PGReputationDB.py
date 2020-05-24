@@ -97,7 +97,7 @@ class PGReputationDB:
 
     async def increment_reputation(self, user_id):
         sql = "INSERT INTO reputation (user_id, current_rep, last_given) VALUES($1, 1, null) ON CONFLICT " + \
-              "(user_id) DO UPDATE SET current_rep = EXCLUDED.current_rep + 1"
+              "(user_id) DO UPDATE SET current_rep = reputation.current_rep + 1"
         async with self.pool.acquire() as con:
             await con.execute(sql, user_id)
 
