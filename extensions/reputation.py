@@ -41,11 +41,14 @@ class Reputation(commands.Cog):
                     )
                 else:
                     logger.debug("Attempting to get last_given_diff")
-                    last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
-                    if last_given_diff <= reputation_config.RepDelay:
-                        await message.add_reaction(emoji.hourglass)
-                        return
-                    logger.debug("Diff okay, iterating members")
+                    try:
+                        last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
+                        if last_given_diff <= reputation_config.RepDelay:
+                            await message.add_reaction(emoji.hourglass)
+                            return
+                    except Exception as e:
+                        logger.error(e)
+                    logger.debug("Time okay, iterating members")
                     for member in members:
                         if member.bot:
                             logger.debug(f"Thanking {member} canceled: User is bot")
