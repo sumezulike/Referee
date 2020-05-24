@@ -16,3 +16,5 @@ token = config["Bot"]["Token"]
 commandPrefixes = config["Bot"]["CommandPrefixes"].split()
 
 status = config["Bot"]["Status"]
+
+logging_level = int(config["Bot"]["LoggingLevel"])

@@ -23,7 +23,7 @@ def setup_logger():
         os.makedirs("logs")
 
     logger = logging.getLogger("Referee")
-    logger.setLevel(logging.INFO)
+    logger.setLevel(config.logging_level)
 
     ref_format = logging.Formatter(
         '%(asctime)s %(levelname)s %(filename)s:%(funcName)s:%(lineno)d: '
