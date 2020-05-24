@@ -86,7 +86,7 @@ class PGReputationDB:
         async with self.pool.acquire() as con:
             results = await con.fetch(sql, user_id)
 
-        return results[0]["diff"]
+        return None if not results else results[0]["diff"]
 
     async def thank(self, source, target, ch):
         await self.increment_reputation(target)
