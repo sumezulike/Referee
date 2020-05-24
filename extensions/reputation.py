@@ -43,9 +43,11 @@ class Reputation(commands.Cog):
                     logger.debug("Attempting to get last_given_diff")
                     try:
                         last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
-                        if last_given_diff <= reputation_config.RepDelay:
-                            await message.add_reaction(emoji.hourglass)
-                            return
+                        if last_given_diff:
+                            if last_given_diff <= reputation_config.RepDelay:
+                                await message.add_reaction(emoji.hourglass)
+                                logger.debug("Cooldown active, returning")
+                                return
                     except Exception as e:
                         logger.error(e)
                     logger.debug("Time okay, iterating members")
