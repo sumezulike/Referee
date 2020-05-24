@@ -22,17 +22,19 @@ class Reputation(commands.Cog):
             # in the sense that it starts with our prefix
             if (m := re.match(self.regex, message.content.lower())) is not None:
                 userids = m.groups()
+                last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
+                if last_given_diff >= reputation_config.RepDelay:
+                    await message.add_reaction(emoji.hourglass)
+                    return
                 for userid in userids:
                     if userid is None:
                         continue
                     userid = int(userid)
                     if self.bot.get_user(userid).bot:
                         continue
-                    last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
-                    if last_given_diff >= reputation_config.RepDelay:
-                        if (not reputation_config.Debug) and (userid == message.author.id):
-                            continue
-                        await self.db.increment_reputation(userid)
+                    if (not reputation_config.Debug) and (userid == message.author.id):
+                        continue
+                    await self.db.increment_reputation(userid)
                 await self.db.update_last_given(message.author.id)
                 await message.add_reaction(emoji.thumbs_up)
 
