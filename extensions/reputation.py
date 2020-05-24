@@ -34,8 +34,7 @@ class Reputation(commands.Cog):
                         continue
                     if (not reputation_config.Debug) and (userid == message.author.id):
                         continue
-                    await self.db.increment_reputation(userid)
-                await self.db.update_last_given(message.author.id)
+                    await self.db.thank(message.author.id, userid, message.channel.id)
                 await message.add_reaction(emoji.thumbs_up)
 
     @commands.command(name="get_rep")
