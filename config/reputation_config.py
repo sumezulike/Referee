@@ -15,4 +15,6 @@ PG_User = config["PostgreSQL"]["User"]
 
 PG_Password = config["PostgreSQL"]["Password"]
 
-RepDelay = config["Reputation"]["DelayBetweenThanks"]
+RepDelay = int(config["Reputation"]["DelayBetweenThanks"])
+
+Debug = config["Reputation"]["Debug"].lower() in ('yes', 'y', 'true', 't', '1', 'enable', 'on')

@@ -8,7 +8,7 @@ creation = (
     CREATE TABLE IF NOT EXISTS reputation (
         user_id BIGINT PRIMARY KEY,
         current_rep INT NOT NULL,
-        last_given TIMESTAMP
+        last_given TIMESTAMPTZ
     )
     """,
 )
@@ -67,10 +67,16 @@ class PGReputationDB:
 
         return 0 if len(results) == 0 else results[0]["current_rep"]
 
-    async def get_last_given(self, user_id):
-        sql = "SELECT last_given FROM reputation WHERE user_id = $1"
+    async def get_time_between_lg_now(self, user_id):
+        sql = "SELECT EXTRACT(EPOCH FROM NOW() - last_given) AS diff FROM reputation WHERE user_id = $1"
 
         async with self.pool.acquire() as con:
             results = await con.fetch(sql, user_id)
 
-        return 0 if len(results) == 0 else results[0]["last_given"]
+        return 2**32 if len(results) == 0 else results[0]["diff"]
+
+    async def increment_reputation(self, user_id):
+        sql = "INSERT INTO reputation (user_id, current_rep, last_given) VALUES($1, 1, null) ON CONFLICT " + \
+              "(user_id) DO UPDATE SET current_rep = EXCLUDED.current_rep + 1"
+        async with self.pool.acquire() as con:
+            await con.execute(sql, user_id)
