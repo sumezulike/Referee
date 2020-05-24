@@ -1,5 +1,3 @@
-import re
-
 import logging
 
 import discord
@@ -15,43 +13,60 @@ logger = logging.getLogger("Referee")
 class Reputation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.regex = re.compile(r'^thank(?:s| you) <@!?([0-9]+)>,?(?: <@!?([0-9]+)>,?(?: <@!?([0-9]+)>)?)?')
         self.db = PGReputationDB()
+        self.guild = None
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.guild = self.bot.guilds[0]
+        self.self_thank_emoji = discord.utils.get(self.guild.emojis, name="cmonBruh")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.guild:
             # this has to be in on_message, since it's not technically a command
             # in the sense that it starts with our prefix
-            if (m := re.match(self.regex, message.content.lower())) is not None:
-                userids = m.groups()
-                logger.info(f"Recieved thanks from {message.author.id} to {', '.join(userids)}")
-                last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
-                if last_given_diff <= reputation_config.RepDelay:
-                    await message.add_reaction(emoji.hourglass)
-                    return
-                for userid in userids:
-                    if userid is None:
-                        logger.debug(f"Thanking {userid} canceled: userid is None")
-                        continue
-                    userid = int(userid)
-                    if self.bot.get_user(userid).bot:
-                        logger.debug(f"Thanking {userid} canceled: User is bot")
-                        continue
-                    if userid == message.author.id and not reputation_config.Debug:
-                        logger.debug(f"Thanking {userid} canceled: User thanking themselves")
-                        continue
-                    await self.db.thank(message.author.id, userid, message.channel.id)
-                await message.add_reaction(emoji.thumbs_up)
+            if message.content.lower().startswith("thank"):
+                members = message.mentions
+                logger.info(f"Recieved thanks from {message.author} to {', '.join(str(m) for m in members)}")
+                if len(members) > reputation_config.max_mentions:
+                    await message.channel.send(
+                        f"Maximum number of simultaneous thanks is {reputation_config.max_mentions}. Try again with less mentions.",
+                        delete_after=30
+                    )
+                elif not members:
+                    await message.channel.send(
+                        f"Say \"Thanks @HelpfulUser @OtherHelpfulUser @AnotherHelpfulUser\" to award up to {reputation_config.max_mentions} people with a reputation point!",
+                        delete_after=30
+                    )
+                else:
+                    last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
+                    if last_given_diff <= reputation_config.RepDelay:
+                        await message.add_reaction(emoji.hourglass)
+                        return
+                    for member in members:
+                        if member.bot:
+                            logger.debug(f"Thanking {member} canceled: User is bot")
+                            await message.add_reaction(emoji.robot)
+                        elif member == message.author and not reputation_config.Debug:
+                            logger.debug(f"Thanking {member} canceled: User thanking themselves")
+                            await message.add_reaction(self.self_thank_emoji)
+                        else:
+                            await self.db.thank(message.author.id, member.id, message.channel.id)
+                            await message.add_reaction(emoji.thumbs_up)
+                await message.delete(delay=30)
 
-    @commands.command(name="get_rep")
-    async def get_rep(self, ctx: commands.Context):
+
+    @commands.command(name="rep", aliases=["get_rep"])
+    async def get_rep(self, ctx: commands.Context, member: discord.Member = None):
+        if not member:
+            member = ctx.author
         embed = discord.Embed(title="Reputation", color=discord.Color.dark_gold())
-        embed.add_field(name=f"{ctx.message.author.name}'s reputation:",
-                        value=str(await self.db.get_user_rep(ctx.message
-                                                             .author.id)),
+        embed.add_field(name=f"{member.name}'s reputation:",
+                        value=str(await self.db.get_user_rep(member.id)),
                         inline=True)
         await ctx.send(embed=embed)
+
 
     @commands.command(name="leaderboard")
     async def leaderboard(self, ctx: commands.Context):

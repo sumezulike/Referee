@@ -19,4 +19,6 @@ RepDelay = int(config["Reputation"]["DelayBetweenThanks"])
 
 Debug = config["Reputation"]["Debug"].lower() in ('yes', 'y', 'true', 't', '1', 'enable', 'on')
 
-LB_Limit = int(config["Reputation"]["Limit"])
+Leader_Limit = int(config["Reputation"]["LeaderboardLimit"])
+
+max_mentions = int(config["Reputation"]["MaxMentions"])
