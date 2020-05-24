@@ -40,10 +40,12 @@ class Reputation(commands.Cog):
                         delete_after=30
                     )
                 else:
+                    logger.debug("Attempting to get last_given_diff")
                     last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
                     if last_given_diff <= reputation_config.RepDelay:
                         await message.add_reaction(emoji.hourglass)
                         return
+                    logger.debug("Diff okay, iterating members")
                     for member in members:
                         if member.bot:
                             logger.debug(f"Thanking {member} canceled: User is bot")
@@ -52,7 +54,11 @@ class Reputation(commands.Cog):
                             logger.debug(f"Thanking {member} canceled: User thanking themselves")
                             await message.add_reaction(self.self_thank_emoji)
                         else:
-                            await self.db.thank(message.author.id, member.id, message.channel.id)
+                            logger.debug("Attempting to thank")
+                            try:
+                                await self.db.thank(message.author.id, member.id, message.channel.id)
+                            except Exception as e:
+                                logger.error(e)
                             await message.add_reaction(emoji.thumbs_up)
                 await message.delete(delay=30)
 
