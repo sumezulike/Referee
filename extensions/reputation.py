@@ -34,28 +34,24 @@ class Reputation(commands.Cog):
             if message.content.lower().startswith("thank"):
                 members = message.mentions
                 logger.info(f"Recieved thanks from {message.author} to {', '.join(str(m) for m in members)}")
+                last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
+                if last_given_diff:
+                    if last_given_diff <= reputation_config.RepDelay:
+                        await message.add_reaction(emoji.hourglass)
+                        logger.debug("Cooldown active, returning")
+                        return
+
                 if len(members) > reputation_config.max_mentions:
                     await message.channel.send(
                         f"Maximum number of simultaneous thanks is {reputation_config.max_mentions}. Try again with less mentions.",
-                        delete_after=30
+                        delete_after=10
                     )
                 elif not members:
                     await message.channel.send(
                         f"Say \"Thanks @HelpfulUser @OtherHelpfulUser @AnotherHelpfulUser\" to award up to {reputation_config.max_mentions} people with a reputation point!",
-                        delete_after=30
+                        delete_after=10
                     )
                 else:
-                    logger.debug("Attempting to get last_given_diff")
-                    try:
-                        last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
-                        if last_given_diff:
-                            if last_given_diff <= reputation_config.RepDelay:
-                                await message.add_reaction(emoji.hourglass)
-                                logger.debug("Cooldown active, returning")
-                                return
-                    except Exception as e:
-                        logger.error(e)
-                    logger.debug("Time okay, iterating members")
                     for member in members:
                         if member.bot:
                             logger.debug(f"Thanking {member} canceled: User is bot")
@@ -64,11 +60,7 @@ class Reputation(commands.Cog):
                             logger.debug(f"Thanking {member} canceled: User thanking themselves")
                             await message.add_reaction(self.self_thank_emoji)
                         else:
-                            logger.debug("Attempting to thank")
-                            try:
-                                await self.db.thank(message.author.id, member.id, message.channel.id)
-                            except Exception as e:
-                                logger.error(e)
+                            await self.db.thank(message.author.id, member.id, message.channel.id)
                             await message.add_reaction(emoji.thumbs_up)
 
 
@@ -78,12 +70,13 @@ class Reputation(commands.Cog):
             member = ctx.author
         leaderboard = await self.db.get_leaderboard()
 
-        ranks = {score: i+1 for i, score in enumerate(sorted(set(x["current_rep"] for x in leaderboard), reverse=True))}
+        ranks = {score: i + 1 for i, score in
+                 enumerate(sorted(set(x["current_rep"] for x in leaderboard), reverse=True))}
 
         rep = await self.db.get_user_rep(member.id)
         embed = discord.Embed(title="Reputation", color=discord.Color.dark_gold())
         embed.add_field(name=f"{member.name}'s reputation:",
-                        value=f"{rep} (Rank #{ranks.get(rep, len(ranks)+1)})",
+                        value=f"{rep} (Rank #{ranks.get(rep, len(ranks) + 1)})",
                         inline=True)
         await ctx.send(embed=embed)
 
@@ -91,7 +84,6 @@ class Reputation(commands.Cog):
     @commands.group(name="leaderboard")
     async def leaderboard(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
-
             leaderboard = await self.db.get_leaderboard()
             ranks = {score: i + 1 for i, score in
                      enumerate(sorted(set(x["current_rep"] for x in leaderboard), reverse=True))}
@@ -105,7 +97,7 @@ class Reputation(commands.Cog):
                         self.bot.get_user(x['user_id']).name,
                         self.bot.get_user(x['user_id']).discriminator, x['current_rep']
                     )
-                    for x in leaderboard))
+                    for x in leaderboard if x["current_rep"] > 0))
             await ctx.send(embed=embed)
 
 
@@ -138,7 +130,7 @@ class Reputation(commands.Cog):
                         self.bot.get_user(user_id).name,
                         self.bot.get_user(user_id).discriminator, member_scores.get(user_id)
                     )
-                    for user_id in leaderboard))
+                    for user_id in leaderboard if member_scores.get(user_id) > 0))
         await ctx.send(embed=embed)
 
 
@@ -156,7 +148,6 @@ class Reputation(commands.Cog):
         ranks = {score: i + 1 for i, score in
                  enumerate(sorted(set(member_scores.values()), reverse=True))}
 
-
         embed = discord.Embed(title="Leaderboard", color=discord.Color.dark_gold())
         i = 0
         embed.add_field(
@@ -167,7 +158,7 @@ class Reputation(commands.Cog):
                     self.bot.get_user(user_id).name,
                     self.bot.get_user(user_id).discriminator, member_scores.get(user_id)
                 )
-                for user_id in leaderboard))
+                for user_id in leaderboard if member_scores.get(user_id) > 0))
         await ctx.send(embed=embed)
 
 
