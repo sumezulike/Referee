@@ -1,4 +1,5 @@
 import logging
+import io
 
 import discord
 from discord.ext import commands
@@ -92,10 +93,10 @@ class Reputation(commands.Cog):
                      enumerate(sorted(set(x["current_rep"] for x in leaderboard), reverse=True))}
 
             scores = [(ranks.get(x["current_rep"]), self.bot.get_user(x['user_id']), x['current_rep']) for x in
-                      leaderboard]
+                      leaderboard if x["current_rep"] > 0]
 
-            await draw_scoreboard(scores)
-            await ctx.send(file=discord.File("scoreboard.png"))
+            img = await draw_scoreboard(scores)
+            await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
     @leaderboard.command()
@@ -121,8 +122,8 @@ class Reputation(commands.Cog):
             scores = [(ranks.get(member_scores.get(user_id)), self.bot.get_user(user_id), member_scores.get(user_id)) for user_id in
                       leaderboard]
 
-            await draw_scoreboard(scores)
-            await ctx.send(file=discord.File("scoreboard.png"))
+            img = await draw_scoreboard(scores)
+            await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
     @leaderboard.command()
@@ -142,8 +143,8 @@ class Reputation(commands.Cog):
         scores = [(ranks.get(member_scores.get(user_id)), self.bot.get_user(user_id), member_scores.get(user_id)) for user_id in
                   leaderboard]
 
-        await draw_scoreboard(scores)
-        await ctx.send(file=discord.File("scoreboard.png"))
+        img = await draw_scoreboard(scores)
+        await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
 async def draw_scoreboard(scores: list):
@@ -151,8 +152,10 @@ async def draw_scoreboard(scores: list):
     row_height = reputation_config.fontsize + reputation_config.fontsize // 2
     height = (len(scores) + 1) * row_height
 
-    bg = Image.new("RGB", (width, height), reputation_config.background).convert("RGBA")
+    # bg = Image.new("RGB", (width, height), reputation_config.background).convert("RGBA")
+    bg = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     text = Image.new("RGBA", bg.size, (255, 255, 255, 0))
+
     pics = Image.new("RGBA", bg.size, (255, 255, 255, 0))
     fnt = ImageFont.truetype('coolvetica.ttf', reputation_config.fontsize)
     text_draw = ImageDraw.Draw(text)
@@ -172,19 +175,24 @@ async def draw_scoreboard(scores: list):
 
         w, h = text_draw.textsize(f"{rank}", font=fnt)
         text_draw.text((rank_x-w, row_y), f"{rank}", font=fnt,
-                       fill=(255, 255, 255, 50), stroke_fill=(0, 0, 0, 120), stroke_width=1)
+                       fill=(255, 255, 255, 50))
+
         text_draw.text((name_x, row_y), f"{member.display_name}", font=fnt,
                        fill=row_color)
 
         w, h = text_draw.textsize(f"{points}", font=fnt)
         text_draw.text((point_x-w, row_y), f"{points}", font=fnt,
                        fill=row_color)
+
         text_draw.line([line_x, line_y,
                         line_x + int(max_line_width * points / scores[0][2]), line_y],
                        fill=row_color, width=2)
 
     out = Image.alpha_composite(Image.alpha_composite(bg, text), pics)
-    out.save("scoreboard.png")
+    tmp_img = io.BytesIO()
+    out.save(tmp_img, format="png")
+    tmp_img.seek(0)
+    return tmp_img
 
 
 def setup(bot: commands.Bot):
