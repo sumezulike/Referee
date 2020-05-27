@@ -88,7 +88,6 @@ class Ranks(commands.Cog):
         while not self.bot.is_closed():
             self.on_cooldown = []
             self.latest_reactions = {}
-            logger.debug(f"Cleared cooldowns")
             await asyncio.sleep(ranks_config.cooldown_time)
 
     async def process_cooldown(self, user_id: int):
