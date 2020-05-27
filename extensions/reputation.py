@@ -203,8 +203,13 @@ class Reputation(commands.Cog):
             w, h = text_draw.textsize(f"{rank}", font=fnt)
             text_draw.text((rank_x - w, row_y), f"{rank}", font=fnt,
                            fill=(255, 255, 255, 50))
-
-            text_draw.text((name_x, row_y), f"{member.display_name}", font=fnt,
+            name = member.display_name
+            w, h = text_draw.textsize(f"{name}", font=fnt)
+            score_w, _ = text_draw.textsize(f"{score}", font=fnt)
+            while name_x + w >= point_x - score_w:
+                name = name[:-1]
+                w, h = text_draw.textsize(f"{name}...", font=fnt)
+            text_draw.text((name_x, row_y), f"{name}" if name == member.display_name else f"{name}...", font=fnt,
                            fill=row_color)
 
             w, h = text_draw.textsize(f"{score}", font=fnt)
