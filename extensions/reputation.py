@@ -113,7 +113,7 @@ class Reputation(commands.Cog):
                 embed = discord.Embed(title=f"No entries", color=discord.Color.dark_gold())
                 await ctx.send(embed=embed)
             else:
-                img = await self.draw_scoreboard(leaderboard)
+                img = await self.draw_scoreboard(leaderboard[:reputation_config.leaderboard_max_length])
                 await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
