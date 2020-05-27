@@ -2,31 +2,22 @@ import asyncio
 import logging
 import asyncpg
 from config import reputation_config
+from models.reputation_models import Thank
+from datetime import datetime, timedelta
 
 creation = (
-    # while this doesnt contain any new data, it's probably faster in the long run
-    # to store the reputation than counting the number of results
-    """
-    CREATE TABLE IF NOT EXISTS reputation (
-        user_id BIGINT PRIMARY KEY,
-        current_rep INT NOT NULL,
-        last_given TIMESTAMPTZ
-    )
-    """,
     """
     CREATE TABLE IF NOT EXISTS thanks (
-        source_user BIGINT,
-        target_user BIGINT,
-        channel BIGINT,
+        source_user_id BIGINT,
+        target_user_id BIGINT,
+        channel_id BIGINT,
+        message_id BIGINT,
         time TIMESTAMPTZ
     )
     """
 )
 
 deletion = (
-    """
-    DROP TABLE IF EXISTS reputation
-    """,
     """
     DROP TABLE IF EXISTS thanks
     """
@@ -47,11 +38,13 @@ class PGReputationDB:
 
         asyncio.get_event_loop().run_until_complete(self.create_tables())
 
+
     async def close(self):
         """
         Closes the connection to the db
         """
         await self.pool.close()
+
 
     async def create_tables(self):
         """
@@ -63,54 +56,49 @@ class PGReputationDB:
             for query in creation:
                 await con.execute(query)
 
-    async def update_last_given(self, user_id):
-        """
-        Tries to create a row with the user_id, and if one already exists,
-        Updates their last_given column to NOW()
-        """
-        sql = "INSERT INTO reputation (user_id, current_rep, last_given) VALUES($1, 0, NOW()) ON CONFLICT (user_id) DO UPDATE SET last_given = NOW()"
-        async with self.pool.acquire() as con:
-            await con.execute(sql, user_id)
 
-    async def get_user_rep(self, user_id):
-        sql = "SELECT current_rep FROM reputation WHERE user_id = $1"
+    async def get_user_rep(self, user_id, since=datetime(day=1, month=1, year=2000), until=None):
+        if not until:
+            until = datetime.now()
+        sql = "SELECT COUNT(*) FROM thanks WHERE target_user_id = $1 and time >= $2 and time <= $3"
 
         async with self.pool.acquire() as con:
-            results = await con.fetch(sql, user_id)
+            results = await con.fetch(sql, user_id, since, until)
 
-        return 0 if len(results) == 0 else results[0]["current_rep"]
+        return results[0][0]
 
-    async def get_time_between_lg_now(self, user_id):
-        sql = "SELECT EXTRACT(EPOCH FROM NOW() - last_given) AS diff FROM reputation WHERE user_id = $1"
 
+    async def add_thank(self, new_thank: Thank):
+        sql = "INSERT INTO thanks (source_user_id, target_user_id, channel_id, message_id, time) VALUES($1, $2, $3, $4, $5)"
         async with self.pool.acquire() as con:
-            results = await con.fetch(sql, user_id)
+            await con.execute(sql, new_thank.source_user_id, new_thank.target_user_id, new_thank.channel_id,
+                              new_thank.message_id, new_thank.timestamp)
 
-        return None if not results else results[0]["diff"]
 
-    async def thank(self, source, target, ch):
-        await self.increment_reputation(target)
-        await self.update_last_given(source)
-        sql = "INSERT INTO thanks (source_user, target_user, channel, time) VALUES($1, $2, $3, NOW())"
-        async with self.pool.acquire() as con:
-            await con.execute(sql, source, target, ch)
-
-    async def get_thanks_timeframe(self, since, until):
+    async def get_thanks(self, since=datetime(day=1, month=1, year=2000), until=None):
+        if not until:
+            until = datetime.now()
         sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2"
         async with self.pool.acquire() as con:
-            results = await con.fetch(sql, since, until)
+            results = [Thank(source_user_id=r["source_user_id"],
+                             target_user_id=r["target_user_id"],
+                             message_id=r["message_id"],
+                             channel_id=r["channel_id"],
+                             timestamp=r["time"])
+                       for r in await con.fetch(sql, since, until)]
 
         return results
 
-    async def increment_reputation(self, user_id):
-        sql = "INSERT INTO reputation (user_id, current_rep, last_given) VALUES($1, 1, null) ON CONFLICT " + \
-              "(user_id) DO UPDATE SET current_rep = reputation.current_rep + 1"
-        async with self.pool.acquire() as con:
-            await con.execute(sql, user_id)
+    async def get_leaderboard(self, since=datetime(day=1, month=1, year=2000), until=None):
+        if not until:
+            until = datetime.now()
+        thanks = await self.get_thanks(since, until)
+        if not thanks:
+            return []
 
-    async def get_leaderboard(self):
-        sql = "SELECT user_id, current_rep FROM reputation ORDER BY current_rep DESC LIMIT $1"
-        async with self.pool.acquire() as con:
-            results = await con.fetch(sql, reputation_config.Leader_Limit)
+        member_scores = {user_id: [t.target_user_id for t in thanks].count(user_id) for user_id in set(t.target_user_id for t in thanks)}
+        sorted_user_ids = sorted(member_scores, key=member_scores.get, reverse=True)
+        ranked_scores = {score: i + 1 for i, score in enumerate(sorted(set(member_scores.values()), reverse=True))}
+        leaderboard = [{"user_id": user_id, "score": score := member_scores[user_id], "rank": ranked_scores[score]} for user_id in sorted_user_ids]
 
-        return results
+        return leaderboard
