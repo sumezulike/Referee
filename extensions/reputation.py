@@ -78,7 +78,8 @@ class Reputation(commands.Cog):
 
 
     async def is_on_cooldown(self, source_user_id, target_user_id=None):
-        thanks = await self.db.get_thanks(since=datetime.now()-timedelta(hours=1))
+        all_thanks = await self.db.get_thanks(since=datetime.now()-timedelta(hours=1))
+        thanks = [t for t in all_thanks if t.source_user_id == source_user_id]
         if len(thanks) >= reputation_config.max_mentions:
             return True
         if target_user_id:
