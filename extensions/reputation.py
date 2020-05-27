@@ -109,8 +109,12 @@ class Reputation(commands.Cog):
         if ctx.invoked_subcommand is None:
             leaderboard = await self.db.get_leaderboard()
 
-            img = await self.draw_scoreboard(leaderboard)
-            await ctx.send(file=discord.File(img, filename="scoreboard.png"))
+            if not leaderboard:
+                embed = discord.Embed(title=f"No entries", color=discord.Color.dark_gold())
+                await ctx.send(embed=embed)
+            else:
+                img = await self.draw_scoreboard(leaderboard)
+                await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
     @leaderboard.command()
@@ -206,7 +210,7 @@ class Reputation(commands.Cog):
                            fill=row_color)
 
             text_draw.line([line_x, line_y,
-                            line_x + int(max_line_width * score / leaderboard[0][2]), line_y],
+                            line_x + int(max_line_width * score / leaderboard[0]["score"]), line_y],
                            fill=row_color, width=2)
 
         out = Image.alpha_composite(Image.alpha_composite(bg, text), pics)
@@ -218,12 +222,12 @@ class Reputation(commands.Cog):
 
 def is_thank_message(message: discord.Message) -> bool:
     text = message.content.lower()
-    if "add_thank" in text or "thx" in text:
+    if "thank" in text or "thx" in text:
         if message.mentions:
             return True
-        elif text.startswith("add_thank") or text.startswith("thx"):
+        elif text.startswith("thank") or text.startswith("thx"):
             return True
-        elif any(s.strip().startswith("add_thank") or s.strip().startswith("thx") for s in text.replace(",", ".").split(".")):
+        elif any(s.strip().startswith("thank") or s.strip().startswith("thx") for s in text.replace(",", ".").split(".")):
             return True
         else:
             return False

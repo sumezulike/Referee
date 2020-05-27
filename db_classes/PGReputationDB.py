@@ -14,13 +14,13 @@ creation = (
         message_id BIGINT,
         time TIMESTAMPTZ
     )
-    """
+    """,
 )
 
 deletion = (
     """
     DROP TABLE IF EXISTS thanks
-    """
+    """,
 )
 
 logger = logging.getLogger("Referee")
@@ -99,6 +99,6 @@ class PGReputationDB:
         member_scores = {user_id: [t.target_user_id for t in thanks].count(user_id) for user_id in set(t.target_user_id for t in thanks)}
         sorted_user_ids = sorted(member_scores, key=member_scores.get, reverse=True)
         ranked_scores = {score: i + 1 for i, score in enumerate(sorted(set(member_scores.values()), reverse=True))}
-        leaderboard = [{"user_id": user_id, "score": score := member_scores[user_id], "rank": ranked_scores[score]} for user_id in sorted_user_ids]
+        leaderboard = [{"user_id": user_id, "score": member_scores.get(user_id), "rank": ranked_scores.get(member_scores.get(user_id))} for user_id in sorted_user_ids]
 
         return leaderboard
