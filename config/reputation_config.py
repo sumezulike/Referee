@@ -15,11 +15,9 @@ PG_User = config["PostgreSQL"]["User"]
 
 PG_Password = config["PostgreSQL"]["Password"]
 
-RepDelay = int(config["Reputation"]["DelayBetweenThanks"])
+cooldown = int(config["Reputation"]["DelayBetweenThanks"])
 
-Debug = config["Reputation"]["Debug"].lower() in ('yes', 'y', 'true', 't', '1', 'enable', 'on')
-
-Leader_Limit = int(config["Reputation"]["LeaderboardLimit"])
+leaderboard_max_length = int(config["Reputation"]["LeaderboardLimit"])
 
 max_mentions = int(config["Reputation"]["MaxMentions"])
 
@@ -27,14 +25,14 @@ max_mentions = int(config["Reputation"]["MaxMentions"])
 fontsize = int(config["Draw"]["FontSize"])
 
 default_fontcolor = config["Draw"]["FontColor"]
-firstcolor = config["Draw"]["FirstColor"]
-secondcolor = config["Draw"]["SecondColor"]
-thirdcolor = config["Draw"]["ThirdColor"]
+first_color = config["Draw"]["FirstColor"]
+second_color = config["Draw"]["SecondColor"]
+third_color = config["Draw"]["ThirdColor"]
 
-fontcolors = {
-    1: firstcolor,
-    2: secondcolor,
-    3: thirdcolor
+font_colors = {
+    1: first_color,
+    2: second_color,
+    3: third_color
 }
 
 background = config["Draw"]["Background"]
