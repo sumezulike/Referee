@@ -34,7 +34,7 @@ class Reputation(commands.Cog):
         if message.guild:
             # this has to be in on_message, since it's not technically a command
             # in the sense that it starts with our prefix
-            if message.content.lower().startswith("thank"):
+            if is_thank_message(message):
                 members = message.mentions
                 logger.info(f"Recieved thanks from {message.author} to {', '.join(str(m) for m in members)}")
                 last_given_diff = await self.db.get_time_between_lg_now(message.author.id)
@@ -147,12 +147,24 @@ class Reputation(commands.Cog):
         await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
+def is_thank_message(message: discord.Message) -> bool:
+    text = message.content.lower()
+    if "thank" in text or "thx" in text:
+        if message.mentions:
+            return True
+        elif text.startswith("thank") or text.startswith("thx"):
+            return True
+        elif any(s.strip().startswith("thank") or s.strip().startswith("thx") for s in text.replace(",", ".").split(".")):
+            return True
+        else:
+            return False
+
+
 async def draw_scoreboard(scores: list):
     width = reputation_config.fontsize * 13
     row_height = reputation_config.fontsize + reputation_config.fontsize // 2
     height = (len(scores) + 1) * row_height
 
-    # bg = Image.new("RGB", (width, height), reputation_config.background).convert("RGBA")
     bg = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     text = Image.new("RGBA", bg.size, (255, 255, 255, 0))
 
