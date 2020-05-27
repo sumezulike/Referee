@@ -93,13 +93,14 @@ class Reputation(commands.Cog):
             member = ctx.author
         leaderboard = await self.db.get_leaderboard()
 
-        ranks = {score: i + 1 for i, score in
-                 enumerate(sorted(set(x["current_rep"] for x in leaderboard), reverse=True))}
+        rank = [m["rank"] for m in leaderboard if m["user_id"] == member.id]
+        if rank:
+            rank = rank[0]
 
         rep = await self.db.get_user_rep(member.id)
         embed = discord.Embed(title="Support Score", color=discord.Color.dark_gold())
         embed.add_field(name=f"{member.name}:",
-                        value=f"{rep} (Rank #{ranks.get(rep, len(ranks) + 1)})",
+                        value=f"{rep} " + (f"(Rank #{rank})" if rank else ""),
                         inline=True)
         await ctx.send(embed=embed)
 
