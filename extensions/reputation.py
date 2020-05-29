@@ -145,7 +145,11 @@ class Reputation(commands.Cog):
 
     @commands.command(name="thankmute", aliases=["tmute", "nothank", "nothanks"])
     @commands.has_permissions(kick_members=True)
-    async def thankmute(self, ctx: commands.Context, member: discord.Member, duration: str):
+    async def thankmute(self, ctx: commands.Context, member: discord.Member, duration: str = None):
+        if not duration:
+            await ctx.send(f"Usage: {ctx.prefix}thankmute @Member 10m\nPossible time units: s, m, h, d")
+            return
+        
         factors = {
             "s": 1,
             "m": 60,
