@@ -35,7 +35,7 @@ class Reputation(commands.Cog):
         if message.guild:
             # this has to be in on_message, since it's not technically a command
             # in the sense that it starts with our prefix
-            if is_thank_message(message):
+            if self.is_thank_message(message):
                 members = message.mentions
                 logger.info(f"Recieved thanks from {message.author} to {', '.join(str(m) for m in members)}")
                 if await self.is_on_cooldown(source_user_id=message.author.id):
@@ -46,12 +46,12 @@ class Reputation(commands.Cog):
 
                 if len(members) > reputation_config.max_mentions:
                     await message.channel.send(
-                        f"Maximum number of thanks is {reputation_config.max_mentions} per hour. Try again with less mentions.",
+                        f"Maximum number of thanks is {reputation_config.max_mentions}. Try again with less mentions.",
                         delete_after=10
                     )
                 elif not members:
                     await message.channel.send(
-                        f"Say \"Thanks @HelpfulUser\" to award up to {reputation_config.max_mentions} people per hour with a point on the support scoreboard!",
+                        f"Say \"Thanks @HelpfulUser\" to award someone with a point on the support scoreboard!",
                         delete_after=10
                     )
                 else:
@@ -78,7 +78,7 @@ class Reputation(commands.Cog):
 
 
     async def is_on_cooldown(self, source_user_id, target_user_id=None):
-        all_thanks = await self.db.get_thanks(since=datetime.now()-timedelta(hours=1))
+        all_thanks = await self.db.get_thanks(since=datetime.now()-timedelta(seconds=reputation_config.cooldown))
         thanks = [t for t in all_thanks if t.source_user_id == source_user_id]
         if len(thanks) >= reputation_config.max_mentions:
             return True
