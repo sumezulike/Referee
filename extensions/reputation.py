@@ -22,6 +22,7 @@ class Reputation(commands.Cog):
         self.bot = bot
         self.db = PGReputationDB()
         self.guild = None
+        self.muted = {}
 
 
     @commands.Cog.listener()
@@ -35,27 +36,41 @@ class Reputation(commands.Cog):
         if message.guild:
             # this has to be in on_message, since it's not technically a command
             # in the sense that it starts with our prefix
-            if self.is_thank_message(message):
-                members = message.mentions
-                logger.info(f"Recieved thanks from {message.author} to {', '.join(str(m) for m in members)}")
+            if message.author.bot:
+                return
+
+            if await self.is_thank_message(message):
+                mentioned_members = message.mentions
+                logger.info(f"Recieved thanks from {message.author} to {', '.join(str(m) for m in mentioned_members)}: {message.content}")
+
+                if message.author.id in self.muted:
+                    if self.muted.get(message.author.id) > datetime.now():
+                        logger.debug(f"Thanking canceled: User is muted")
+                        await message.add_reaction(emoji.x)
+                        return
+                    else:
+                        self.muted.pop(message.author.id)
+
                 if await self.is_on_cooldown(source_user_id=message.author.id):
-                    if members:
+                    if mentioned_members:
                         await message.add_reaction(emoji.hourglass)
                     logger.debug("General cooldown active, returning")
                     return
 
-                if len(members) > reputation_config.max_mentions:
+                if len(mentioned_members) > reputation_config.max_mentions:
+                    logger.debug("Sending 'Too many mentions'")
                     await message.channel.send(
                         f"Maximum number of thanks is {reputation_config.max_mentions}. Try again with less mentions.",
                         delete_after=10
                     )
-                elif not members:
+                elif not mentioned_members:
+                    logger.debug("Sending usage hint")
                     await message.channel.send(
                         f"Say \"Thanks @HelpfulUser\" to award someone with a point on the support scoreboard!",
                         delete_after=10
                     )
                 else:
-                    for member in members:
+                    for member in mentioned_members:
                         if member.bot:
                             logger.debug(f"Thanking {member} canceled: User is bot")
                             await message.add_reaction(emoji.robot)
@@ -92,16 +107,22 @@ class Reputation(commands.Cog):
         text = message.content.lower()
         if "thank" in text:
             if message.mentions:    # I thank thee @Trapture
+                logger.debug("Is thank: mentions")
                 return True
             elif text.startswith("thank"):  # Thanks bro
+                logger.debug("Is thank: startswith")
                 return True
             elif any(s.strip().startswith("thank") for s in     # Alright, thanks a lot
                      text.replace(",", ".").replace(":", ".").split(".")):
+                logger.debug("Is thank: punctuation startswith")
                 return True
             elif "thank you" in text and text[text.find("thank you")-1] == " ":     #
+                logger.debug("Is thank: thank you")
                 return True
             else:   # @Trapture likes to thank people
                 return False
+        else:
+            return False
 
 
     @commands.command(name="rep", aliases=["get_rep", "score", "thanks"])
@@ -120,6 +141,38 @@ class Reputation(commands.Cog):
                         value=f"{rep} " + (f"(Rank #{rank})" if rank else ""),
                         inline=True)
         await ctx.send(embed=embed)
+
+
+    @commands.command(name="thankmute", aliases=["tmute", "nothank", "nothanks"])
+    @commands.has_permissions(kick_members=True)
+    async def thankmute(self, ctx: commands.Context, member: discord.Member, duration: str):
+        factors = {
+            "s": 1,
+            "m": 60,
+            "h": 60*60,
+            "d": 60*60*24
+        }
+        unit_names = {
+            "s": "second",
+            "m": "minute",
+            "h": "hour",
+            "d": "day"
+        }
+        unit = duration[-1].lower()
+        factor = factors.get(unit, 0)
+
+        number = duration[:-1] if factor else duration
+        factor = factor or 60
+
+        try:
+            seconds = int(number) * factor
+        except ValueError:
+            await ctx.send(f"Usage: {ctx.prefix}thankmute @Member 10m\nPossible time units: s, m, h, d")
+            return
+        end_time = datetime.now() + timedelta(seconds=seconds)
+        self.muted[member.id] = end_time
+        await ctx.message.add_reaction(emoji.white_check_mark)
+
 
 
     @commands.group(name="leaderboard", aliases=["scoreboard"])
