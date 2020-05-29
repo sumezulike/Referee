@@ -87,6 +87,23 @@ class Reputation(commands.Cog):
                 return True
         return False
 
+    @staticmethod
+    async def is_thank_message(message: discord.Message) -> bool:
+        text = message.content.lower()
+        if "thank" in text:
+            if message.mentions:    # I thank thee @Trapture
+                return True
+            elif text.startswith("thank"):  # Thanks bro
+                return True
+            elif any(s.strip().startswith("thank") for s in     # Alright, thanks a lot
+                     text.replace(",", ".").replace(":", ".").split(".")):
+                return True
+            elif "thank you" in text and text[text.find("thank you")-1] == " ":     #
+                return True
+            else:   # @Trapture likes to thank people
+                return False
+
+
     @commands.command(name="rep", aliases=["get_rep", "score", "thanks"])
     async def get_rep(self, ctx: commands.Context, member: discord.Member = None):
         if not member:
@@ -225,21 +242,6 @@ class Reputation(commands.Cog):
         out.save(tmp_img, format="png")
         tmp_img.seek(0)
         return tmp_img
-
-
-def is_thank_message(message: discord.Message) -> bool:
-    text = message.content.lower()
-    if "thank" in text or "thx" in text:
-        if message.mentions:
-            return True
-        elif text.startswith("thank") or text.startswith("thx"):
-            return True
-        elif any(s.strip().startswith("thank") or s.strip().startswith("thx") for s in text.replace(",", ".").split(".")):
-            return True
-        else:
-            return False
-
-
 
 
 def setup(bot: commands.Bot):
