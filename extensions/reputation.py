@@ -43,7 +43,8 @@ class Reputation(commands.Cog):
 
             if await self.is_thank_message(message):
                 mentioned_members = message.mentions
-                logger.info(f"Recieved thanks from {message.author} to {', '.join(str(m) for m in mentioned_members)}: {message.content}")
+                logger.info(
+                    f"Recieved thanks from {message.author} to {', '.join(str(m) for m in mentioned_members)}: {message.content}")
 
                 if message.author.id in self.muted:
                     if self.muted.get(message.author.id) > datetime.now():
@@ -95,7 +96,7 @@ class Reputation(commands.Cog):
 
 
     async def is_on_cooldown(self, source_user_id, target_user_id=None):
-        all_thanks = await self.db.get_thanks(since=datetime.now()-timedelta(seconds=reputation_config.cooldown))
+        all_thanks = await self.db.get_thanks(since=datetime.now() - timedelta(seconds=reputation_config.cooldown))
         thanks = [t for t in all_thanks if t.source_user_id == source_user_id]
         if len(thanks) >= reputation_config.max_mentions:
             return True
@@ -104,28 +105,34 @@ class Reputation(commands.Cog):
                 return True
         return False
 
+
     @staticmethod
     async def is_thank_message(message: discord.Message) -> bool:
-        blacklist = ["thanking", "thanker", "thanked"]
+        ignore_list = ["thanking", "thanker", "thanked"]
+        split_punctuation = "!?:;-"
 
         text = message.content.lower()
-        for word in blacklist:
+
+        for word in ignore_list:
             text = text.replace(word, "")
+
         if "thank" in text:
-            if message.mentions:    # I thank thee @Trapture
+            for p in split_punctuation:
+                text = text.replace(p, ".")
+
+            if message.mentions:  # I thank thee @Trapture
                 logger.debug("Is thank: mentions")
                 return True
             elif text.startswith("thank"):  # Thanks bro
                 logger.debug("Is thank: startswith")
                 return True
-            elif any(s.strip().startswith("thank") for s in     # Alright, thanks a lot
-                     text.replace(",", ".").replace(":", ".").split(".")):
+            elif any(s.strip().startswith("thank") for s in text.split(".")):  # Alright, thanks a lot
                 logger.debug("Is thank: punctuation startswith")
                 return True
-            elif "thank you" in text and text[text.find("thank you")-1] == " ":     #
+            elif "thank you" in text and text[text.find("thank you") - 1] == " ":  # Not "thank you"
                 logger.debug("Is thank: thank you")
                 return True
-            else:   # @Trapture likes to thank people
+            else:  # @Trapture likes to thank people
                 return False
         else:
             return False
@@ -155,12 +162,12 @@ class Reputation(commands.Cog):
         if not duration:
             await ctx.send(f"Usage: {ctx.prefix}thankmute @Member 10m\nPossible time units: s, m, h, d")
             return
-        
+
         factors = {
             "s": 1,
             "m": 60,
-            "h": 60*60,
-            "d": 60*60*24
+            "h": 60 * 60,
+            "d": 60 * 60 * 24
         }
         unit_names = {
             "s": "second",
@@ -182,7 +189,6 @@ class Reputation(commands.Cog):
         end_time = datetime.now() + timedelta(seconds=seconds)
         self.muted[member.id] = end_time
         await ctx.message.add_reaction(emoji.white_check_mark)
-
 
 
     @commands.group(name="leaderboard", aliases=["scoreboard"])
@@ -238,8 +244,10 @@ class Reputation(commands.Cog):
 
         leaderboard = await self.db.get_leaderboard()
 
-        if ctx.author.id not in (user_ids:=[m["user_id"] for m in leaderboard]):
-            embed = discord.Embed(title=f"You are not on the scoreboard yet. Start helping others out to collect points!", color=discord.Color.dark_gold())
+        if ctx.author.id not in (user_ids := [m["user_id"] for m in leaderboard]):
+            embed = discord.Embed(
+                title=f"You are not on the scoreboard yet. Start helping others out to collect points!",
+                color=discord.Color.dark_gold())
             await ctx.send(embed=embed, delete_after=10)
         else:
             position = user_ids.index(ctx.author.id)
