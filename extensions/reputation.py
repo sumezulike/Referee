@@ -106,7 +106,11 @@ class Reputation(commands.Cog):
 
     @staticmethod
     async def is_thank_message(message: discord.Message) -> bool:
+        blacklist = ["thanking", "thanker", "thanked"]
+
         text = message.content.lower()
+        for word in blacklist:
+            text = text.replace(word, "")
         if "thank" in text:
             if message.mentions:    # I thank thee @Trapture
                 logger.debug("Is thank: mentions")
