@@ -12,6 +12,7 @@ import discord
 from discord.ext import commands
 
 import logging
+from Referee import is_aight
 
 logger = logging.getLogger("Referee")
 
@@ -107,7 +108,7 @@ class Misc(commands.Cog):
 
 
     @commands.command()
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def april_reverse_but_we_fooled_latt(self, ctx: commands.Context):
         for channel in self.guild.channels:
             try:
@@ -117,14 +118,14 @@ class Misc(commands.Cog):
 
 
     @commands.command()
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def april_reverse(self, ctx: commands.Context):
         await asyncio.sleep(1)
         await ctx.send(f"{ctx.message.created_at} | extensions/misc.py:115 | > TUlIIFRPRyBPQU1M | An error occured while trying to rename {ctx.author.id}")
 
 
     @commands.command()
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def april_reverse_names(self, ctx: commands.Context):
         for member in sorted(self.guild.members, key=lambda m: m.top_role, reverse=True):
             try:

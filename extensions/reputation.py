@@ -16,6 +16,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 logger = logging.getLogger("Referee")
 
+from Referee import is_aight
+
 
 class Reputation(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -144,7 +146,7 @@ class Reputation(commands.Cog):
 
 
     @commands.command(name="thankmute", aliases=["tmute", "nothank", "nothanks"])
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def thankmute(self, ctx: commands.Context, member: discord.Member, duration: str = None):
         if not duration:
             await ctx.send(f"Usage: {ctx.prefix}thankmute @Member 10m\nPossible time units: s, m, h, d")

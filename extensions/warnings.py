@@ -14,6 +14,8 @@ from models.warnings_models import RefWarning
 from utils import emoji
 import logging
 
+from Referee import is_aight
+
 logger = logging.getLogger("Referee")
 
 punishments = {2: 4, 3: 24}
@@ -202,7 +204,7 @@ class Warnings(commands.Cog):
         return warn_str
 
     @commands.command(name="warn")
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def warn(self, ctx: commands.Context, member: discord.Member, *, reason: str):
         """
         Adds a new warning for a member.
@@ -219,7 +221,7 @@ class Warnings(commands.Cog):
         await self.acknowledge(ctx.message)
 
     @commands.command(name="clear")
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def clear(self, ctx: commands.Context, member: discord.Member):
         """
         Removes all active warnings from a member. The warnings persist in an expired state.
@@ -229,7 +231,7 @@ class Warnings(commands.Cog):
         await self.acknowledge(ctx.message)
 
     @commands.command(aliases=["warns", "?"])
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def warnings(self, ctx: commands.Context, member: discord.Member = None):
         """
         Lists all active and expired warnings for member
@@ -260,7 +262,7 @@ class Warnings(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(aliases=["active", "!"])
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def active_warnings(self, ctx: commands.Context):
         """
         Lists all currently active warnings

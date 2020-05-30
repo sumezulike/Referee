@@ -7,10 +7,12 @@ import os
 from db_classes.PGHistoryDB import PGHistoryDB
 from models.history_models import HistoryMessage
 import logging
+from Referee import is_aight
 
 logger = logging.getLogger("Referee")
 
 REPORT_FILEPATH = "history.csv"
+
 
 class History(commands.Cog):
 
@@ -49,7 +51,7 @@ class History(commands.Cog):
 
 
     @commands.command(name="rebase")
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def rebase(self, ctx: commands.Context):
         """
         Pulls the entire servers history. RIP.
@@ -82,7 +84,7 @@ class History(commands.Cog):
 
 
     @commands.command(aliases=["history"])
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def gethistory(self, ctx: commands.Context, member: discord.Member):
         def clean(s: str):
             return s.replace('"', '""')

@@ -112,8 +112,7 @@ async def ping(ctx: commands.Context):
 
 
 def is_aight():
-    perms = {"kick_members": True}
-
+    perms = {"ban_members": True}
 
     def predicate(ctx):
         ch = ctx.channel

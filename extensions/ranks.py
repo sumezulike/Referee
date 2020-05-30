@@ -9,6 +9,8 @@ from models.ranks_models import Rank
 from utils import emoji
 import logging
 
+from Referee import is_aight
+
 logger = logging.getLogger("Referee")
 
 
@@ -175,7 +177,7 @@ class Ranks(commands.Cog):
             await self.bot.http.remove_reaction(message_id=payload.message_id, channel_id=payload.channel_id, emoji=payload.emoji, member_id=payload.user_id)
 
     @commands.command(aliases=["create_rank", "add_ranks", "create_ranks"])
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def add_rank(self, ctx: commands.Context, ranks: commands.Greedy[Union[Role, str]]):
         """
         This command creates one or more new ranks and the rank selection messages that can then be used by Members.
@@ -201,7 +203,7 @@ class Ranks(commands.Cog):
         await self.update_ranks_cache()
 
     @commands.command(aliases=["delete_ranks", "remove_rank", "remove_ranks", "del_rank"])
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def delete_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
         """
         This command deletes one or more ranks and the ranks selection messages.
@@ -226,7 +228,7 @@ class Ranks(commands.Cog):
 
 
     @commands.command(aliases=["renew_rank", "refresh_rank"])
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def reset_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
         """
         This command deletes one or more ranks and the ranks selection messages.
@@ -247,13 +249,13 @@ class Ranks(commands.Cog):
         await self.update_ranks_cache()
 
     @commands.command()
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def clean_reactions(self, ctx: commands.Context):
         await self.clear_user_reactions()
         await ctx.message.delete()
 
     @commands.command(aliases=["count_roles", "count_rank"])
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def count_ranks(self, ctx: commands.Context):
         embed = discord.Embed(title=f"Ranks distribution {ctx.message.created_at.strftime('%d.%m.%Y %H:%M')}", color=discord.Colour.teal())
         rank_members = [(rank.name, len(self.guild.get_role(rank.role_id).members)) for rank in await self.db.get_all_ranks()]

@@ -9,6 +9,7 @@ import logging
 import os
 
 from utils import emoji
+from Referee import is_aight
 
 logger = logging.getLogger("Referee")
 
@@ -119,7 +120,7 @@ class Bouncer(commands.Cog):
             await channel.set_permissions(role, overwrite=None)
 
     @commands.group(invoke_without_command=True)
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def bouncer(self, ctx: commands.Context):
         embed = discord.Embed(title="Bouncer")
         embed.add_field(name="Usage", value=
@@ -130,7 +131,7 @@ class Bouncer(commands.Cog):
         await ctx.send(embed=embed, delete_after=30)
 
     @bouncer.command(name="enable")
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def enable(self, ctx: commands.Context):
         newbie_role = await self.get_newbie_role()
 
@@ -145,7 +146,7 @@ class Bouncer(commands.Cog):
         await ctx.message.delete()
 
     @bouncer.command(name="disable")
-    @commands.has_permissions(kick_members=True)
+    @is_aight()
     async def disable(self, ctx: commands.Context):
         newbie_role = await self.get_newbie_role()
 
