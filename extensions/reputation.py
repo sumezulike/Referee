@@ -251,7 +251,7 @@ class Reputation(commands.Cog):
             await ctx.send(embed=embed, delete_after=10)
         else:
             position = user_ids.index(ctx.author.id)
-            a, b = (position - 2, position + 2)
+            a, b = (position - 3, position + 4)
             while b >= len(leaderboard):
                 a, b = a - 1, b - 1
             while a < 0:
