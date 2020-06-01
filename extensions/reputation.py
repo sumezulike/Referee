@@ -149,6 +149,11 @@ class Reputation(commands.Cog):
             rank = rank[0]
 
         rep = await self.db.get_user_rep(member.id)
+
+        if member.bot:
+            rep = "Math.Infinity"   # Not python, but it looks better than math.inf
+            rank = -1               # It's an easteregg, it doesn't have to make sense
+
         embed = discord.Embed(title="Support Score", color=discord.Color.dark_gold())
         embed.add_field(name=f"{member.name}:",
                         value=f"{rep} " + (f"(Rank #{rank})" if rank else ""),
