@@ -151,8 +151,8 @@ class Reputation(commands.Cog):
         rep = await self.db.get_user_rep(member.id)
 
         if member.bot:
-            rep = "Math.Infinity"   # Not python, but it looks better than math.inf
-            rank = -1               # It's an easteregg, it doesn't have to make sense
+            rep = "Math.Infinity"  # Not python, but it looks better than math.inf
+            rank = -1  # It's an easteregg, it doesn't have to make sense
 
         embed = discord.Embed(title="Support Score", color=discord.Color.dark_gold())
         embed.add_field(name=f"{member.name}:",
@@ -261,11 +261,11 @@ class Reputation(commands.Cog):
                 a, b = a - 1, b - 1
             while a < 0:
                 a, b = a + 1, b + 1
-            img = await self.draw_scoreboard(leaderboard[a:b])
+            img = await self.draw_scoreboard(leaderboard[a:b], highlight={"member_id": ctx.author.id})
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
-    async def draw_scoreboard(self, leaderboard: list):
+    async def draw_scoreboard(self, leaderboard: list, highlight=None):
         width = reputation_config.fontsize * 13
         row_height = reputation_config.fontsize + reputation_config.fontsize // 2
         height = (len(leaderboard) + 1) * row_height
@@ -286,12 +286,21 @@ class Reputation(commands.Cog):
 
         for i, row in enumerate(leaderboard):
             rank, member_id, score = row["rank"], row["user_id"], row["score"]
-            member = self.bot.get_user(member_id)
+            member = self.guild.get_member(member_id)
+            if not member:
+                logger.error(f"No member with user_id {member_id}")
+                continue
 
             row_y = i * row_height + (reputation_config.fontsize // 2)
             line_y = row_y + int(reputation_config.fontsize * 1.2)
 
-            row_color = reputation_config.font_colors.get(rank, reputation_config.default_fontcolor)
+            if (highlight and highlight.get("member_id", None) == member_id or
+                    highlight.get("rank", None) == rank or
+                    highlight.get("score", None) == score or
+                    highlight.get("row", None) == i):
+                row_color = reputation_config.highlight_color
+            else:
+                row_color = reputation_config.font_colors.get(rank, reputation_config.default_fontcolor)
 
             w, h = text_draw.textsize(f"{rank}", font=fnt)
             text_draw.text((rank_x - w, row_y), f"{rank}", font=fnt,

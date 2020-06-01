@@ -35,4 +35,5 @@ font_colors = {
     3: third_color
 }
 
+highlight_color = config["Draw"]["HighlightColor"]
 background = config["Draw"]["Background"]
