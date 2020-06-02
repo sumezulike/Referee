@@ -294,11 +294,12 @@ class Reputation(commands.Cog):
             row_y = i * row_height + (reputation_config.fontsize // 2)
             line_y = row_y + int(reputation_config.fontsize * 1.2)
 
-            if (highlight and highlight.get("member_id", None) == member_id or
-                    highlight.get("rank", None) == rank or
-                    highlight.get("score", None) == score or
-                    highlight.get("row", None) == i):
-                row_color = reputation_config.highlight_color
+            if highlight:
+                if (highlight.get("member_id", None) == member_id or
+                        highlight.get("rank", None) == rank or
+                        highlight.get("score", None) == score or
+                        highlight.get("row", None) == i):
+                    row_color = reputation_config.highlight_color
             else:
                 row_color = reputation_config.font_colors.get(rank, reputation_config.default_fontcolor)
 
