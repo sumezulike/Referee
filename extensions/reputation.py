@@ -209,6 +209,17 @@ class Reputation(commands.Cog):
                 img = await self.draw_scoreboard(leaderboard[:reputation_config.leaderboard_max_length])
                 await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
+    @leaderboard.command()
+    async def all(self, ctx: commands.Context):
+        leaderboard = await self.db.get_leaderboard()
+
+        if not leaderboard:
+            embed = discord.Embed(title=f"No entries", color=discord.Color.dark_gold())
+            await ctx.send(embed=embed)
+        else:
+            img = await self.draw_scoreboard(leaderboard)
+            await ctx.send(file=discord.File(img, filename="scoreboard.png"))
+
 
     @leaderboard.command()
     async def month(self, ctx: commands.Context, month_number: int = date.today().month):
@@ -284,11 +295,14 @@ class Reputation(commands.Cog):
         line_x = name_x
         max_line_width = (point_x - name_x)
 
-        for i, row in enumerate(leaderboard):
+        i = 0
+
+        for row in leaderboard:
             rank, member_id, score = row["rank"], row["user_id"], row["score"]
             member = self.guild.get_member(member_id)
             if not member:
                 logger.error(f"No member with user_id {member_id}")
+                i -= 1
                 continue
 
             row_y = i * row_height + (reputation_config.fontsize // 2)
@@ -322,6 +336,8 @@ class Reputation(commands.Cog):
             text_draw.line([line_x, line_y,
                             line_x + int(max_line_width * score / leaderboard[0]["score"]), line_y],
                            fill=row_color, width=2)
+
+            i += 1
 
         out = Image.alpha_composite(Image.alpha_composite(bg, text), pics)
         tmp_img = io.BytesIO()
