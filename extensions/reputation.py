@@ -129,6 +129,9 @@ class Reputation(commands.Cog):
             elif any(s.strip().startswith("thank") for s in text.split(".")):  # Alright, thanks a lot
                 logger.debug("Is thank: punctuation startswith")
                 return True
+            elif any(s.strip().endswith("thanks") for s in text.split(".")):  # Ah thanks. Cool.
+                logger.debug("Is thank: punctuation endswith thanks")
+                return True
             elif "thank you" in text and text[text.find("thank you") - 1] == " ":  # Not "thank you"
                 logger.debug("Is thank: thank you")
                 return True
