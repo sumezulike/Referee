@@ -41,7 +41,8 @@ class Autoreactions(commands.Cog):
                      if re.findall(r["regex"], message.content) and (
                              message.channel.id == r["channel_id"] or r["channel_id"] is None
                      )]
-        logger.debug(f"Reacting to {message.content} in {message.channel} with {reactions}")
+        if reactions:
+            logger.debug(f"Reacting to {message.content} in {message.channel} with {reactions}")
         for emoji in reactions:
             emoji = await self.get_emoji(emoji)
             await message.add_reaction(emoji)
