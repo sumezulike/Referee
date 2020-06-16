@@ -155,7 +155,7 @@ class Reputation(commands.Cog):
 
         if member.bot:
             rep = "Math.Infinity"  # Not python, but it looks better than math.inf
-            rank = -1  # It's an easteregg, it doesn't have to make sense
+            rank = "0"  # It's an easteregg, it doesn't have to make sense
 
         embed = discord.Embed(title="Support Score", color=discord.Color.dark_gold())
         embed.add_field(name=f"{member.name}:",

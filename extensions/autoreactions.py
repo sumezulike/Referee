@@ -32,7 +32,7 @@ class Autoreactions(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if not message.author.bot:
+        if not message.author.bot and message.guild:
             await self.react_to(message)
 
 
