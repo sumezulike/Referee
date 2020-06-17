@@ -305,7 +305,6 @@ class Reputation(commands.Cog):
             member = self.guild.get_member(member_id)
             if not member:
                 logger.error(f"No member with user_id {member_id}")
-                i -= 1
                 continue
 
             row_y = i * row_height + (reputation_config.fontsize // 2)
