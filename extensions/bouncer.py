@@ -122,6 +122,9 @@ class Bouncer(commands.Cog):
     @commands.group(invoke_without_command=True)
     @is_aight()
     async def bouncer(self, ctx: commands.Context):
+        """
+        Enable or disable the bouncer
+        """
         embed = discord.Embed(title="Bouncer")
         embed.add_field(name="Usage", value=
                         f"**{ctx.prefix}{ctx.invoked_with} enable**: Lock all channels except "
@@ -133,6 +136,9 @@ class Bouncer(commands.Cog):
     @bouncer.command(name="enable")
     @is_aight()
     async def enable(self, ctx: commands.Context):
+        """
+        Enable the bouncer
+        """
         newbie_role = await self.get_newbie_role()
 
         await self.create_accept_button(ctx.guild.get_channel(bouncer_config.first_channel_id))
@@ -148,6 +154,9 @@ class Bouncer(commands.Cog):
     @bouncer.command(name="disable")
     @is_aight()
     async def disable(self, ctx: commands.Context):
+        """
+        Disable the bouncer
+        """
         newbie_role = await self.get_newbie_role()
 
         for channel in ctx.guild.channels:
@@ -161,7 +170,7 @@ class Bouncer(commands.Cog):
         await ctx.send(embed=embed, delete_after=5)
         await ctx.message.delete()
 
-    @commands.command(name="welcome_me")
+    @commands.command(name="welcome_me", hidden=True)
     async def welcome_me(self, ctx: commands.Context):
         await self.welcome(ctx.author)
         await ctx.message.delete()
