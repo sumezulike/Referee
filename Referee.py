@@ -85,8 +85,6 @@ async def on_command_completion(ctx: commands.Context):
 async def ping(ctx: commands.Context):
     """
     Basic command to check whether bot is alive
-
-    :param ctx: Context object for the specific invoked ćommands
     """
     start = timeit.default_timer()
     title = "Pong. "
@@ -137,7 +135,6 @@ def is_aight():
 async def playing(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
-    :param ctx: Context object for the specific invoked ćommands
     :param activity: The string that will be displayed as activity
     """
     await bot.change_presence(activity=discord.Game(name=activity))
@@ -149,7 +146,6 @@ async def playing(ctx: commands.Context, *, activity: str):
 async def watching(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
-    :param ctx: Context object for the specific invoked ćommands
     :param activity: The string that will be displayed as activity
     """
     await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.watching))
@@ -162,7 +158,6 @@ async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChann
     """
     Repeats the passed message
     :param channel: The channel to echo the string in, optional
-    :param ctx: Context object for the specific invoked ćommands
     :param msg: The string that will be echoed
     """
     if not channel:
@@ -178,7 +173,6 @@ async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChann
 async def listening(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
-    :param ctx: Context object for the specific invoked ćommands
     :param activity: The string that will be displayed as activity
     """
     if activity.startswith("to "):
@@ -187,20 +181,8 @@ async def listening(ctx: commands.Context, *, activity: str):
 
 
 # noinspection PyUnusedLocal
-@bot.command(name="doing")
-@is_aight()
-async def doing(ctx: commands.Context, *, activity: str):
-    """
-    Changes the bots current discord activity
-    :param ctx: Context object for the specific invoked ćommands
-    :param activity: The string that will be displayed as activity
-    """
-    await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.unknown))
-
-
-# noinspection PyUnusedLocal
 @bot.command(name="stats", hidden=True)
-@commands.has_permissions(kick_members=True)
+@is_aight()
 async def stats(ctx: commands.Context):
     embed = discord.Embed(title=f"Referee stats")
     embed.add_field(name="Loaded modules", value="\n".join(config.extensions))
