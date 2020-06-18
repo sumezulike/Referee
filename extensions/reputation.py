@@ -1,5 +1,6 @@
 import logging
 import io
+from typing import Optional
 
 import discord
 from discord.ext import commands
@@ -142,7 +143,11 @@ class Reputation(commands.Cog):
 
 
     @commands.command(name="rep", aliases=["get_rep", "score", "thanks"])
-    async def get_rep(self, ctx: commands.Context, member: discord.Member = None):
+    async def get_rep(self, ctx: commands.Context, member: Optional[discord.Member] = None):
+        """
+        Displays a users current reputation score
+        :param member: Any user, omit to query own score
+        """
         if not member:
             member = ctx.author
         leaderboard = await self.db.get_leaderboard()
@@ -164,9 +169,14 @@ class Reputation(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @commands.command(name="thankmute", aliases=["tmute", "nothank", "nothanks"])
+    @commands.command(name="thankmute", aliases=["tmute", "nothank", "nothanks"], hidden=True)
     @is_aight()
     async def thankmute(self, ctx: commands.Context, member: discord.Member, duration: str = None):
+        """
+        This is not neccesary
+        :param member:
+        :param duration:
+        """
         if not duration:
             await ctx.send(f"Usage: {ctx.prefix}thankmute @Member 10m\nPossible time units: s, m, h, d")
             return
@@ -201,6 +211,9 @@ class Reputation(commands.Cog):
 
     @commands.group(name="leaderboard", aliases=["scoreboard"])
     async def leaderboard(self, ctx: commands.Context):
+        """
+        Displays the reputation scoreboard. Can be invoked with different subcommands
+        """
         await ctx.trigger_typing()
         if ctx.invoked_subcommand is None:
             leaderboard = await self.db.get_leaderboard()
@@ -214,6 +227,9 @@ class Reputation(commands.Cog):
 
     @leaderboard.command()
     async def all(self, ctx: commands.Context):
+        """
+        Display entire scoreboard, not only first places
+        """
         leaderboard = await self.db.get_leaderboard()
 
         if not leaderboard:
@@ -226,6 +242,10 @@ class Reputation(commands.Cog):
 
     @leaderboard.command()
     async def month(self, ctx: commands.Context, month_number: int = date.today().month):
+        """
+        Display scoreboard for a certain month of this year
+        :param month_number: 1 (January) - 12 (December)
+        """
 
         month_name = datetime.strptime(str(month_number), "%m").strftime("%B")
 
@@ -244,6 +264,9 @@ class Reputation(commands.Cog):
 
     @leaderboard.command()
     async def week(self, ctx: commands.Context):
+        """
+        Display this weeks scoreboard
+        """
 
         until = date.today() + timedelta(days=1)
         since = until - timedelta(days=8)
@@ -260,6 +283,11 @@ class Reputation(commands.Cog):
 
     @leaderboard.command()
     async def me(self, ctx: commands.Context):
+        """
+        Display an excerpt of the scoreboard centered on your position
+        :param ctx:
+        :return:
+        """
 
         leaderboard = await self.db.get_leaderboard()
 
