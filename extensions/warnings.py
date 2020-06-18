@@ -209,6 +209,9 @@ class Warnings(commands.Cog):
         """
         Adds a new warning for a member.
         Usage: ref!warn @Member [reason for the warning]
+
+        :param member:
+        :param reason:
         """
         warning = RefWarning(
             user_id=member.id,
@@ -225,6 +228,7 @@ class Warnings(commands.Cog):
     async def clear(self, ctx: commands.Context, member: discord.Member):
         """
         Removes all active warnings from a member. The warnings persist in an expired state.
+        :param member:
         """
         await self.db.expire_warnings(member.id)
         await self.remove_warned_roles(member)
@@ -234,7 +238,8 @@ class Warnings(commands.Cog):
     @is_aight()
     async def warnings(self, ctx: commands.Context, member: discord.Member = None):
         """
-        Lists all active and expired warnings for member
+        Lists all active and expired warnings for a member
+        :param member:
         """
         if not member:
             await ctx.send("Usage: `ref!warnings @member`", delete_after=30)
