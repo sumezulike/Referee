@@ -56,7 +56,13 @@ class Autoreactions(commands.Cog):
 
     @commands.command(name="react")
     @is_aight()
-    async def add_autoreaction(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], regex: Optional[str] = ".*", channel: Optional[discord.TextChannel] = None):
+    async def add_autoreaction(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], regex: str, channel: Optional[discord.TextChannel] = None):
+        """
+        Add an autoreaction instruction
+        :param emoji: The emoji to react with
+        :param regex: A regular expression to trigger the reaction
+        :param channel: What channel to react in. Empty for all channels
+        """
         channel_id = channel.id if channel else None
         if type(emoji) == discord.Emoji:
             emoji = str(emoji.id)
@@ -77,6 +83,9 @@ class Autoreactions(commands.Cog):
     @commands.command(name="reactions")
     @is_aight()
     async def list_autoreactions(self, ctx: commands.Context):
+        """
+        List all active autoreactions
+        """
         embed = discord.Embed(title="Autoreactions")
         autoreact_strings = [
             f"{r['id']}: {await self.get_emoji(r['emoji'])} - `{r['regex']}` - {self.bot.get_channel(r['channel_id']).mention if r['channel_id'] else 'All channels'}"
@@ -88,6 +97,10 @@ class Autoreactions(commands.Cog):
     @commands.command(name="remove_react", aliases=["del_react"])
     @is_aight()
     async def del_autoreaction(self, ctx: commands.Context, autoreaction_id: int):
+        """
+        Delete an autoreaction instruction
+        :param autoreaction_id: The ID as shown in autoreactions list
+        """
         await self.db.remove_autoreaction(autoreaction_id=autoreaction_id)
         self.autoreactions = await self.db.get_autoreactions_list()
         await ctx.message.add_reaction(utils.emoji.thumbs_up)
