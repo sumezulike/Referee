@@ -3,7 +3,6 @@ A discord bot to watch over your server
 
 ## Extensions:
 - ### warnings
-
 Extends the warning functionality of the Dyno bot warnings by assigning warned roles and automating punishments for multiple warnings
 
 - ### modmail
@@ -16,6 +15,14 @@ Reaction triggered assignment instead of bot commands
 - ### bouncer
 Forces a joining new member to confirm reading a message in one of the channels before getting access to others
 
+- ### reputation
+Counts and displays members thanking each other 
+
+- ### autoreactions
+Configure automatic reactions to messages with regex 
+
 - ### misc
 Miscellaneous commands. To date:
-  - - lmgtfy, aliased to "explain"
+  - lmgtfy, aliased to "explain"
+  - b64decode
+  

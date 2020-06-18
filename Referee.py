@@ -17,7 +17,7 @@ bot = commands.Bot(command_prefix=config.commandPrefixes,
                    activity=discord.Game(name=config.status))
 
 
-def setup_logger():
+def setup_logger() -> logging.Logger:
     if not os.path.exists("logs"):
         print("Creating logs folder...")
         os.makedirs("logs")

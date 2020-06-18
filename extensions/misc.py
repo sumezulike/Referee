@@ -37,6 +37,10 @@ class Misc(commands.Cog):
 
     @commands.command(name="explain")
     async def lmgtfy(self, ctx: commands.Context, *, query: str):
+        """
+        Search for a term on lmgtfy.com
+        :param query: The search query
+        """
         query = query.split("<")[0].strip()
         url_query = urllib.parse.quote_plus(query)
         payload = {"short_url": {"url": f"http://lmgtfy.com/?q={url_query}"}}
@@ -59,6 +63,10 @@ class Misc(commands.Cog):
 
     @commands.command(name="b64")
     async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
+        """
+        Decode a base64 encoded string
+        :param query: A base64 encoded string. Omit to have Referee find one in the previous messages
+        """
 
         async def get_b64_strings(text: str) -> typing.Dict[str, str]:
             enc = filter(lambda x: len(x) % 4 == 0, re.findall(r"[a-zA-Z0-9+/]+={0,2}", text))
@@ -104,7 +112,7 @@ class Misc(commands.Cog):
             await ctx.send(embed=embed)
 
 
-    @commands.command()
+    @commands.command(hidden=True)
     @is_aight()
     async def april_reverse_but_we_fooled_latt(self, ctx: commands.Context):
         for channel in self.guild.channels:
@@ -114,14 +122,14 @@ class Misc(commands.Cog):
                 logger.error(str(e)+channel.name)
 
 
-    @commands.command()
+    @commands.command(hidden=True)
     @is_aight()
     async def april_reverse(self, ctx: commands.Context):
         await asyncio.sleep(1)
         await ctx.send(f"{ctx.message.created_at} | extensions/misc.py:115 | > TUlIIFRPRyBPQU1M | An error occured while trying to rename {ctx.author.id}")
 
 
-    @commands.command()
+    @commands.command(hidden=True)
     @is_aight()
     async def april_reverse_names(self, ctx: commands.Context):
         for member in sorted(self.guild.members, key=lambda m: m.top_role, reverse=True):
