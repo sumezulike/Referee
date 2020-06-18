@@ -182,7 +182,9 @@ class ModMail(commands.Cog):
     @is_aight()
     async def answer(self, ctx: commands.Context, modmail_id: typing.Optional[int], *, message: str = ""):
         """
-        Answers to a users request. Usage: r!answer [id] <your answer>
+        Answers to a users request
+        :param modmail_id: The requests ID, omit to answer most recent
+        :param message: Your response
         """
         if modmail_id:
             modmail = await self.db.get_modmail(int(modmail_id))
