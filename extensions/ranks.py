@@ -184,7 +184,6 @@ class Ranks(commands.Cog):
         If the given rank is an existing role, the role will be used, otherwise a role will be created.
         Usage: ref!add_rank rankName1 [rankName2 rankName3 ...]
 
-        :param ctx: Context object for the specific invoked ćommand, passed by api
         :param ranks: A list of one or more roles or strings
         """
         for rank in ranks:
@@ -210,7 +209,6 @@ class Ranks(commands.Cog):
         The invoking user will be prompted before deleting the role which belongs to the rank.
         Usage: ref!delete_rank roleName1 [roleName2 roleName3 ...]
 
-        :param ctx: Context object for the specific invoked ćommand, passed by api
         :param roles: A list of one or more roles
         """
         for role in roles:
@@ -231,11 +229,9 @@ class Ranks(commands.Cog):
     @is_aight()
     async def reset_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
         """
-        This command deletes one or more ranks and the ranks selection messages.
-        The invoking user will be prompted before deleting the role which belongs to the rank.
-        Usage: ref!delete_rank roleName1 [roleName2 roleName3 ...]
+        This command deletes and then recreates one or more ranks and the ranks selection messages.
+        Usage: ref!reset_rank roleName1 [roleName2 roleName3 ...]
 
-        :param ctx: Context object for the specific invoked ćommand, passed by api
         :param roles: A list of one or more roles
         """
         for role in roles:
@@ -251,12 +247,18 @@ class Ranks(commands.Cog):
     @commands.command()
     @is_aight()
     async def clean_reactions(self, ctx: commands.Context):
+        """
+        Resets the reactions on the rank messages
+        """
         await self.clear_user_reactions()
         await ctx.message.delete()
 
     @commands.command(aliases=["count_roles", "count_rank"])
     @is_aight()
     async def count_ranks(self, ctx: commands.Context):
+        """
+        Displays a list of all ranks and the number of assigned members
+        """
         embed = discord.Embed(title=f"Ranks distribution {ctx.message.created_at.strftime('%d.%m.%Y %H:%M')}", color=discord.Colour.teal())
         rank_members = [(rank.name, len(self.guild.get_role(rank.role_id).members)) for rank in await self.db.get_all_ranks()]
         for r in sorted(rank_members, key=lambda x: x[1], reverse=True):
