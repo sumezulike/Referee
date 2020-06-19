@@ -5,6 +5,8 @@ from typing import Optional
 import discord
 from discord.ext import commands
 
+import re
+
 from db_classes.PGReputationDB import PGReputationDB
 from config import reputation_config
 from models.reputation_models import Thank
@@ -116,6 +118,10 @@ class Reputation(commands.Cog):
 
         for word in ignore_list:
             text = text.replace(word, "")
+
+        if re.findall(r"\bthx\b", text) and message.mentions:  # Thx @Trapture
+            logger.debug("Is thank: thx mentions")
+            return True
 
         if "thank" in text:
             for p in split_punctuation:
