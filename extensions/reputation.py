@@ -112,7 +112,7 @@ class Reputation(commands.Cog):
     @staticmethod
     async def is_thank_message(message: discord.Message) -> bool:
         ignore_list = ["thanking", "thanker", "thanked"]
-        split_punctuation = "!?:;-"
+        split_punctuation = "!?:;->"
 
         text = message.content.lower()
 

@@ -33,7 +33,36 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        pass
+        content = message.content.lower()
+        if len(content.split()) == 1 and content.endswith(".gif"):
+            logger.debug(f"Fetching gif: {content}")
+            query = content.split(".gif")[0]
+            url = await self.fetch_gif(query)
+            await message.channel.send(url)
+
+    async def fetch_gif(self, query):
+        query = query.replace("_", "-")
+        url_query = urllib.parse.quote_plus(query)
+        params = {"sort": "relevant"}
+        headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0",
+                   "Accept": "application/json, text/plain, */*",
+                   "Accept-Language": "en-US,en;q=0.5",
+                   "Accept-Encoding": "gzip, deflate",
+                   "Referer": "https://lmgtfy.com/",
+                   "Content-Type": "application/json;charset=utf-8",
+                   "Origin": "https://lmgtfy.com",
+                   "Connection": "close"
+                   }
+
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with await session.get(f"https://giphy.com/search/{url_query}", params=params) as resp:
+                body = await resp.text()
+                match = re.search(r"Giphy\.renderSearch.+?url\": \"(.*?)\"", body, flags=re.DOTALL)
+                if match:
+                    url = match[1]
+                    return url
+                else:
+                    logger.debug(f"No match")
 
     @commands.command(name="explain")
     async def lmgtfy(self, ctx: commands.Context, *, query: str):
