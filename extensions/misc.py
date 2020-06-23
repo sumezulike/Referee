@@ -13,6 +13,7 @@ from discord.ext import commands
 
 import logging
 from Referee import is_aight
+from utils import emoji
 
 logger = logging.getLogger("Referee")
 
@@ -38,7 +39,18 @@ class Misc(commands.Cog):
             logger.debug(f"Fetching gif: {content}")
             query = content.split(".gif")[0]
             url = await self.fetch_gif(query)
-            await message.channel.send(url)
+            gif_message = await message.channel.send(url)
+            await gif_message.add_reaction(emoji.trashcan)
+
+            def check(reaction: discord.Reaction, user):
+                return user == message.author and str(reaction.emoji) == emoji.trashcan and reaction.message.id == gif_message.id
+
+            try:
+                reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+            except asyncio.TimeoutError:
+                await gif_message.remove_reaction(emoji.trashcan, self.bot.user)
+            else:
+                await gif_message.delete()
 
     async def fetch_gif(self, query):
         query = query.replace("_", "-")
