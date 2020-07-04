@@ -119,6 +119,8 @@ class Reputation(commands.Cog):
         for word in ignore_list:
             text = text.replace(word, "")
 
+        text = "\n".join(line for line in text.split("\n") if not line.startswith("> "))
+
         if re.findall(r"\bthx\b", text) and message.mentions:  # Thx @Trapture
             logger.debug("Is thank: thx mentions")
             return True
