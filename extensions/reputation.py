@@ -150,7 +150,7 @@ class Reputation(commands.Cog):
             return False
 
 
-    @commands.command(name="rep", aliases=["get_rep", "score", "thanks"])
+    @commands.command(name="rep", aliases=["ep", "score", "thanks"])
     async def get_rep(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """
         Displays a users current reputation score
