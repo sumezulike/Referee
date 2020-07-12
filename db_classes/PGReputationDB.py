@@ -36,7 +36,15 @@ class PGReputationDB:
             password=reputation_config.PG_Password
         )
 
+        # number of reputation -> array of functions with two arguments (user id, server_id)
+        self.callbacks = {}
+
         asyncio.get_event_loop().run_until_complete(self.create_tables())
+
+    def add_callback(self, rep_amount, callback):
+        if rep_amount not in self.callbacks:
+            self.callbacks[rep_amount] = []
+        self.callbacks[rep_amount].append(callback)
 
 
     async def close(self):
@@ -73,6 +81,11 @@ class PGReputationDB:
         async with self.pool.acquire() as con:
             await con.execute(sql, new_thank.source_user_id, new_thank.target_user_id, new_thank.channel_id,
                               new_thank.message_id, new_thank.timestamp)
+            if len(self.callbacks) != 0:
+                thank_amount = await self.get_user_rep(new_thank.target_user_id)
+                if thank_amount in self.callbacks:
+                    for callback in self.callbacks[thank_amount]:
+                        await callback(new_thank.target_user_id, new_thank.server_id)
 
 
     async def get_thanks(self, since=datetime(day=1, month=1, year=2000), until=None):
@@ -80,11 +93,8 @@ class PGReputationDB:
             until = datetime.now()
         sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2"
         async with self.pool.acquire() as con:
-            results = [Thank(source_user_id=r["source_user_id"],
-                             target_user_id=r["target_user_id"],
-                             message_id=r["message_id"],
-                             channel_id=r["channel_id"],
-                             timestamp=r["time"])
+            results = [Thank(source_user_id=r["source_user_id"], target_user_id=r["target_user_id"],
+                             channel_id=r["channel_id"], message_id=r["message_id"], timestamp=r["time"])
                        for r in await con.fetch(sql, since, until)]
 
         return results

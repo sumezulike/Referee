@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import io
 from typing import Optional
@@ -34,6 +35,15 @@ class Reputation(commands.Cog):
     async def on_ready(self):
         self.guild = self.bot.guilds[0]
         self.self_thank_emoji = discord.utils.get(self.guild.emojis, name="cmonBruh")
+        for role_tuple in reputation_config.roles:
+            self.db.add_callback(role_tuple[0],
+                                 # this is incredibly ugly. tl;dr, add a role to a user in a specific server
+                                 # the reason we're repeating the entire "get_guild" stuff is that it being a lambda,
+                                 # it can only contain 1 expression (not even statement), which makes assigning it to
+                                 # a temp variable impossible (and we can't assign to it outside of that, because
+                                 # the server_id only gets passed to the lambda)
+                                 lambda user_id, server_id: self.bot.get_guild(server_id).get_member(user_id)
+                                 .add_roles(self.bot.get_guild(server_id).get_role(role_tuple[1])))
 
 
     @commands.Cog.listener()
@@ -91,6 +101,7 @@ class Reputation(commands.Cog):
                                 source_user_id=message.author.id,
                                 target_user_id=member.id,
                                 channel_id=message.channel.id,
+                                server_id=message.guild.id,
                                 message_id=message.id,
                                 timestamp=datetime.now()
                             )

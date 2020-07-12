@@ -37,3 +37,5 @@ font_colors = {
 
 highlight_color = config["Draw"]["HighlightColor"]
 background = config["Draw"]["Background"]
+
+roles = map(lambda t: (int(t[0]), int(t[1])), config.items("Roles"))
