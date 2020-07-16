@@ -95,7 +95,21 @@ class Reputation(commands.Cog):
                                 timestamp=datetime.now()
                             )
                             await self.db.add_thank(new_thank)
+                            if await self.db.get_user_rep(member.id) == 1:
+                                await self.notifyUserOfThank(member, message.author)
                             await message.add_reaction(emoji.thumbs_up)
+
+
+    async def notifyUserOfThank(self, member: discord.Member, source_member: discord.Member):
+        thankHelp = f"You were just awarded with a reputation point by {source_member.display_name}, probably for helping them with something. **Good job!**\n" \
+                    f"We count **'Thank you'** messages as a fun way to track helpfulness and community engagement.\n\n" \
+                    f"Every message containing a thank with a mention will be recorded, I'll react with {emoji.thumbs_up} to confirm that\n\n" \
+                    f"To check your score (Spoiler: 1) use `r!rep`\n\n" \
+                    f"For an overview over the top 10, use `r!scoreboard`, `r!scoreboard all` for the whole list and `r!scoreboard me` to focus on you\n\n" \
+                    f"**Thanks for having a positive impact on the community!**"
+        embed = discord.Embed(title="You are appreciated!")
+        embed.add_field(name=f"{member.display_name.replace(' ', '_').lower()}.reputation += 1;", value=thankHelp)
+        await member.send(embed=embed)
 
 
     async def is_on_cooldown(self, source_user_id, target_user_id=None):
@@ -149,6 +163,10 @@ class Reputation(commands.Cog):
         else:
             return False
 
+    @commands.command(hidden=True)
+    @is_aight()
+    async def testNotify(self, ctx: commands.Context):
+        await self.notifyUserOfThank(ctx.author, ctx.author)
 
     @commands.command(name="rep", aliases=["ep", "score", "thanks"])
     async def get_rep(self, ctx: commands.Context, member: Optional[discord.Member] = None):
@@ -217,7 +235,7 @@ class Reputation(commands.Cog):
         await ctx.message.add_reaction(emoji.white_check_mark)
 
 
-    @commands.group(name="leaderboard", aliases=["scoreboard"])
+    @commands.group(name="scoreboard")
     async def leaderboard(self, ctx: commands.Context):
         """
         Displays the reputation scoreboard. Can be invoked with different subcommands
@@ -232,6 +250,7 @@ class Reputation(commands.Cog):
             else:
                 img = await self.draw_scoreboard(leaderboard[:reputation_config.leaderboard_max_length])
                 await ctx.send(file=discord.File(img, filename="scoreboard.png"))
+
 
     @leaderboard.command()
     async def all(self, ctx: commands.Context):
