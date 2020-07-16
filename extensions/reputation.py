@@ -103,8 +103,8 @@ class Reputation(commands.Cog):
     async def notifyUserOfThank(self, member: discord.Member, source_member: discord.Member):
         thankHelp = f"You were just awarded with a reputation point by {source_member.display_name}, probably for helping them with something. **Good job!**\n" \
                     f"We count **'Thank you'** messages as a fun way to track helpfulness and community engagement.\n\n" \
-                    f"Every message containing a thank with a mention will be recorded, I'll react with {emoji.thumbs_up} to confirm that\n\n" \
-                    f"To check your score (Spoiler: 1) use `r!rep`\n\n" \
+                    f"Every message containing a thank with a mention will be recorded, I'll react with {emoji.thumbs_up} to confirm that.\n\n" \
+                    f"To check your score *(Spoiler: It's 1)* use `r!rep`\n\n" \
                     f"For an overview over the top 10, use `r!scoreboard`, `r!scoreboard all` for the whole list and `r!scoreboard me` to focus on you\n\n" \
                     f"**Thanks for having a positive impact on the community!**"
         embed = discord.Embed(title="You are appreciated!")
@@ -164,7 +164,7 @@ class Reputation(commands.Cog):
             return False
 
     @commands.command(hidden=True)
-    @is_aight()
+    # @is_aight()
     async def testNotify(self, ctx: commands.Context):
         await self.notifyUserOfThank(ctx.author, ctx.author)
 
