@@ -20,7 +20,7 @@ RUN apt-get update && \
     # always install numpy separately
 RUN pip3 install -U git+https://github.com/numpy/numpy@master#egg=numpy --retries 30
     # install minor deps
-RUN pip3 install -U "discord.py" "asyncpg" "pillow" -q --retries 30
+RUN pip3 install -U --upgrade-strategy eager "discord.py" "asyncpg" "pillow" -q --retries 30
     # remove caches
 RUN rm -rf /root/.cache/pip/* && \
     apt-get clean && \
