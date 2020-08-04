@@ -18,9 +18,9 @@ RUN apt-get update && \
     # apt is so noisy
     > /dev/null
     # always install numpy separately
-RUN pip3 install -U git+https://github.com/numpy/numpy@master#egg=numpy --retries 30
+RUN python3 -m pip install -U git+https://github.com/numpy/numpy@master#egg=numpy --retries 30
     # install minor deps
-RUN pip3 install -U --upgrade-strategy eager "discord.py" "asyncpg" "pillow" -q --retries 30
+RUN python3 -m pip install -U --upgrade-strategy eager "discord.py>=1.3.4" "asyncpg" "pillow" -q --retries 30
     # remove caches
 RUN rm -rf /root/.cache/pip/* && \
     apt-get clean && \
@@ -32,4 +32,4 @@ RUN rm -rf /root/.cache/pip/* && \
             \( -type f -a \( -name '*.pyc' -o -name '*.pyo' \) \) \
         \) -exec rm -rf '{}' +
 
-CMD ["python", "Referee.py"]
+CMD ["python3", "Referee.py"]

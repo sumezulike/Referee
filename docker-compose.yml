@@ -19,7 +19,7 @@ services:
     volumes:
       - '.:/bot'
     working_dir: /bot
-    command: 'python Referee.py'
+    command: 'python3 Referee.py'
     environment:
       PORT: 8002
     ports:
