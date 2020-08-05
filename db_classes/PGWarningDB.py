@@ -4,7 +4,7 @@ from typing import Dict, List
 import asyncpg
 
 from models.warnings_models import RefWarning
-from config import warnings_config
+from config.config import PostGres as pg_config
 
 creation = (
     """
@@ -36,10 +36,10 @@ class PGWarningDB:
 
     def __init__(self):
         self.pool = asyncpg.create_pool(
-            host=warnings_config.PG_Host,
-            database=warnings_config.PG_Database,
-            user=warnings_config.PG_User,
-            password=warnings_config.PG_Password
+            host=pg_config.PG_Host,
+            database=pg_config.PG_Database,
+            user=pg_config.PG_User,
+            password=pg_config.PG_Password
         )
 
         asyncio.get_event_loop().run_until_complete(self.create_tables())

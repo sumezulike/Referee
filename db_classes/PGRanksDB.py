@@ -2,7 +2,7 @@ import asyncio
 import asyncpg
 
 from models.ranks_models import Rank
-from config import ranks_config
+from config.config import PostGres as pg_config
 
 creation = (
     """
@@ -31,10 +31,10 @@ class PGRanksDB:
     def __init__(self):
 
         self.pool = asyncpg.create_pool(
-            host=ranks_config.PG_Host,
-            database=ranks_config.PG_Database,
-            user=ranks_config.PG_User,
-            password=ranks_config.PG_Password
+            host=pg_config.PG_Host,
+            database=pg_config.PG_Database,
+            user=pg_config.PG_User,
+            password=pg_config.PG_Password
         )
 
         asyncio.get_event_loop().run_until_complete(self.create_tables())

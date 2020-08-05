@@ -7,7 +7,7 @@ from discord.ext import commands
 from db_classes.PGModMailDB import PGModMailDB
 from models import modmail_models
 from utils import emoji
-from config import modmail_config
+from config.config import ModMail as modmail_config
 import logging
 
 from datetime import datetime

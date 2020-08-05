@@ -6,7 +6,6 @@ import discord
 from discord.ext import commands
 
 from db_classes.PGAutoreactDB import PGAutoreactDB
-from config import autoreactions_config
 
 import utils
 

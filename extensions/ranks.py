@@ -3,7 +3,7 @@ from typing import List, Union, Dict
 import discord
 from discord.ext import commands
 
-from config import ranks_config
+from config.config import Ranks as ranks_config
 from db_classes.PGRanksDB import PGRanksDB
 from models.ranks_models import Rank
 from utils import emoji

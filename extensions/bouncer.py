@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands
 
-from config import bouncer_config
+from config.config import Bouncer as bouncer_config
 
 import logging
 import os
@@ -13,7 +13,7 @@ from Referee import is_aight
 
 logger = logging.getLogger("Referee")
 
-CHECK_BUTTON_FILE_NAME = "extensions/checkmsgID.dat"
+CHECK_BUTTON_FILE_NAME = "extensions/checkmsgID.dat"  # TODO: whatever this is supposed to be
 
 
 class Bouncer(commands.Cog):

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import asyncpg
-from config import reputation_config
+from config.config import PostGres as pg_config
 from models.reputation_models import Thank
 from datetime import datetime, timedelta
 
@@ -30,10 +30,10 @@ logger = logging.getLogger("Referee")
 class PGReputationDB:
     def __init__(self):
         self.pool = asyncpg.create_pool(
-            host=reputation_config.PG_Host,
-            database=reputation_config.PG_Database,
-            user=reputation_config.PG_User,
-            password=reputation_config.PG_Password
+            host=pg_config.PG_Host,
+            database=pg_config.PG_Database,
+            user=pg_config.PG_User,
+            password=pg_config.PG_Password
         )
 
         asyncio.get_event_loop().run_until_complete(self.create_tables())

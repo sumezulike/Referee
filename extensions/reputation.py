@@ -8,7 +8,7 @@ from discord.ext import commands
 import re
 
 from db_classes.PGReputationDB import PGReputationDB
-from config import reputation_config
+from config.config import Reputation as reputation_config
 from models.reputation_models import Thank
 
 from utils import emoji

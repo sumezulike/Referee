@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord.ext import commands
 import timeit
-from config import config
+from config.config import Bot as config
 
 import os
 import sys

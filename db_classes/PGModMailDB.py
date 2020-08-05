@@ -3,7 +3,7 @@ from typing import List
 
 import asyncpg
 
-from config import modmail_config
+from config.config import PostGres as pg_config
 from models.modmail_models import ModMail, ModMailAnswer
 
 creation = (
@@ -63,10 +63,10 @@ class PGModMailDB:
 
     def __init__(self):
         self.pool = asyncpg.create_pool(
-            host=modmail_config.PG_Host,
-            database=modmail_config.PG_Database,
-            user=modmail_config.PG_User,
-            password=modmail_config.PG_Password
+            host=pg_config.PG_Host,
+            database=pg_config.PG_Database,
+            user=pg_config.PG_User,
+            password=pg_config.PG_Password
         )
         asyncio.get_event_loop().run_until_complete(self.create_tables())
 

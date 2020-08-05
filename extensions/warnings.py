@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 from db_classes.PGWarningDB import PGWarningDB
-from config import warnings_config
+from config.config import Warnings as warnings_config
 
 import asyncio
 

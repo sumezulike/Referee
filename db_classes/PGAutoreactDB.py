@@ -3,7 +3,7 @@ import logging
 import asyncpg
 import discord
 
-from config import autoreactions_config
+from config.config import PostGres as pg_config
 
 creation = (
     """
@@ -30,10 +30,10 @@ class PGAutoreactDB:
 
     def __init__(self):
         self.pool = asyncpg.create_pool(
-            host=autoreactions_config.PG_Host,
-            database=autoreactions_config.PG_Database,
-            user=autoreactions_config.PG_User,
-            password=autoreactions_config.PG_Password
+            host=pg_config.PG_Host,
+            database=pg_config.PG_Database,
+            user=pg_config.PG_User,
+            password=pg_config.PG_Password
         )
 
         asyncio.get_event_loop().run_until_complete(self.create_tables())
