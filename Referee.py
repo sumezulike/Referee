@@ -61,8 +61,10 @@ async def on_ready():
     """
     On_ready eventhandler, gets called by api
     """
+    logger_levels = {50: "CRITICAL", 40: "ERROR", 30: "WARNING", 20: "INFO", 10: "DEBUG"}
     logger.info("Ready!")
-    if (n:= len(bot.guilds)) != 1:
+    logger.info(f"Logging level: {logger_levels.get(lvl:=logger.level, f'Unknown ({lvl})')}")
+    if (n := len(bot.guilds)) != 1:
         raise Exception(f"Too wrong number of guilds: {n}\n{', '.join(g.name for g in bot.guilds)}")
 
 
