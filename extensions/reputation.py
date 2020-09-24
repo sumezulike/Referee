@@ -34,7 +34,7 @@ class Reputation(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         self.guild = self.bot.guilds[0]
-        self.self_thank_emoji = discord.utils.get(self.guild.emojis, name="cmonBruh")
+        self.self_thank_emoji = discord.utils.get(self.guild.emojis, name="cmonBruh") or emoji.x
 
 
     @commands.Cog.listener()
@@ -77,57 +77,72 @@ class Reputation(commands.Cog):
                         delete_after=10
                     )
                 else:
+                    invalid = []
+                    error_emojis = []
                     for member in mentioned_members:
                         if member.bot:
+                            invalid.append(member)
+                            error_emojis.append(emoji.robot)
                             logger.debug(f"Thanking {member} canceled: User is bot")
-                            await message.add_reaction(emoji.robot)
                         elif member == message.author:
+                            invalid.append(member)
+                            error_emojis.append(self.self_thank_emoji)
                             logger.debug(f"Thanking {member} canceled: User thanking themselves")
-                            await message.add_reaction(self.self_thank_emoji)
                         elif await self.is_on_cooldown(source_user_id=message.author.id, target_user_id=member.id):
+                            invalid.append(member)
+                            error_emojis.append(emoji.hourglass)
                             logger.debug(f"Thanking {member} cancelled: Cooldown active")
-                            await message.add_reaction(emoji.hourglass)
-                        else:
-                            new_thank = Thank(
-                                source_user_id=message.author.id,
-                                target_user_id=member.id,
-                                channel_id=message.channel.id,
-                                message_id=message.id,
-                                timestamp=datetime.now()
-                            )
-                            await message.add_reaction(emoji.thumbs_up)
-                            await message.add_reaction(emoji.trashcan)
-                            await asyncio.sleep(0.5)
-                            trash_reaction = discord.utils.find(lambda x: x.emoji == emoji.trashcan, message.reactions)
-                            thumbs_up_reaction = discord.utils.find(lambda x: x.emoji == emoji.thumbs_up, message.reactions)
 
-                            def check(_reaction: discord.Reaction, _user):
-                                return _reaction.message.id == message.id and _user == message.author and str(_reaction.emoji) in [emoji.trashcan, emoji.thumbs_up]
+                    valid = [m for m in mentioned_members if m not in invalid]
+                    if not valid:
+                        for e in error_emojis:
+                            await message.add_reaction(e)
+                    else:
+                        await message.add_reaction(emoji.thumbs_up)
+                        await message.add_reaction(emoji.trashcan)
+                        await asyncio.sleep(0.5)
+                        trash_reaction = discord.utils.find(lambda x: x.emoji == emoji.trashcan, message.reactions)
+                        thumbs_up_reaction = discord.utils.find(lambda x: x.emoji == emoji.thumbs_up,
+                                                                message.reactions)
 
-                            try:
-                                reaction, user = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
-                            except asyncio.TimeoutError:
-                                logger.debug("Thank confirmed: Timeout")
-                                async for user in trash_reaction.users():
-                                    await message.remove_reaction(emoji.trashcan, user)
-                                await self.db.add_thank(new_thank)
+                        def check(_reaction: discord.Reaction, _user):
+                            return _reaction.message.id == message.id and _user == message.author and str(
+                                _reaction.emoji) in [emoji.trashcan, emoji.thumbs_up]
+
+                        async def save_thanks(members):
+                            for member in members:
+                                await self.db.add_thank(Thank(
+                                    source_user_id=message.author.id,
+                                    target_user_id=member.id,
+                                    channel_id=message.channel.id,
+                                    message_id=message.id,
+                                    timestamp=datetime.now())
+                                )
                                 if await self.db.get_user_rep(member.id) == 1:
                                     await self.notifyUserOfThank(member, message.author)
+
+                        try:
+                            reaction, user = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
+                        except asyncio.TimeoutError:
+                            logger.debug("Thank confirmed: Timeout")
+                            async for user in trash_reaction.users():
+                                await message.remove_reaction(emoji.trashcan, user)
+                            await save_thanks(valid)
+
+                        else:
+                            if reaction.emoji == emoji.trashcan:
+                                logger.debug("Thank cancelled")
+                                async for user in thumbs_up_reaction.users():
+                                    await message.remove_reaction(emoji.thumbs_up, user)
+                                await asyncio.sleep(1)
+                                async for user in trash_reaction.users():
+                                    await message.remove_reaction(emoji.trashcan, user)
                             else:
-                                if reaction.emoji == emoji.trashcan:
-                                    logger.debug("Thank cancelled")
-                                    async for user in thumbs_up_reaction.users():
-                                        await message.remove_reaction(emoji.thumbs_up, user)
-                                    await asyncio.sleep(1)
-                                    async for user in trash_reaction.users():
-                                        await message.remove_reaction(emoji.trashcan, user)
-                                else:
-                                    logger.debug("Thank confirmed: Thumbs up")
-                                    async for user in trash_reaction.users():
-                                        await message.remove_reaction(emoji.trashcan, user)
-                                    await self.db.add_thank(new_thank)
-                                    if await self.db.get_user_rep(member.id) == 1:
-                                        await self.notifyUserOfThank(member, message.author)
+                                logger.debug("Thank confirmed: Thumbs up")
+                                async for user in trash_reaction.users():
+                                    await message.remove_reaction(emoji.trashcan, user)
+                                await save_thanks(valid)
+
 
     async def notifyUserOfThank(self, member: discord.Member, source_member: discord.Member):
         thankHelp = f"You were just awarded with a reputation point by {source_member.display_name}, probably for helping them with something. **Good job!**\n" \
@@ -192,10 +207,12 @@ class Reputation(commands.Cog):
         else:
             return False
 
+
     @commands.command(hidden=True)
     # @is_aight()
     async def testNotify(self, ctx: commands.Context):
         await self.notifyUserOfThank(ctx.author, ctx.author)
+
 
     @commands.command(name="rep", aliases=["ep", "score", "thanks"])
     async def get_rep(self, ctx: commands.Context, member: Optional[discord.Member] = None):
