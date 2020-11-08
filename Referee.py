@@ -11,10 +11,15 @@ import logging
 import logging.handlers
 import typing
 
+intents = discord.Intents.default()
+intents.members = True
+intents.presences = True
+
 bot = commands.Bot(command_prefix=config.commandPrefixes,
                    case_insensitive=True,
                    pm_help=None,
-                   activity=discord.Game(name=config.status))
+                   activity=discord.Game(name=config.status),
+                   intents=intents)
 
 
 def setup_logger() -> logging.Logger:

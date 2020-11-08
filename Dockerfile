@@ -20,7 +20,7 @@ RUN apt-get update && \
     # always install numpy separately
 RUN python3 -m pip install -U git+https://github.com/numpy/numpy@master#egg=numpy --retries 30
     # install minor deps
-RUN python3 -m pip install -U --upgrade-strategy eager "discord.py>=1.3.4" "asyncpg" "pillow" -q --retries 30
+RUN python3 -m pip install -U --upgrade-strategy eager "discord.py>=1.5.0" "asyncpg" "pillow" -q --retries 30
     # remove caches
 RUN rm -rf /root/.cache/pip/* && \
     apt-get clean && \
