@@ -13,6 +13,7 @@ from discord.ext import commands
 
 import logging
 from Referee import is_aight
+from config.config import Bot as config
 from utils import emoji
 
 logger = logging.getLogger("Referee")
@@ -100,6 +101,27 @@ class Misc(commands.Cog):
             resp = await short.json()
             await ctx.send(
                 embed=discord.Embed(description=f"[{query}]({resp['short_url']})", color=discord.Colour.dark_gold()))
+
+
+    @commands.command(name="google", aliases=["gg"])
+    async def google(self, ctx: commands.Context, *, query: str):
+        """
+        Search for a term on google.com
+        :param query: The search query
+        """
+        query = query.split("<")[0].strip()
+        url_query = urllib.parse.quote_plus(query)
+        payload = {"long_url": f"https://www.google.com/search?q={url_query}", }
+        headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0",
+                   "Connection": "close",
+                   "Authorization": f"Bearer {config.bitly_token}"
+                   }
+
+        async with aiohttp.ClientSession(headers=headers) as session:
+            short = await session.post("https://api-ssl.bitly.com/v4/shorten", json=payload)
+            resp = await short.json()
+            await ctx.send(
+                embed=discord.Embed(description=f"[{query}]({resp['link']})", color=discord.Colour.dark_gold()))
 
 
     @commands.command(name="b64")
