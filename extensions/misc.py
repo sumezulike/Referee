@@ -123,6 +123,22 @@ class Misc(commands.Cog):
             await ctx.send(
                 embed=discord.Embed(description=f"[{query}]({resp['link']})", color=discord.Colour.dark_gold()))
 
+    @commands.command()
+    @is_aight()
+    async def shorten(self, ctx: commands.Context, query: str):
+        url_query = urllib.parse.quote_plus(query)
+        payload = {"long_url": f"https://www.google.com/search?q={url_query}", }
+        headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0",
+                   "Connection": "close",
+                   "Authorization": f"Bearer {config.bitly_token}"
+                   }
+
+        async with aiohttp.ClientSession(headers=headers) as session:
+            short = await session.post("https://api-ssl.bitly.com/v4/shorten", json=payload)
+            resp = await short.json()
+            await ctx.send(
+                embed=discord.Embed(description=f"{resp['link']}", color=discord.Colour.dark_gold()))
+
 
     @commands.command(name="b64")
     async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
