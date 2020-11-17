@@ -215,6 +215,7 @@ class Reputation(commands.Cog):
             return False
 
     async def check_thanked_roles(self):
+        logger.debug("Checking all members for thank autorole")
         thanked_role = self.guild.get_role(reputation_config.thanked_role)
         for member in self.guild.members:
             if thanked_role not in member.roles:
