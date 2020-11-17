@@ -125,9 +125,8 @@ class Misc(commands.Cog):
 
     @commands.command()
     @is_aight()
-    async def shorten(self, ctx: commands.Context, query: str):
-        url_query = urllib.parse.quote_plus(query)
-        payload = {"long_url": f"https://www.google.com/search?q={url_query}", }
+    async def shorten(self, ctx: commands.Context, url: str):
+        payload = {"long_url": url}
         headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0",
                    "Connection": "close",
                    "Authorization": f"Bearer {config.bitly_token}"
