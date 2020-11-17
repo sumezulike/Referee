@@ -218,8 +218,10 @@ class Reputation(commands.Cog):
         thanked_role = self.guild.get_role(reputation_config.thanked_role)
         for member in self.guild.members:
             if thanked_role not in member.roles:
-                if await self.db.get_user_rep(member.id) >= reputation_config.thanked_role_threshold:
+                member_rep = await self.db.get_user_rep(member.id)
+                if member_rep >= reputation_config.thanked_role_threshold:
                     await member.add_roles(thanked_role, reason="Reached enough thanks")
+                    logger.info(f"Added {thanked_role.name} to {member.name} with {member_rep} points")
 
 
     @commands.command(hidden=True)
