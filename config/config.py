@@ -59,6 +59,8 @@ class Reputation:
     cooldown = int(config["Reputation"]["DelayBetweenThanks"])
     leaderboard_max_length = int(config["Reputation"]["LeaderboardLimit"])
     max_mentions = int(config["Reputation"]["MaxMentions"])
+    thanked_role = int(config["Reputation"]["ThankedRole"])
+    thanked_role_threshold = int(config["Reputation"]["ThankedRoleThreshold"])
     fontsize = int(config["Reputation"]["FontSize"])
     default_fontcolor = config["Reputation"]["FontColor"]
     first_color = config["Reputation"]["FirstColor"]

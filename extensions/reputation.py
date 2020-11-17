@@ -33,8 +33,9 @@ class Reputation(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.guild = self.bot.guilds[0]
+        self.guild: discord.Guild = self.bot.guilds[0]
         self.self_thank_emoji = discord.utils.get(self.guild.emojis, name="cmonBruh") or emoji.x
+        await self.check_thanked_roles()
 
 
     @commands.Cog.listener()
@@ -118,8 +119,14 @@ class Reputation(commands.Cog):
                                     message_id=message.id,
                                     timestamp=datetime.now())
                                 )
-                                if await self.db.get_user_rep(member.id) == 1:
-                                    await self.notifyUserOfThank(member, message.author)
+                                member_rep = await self.db.get_user_rep(member.id)
+                                if member_rep == 1:
+                                    await self.notify_user_of_thank(member, message.author)
+
+                                thanked_role = self.guild.get_role(reputation_config.thanked_role)
+                                if thanked_role not in member.roles:
+                                    if member_rep >= reputation_config.thanked_role_threshold:
+                                        await member.add_roles(thanked_role, reason=f"Got enough thanks ({member_rep}/{reputation_config.thanked_role_threshold})")
 
                         try:
                             reaction, user = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
@@ -144,7 +151,7 @@ class Reputation(commands.Cog):
                                 await save_thanks(valid)
 
 
-    async def notifyUserOfThank(self, member: discord.Member, source_member: discord.Member):
+    async def notify_user_of_thank(self, member: discord.Member, source_member: discord.Member):
         thankHelp = f"You were just awarded with a reputation point by {source_member.display_name}, probably for helping them with something. **Good job!**\n" \
                     f"We count **'Thank you'** messages as a fun way to track helpfulness and community engagement.\n\n" \
                     f"Every message containing a thank with a mention will be recorded, I'll react with {emoji.thumbs_up} to confirm that.\n\n" \
@@ -202,16 +209,23 @@ class Reputation(commands.Cog):
             elif "thank you" in text and text[text.find("thank you") - 1] == " ":  # Not "thank you"
                 logger.debug("Is thank: thank you")
                 return True
-            else:  # @Trapture likes to thank people
+            else:
                 return False
         else:
             return False
 
+    async def check_thanked_roles(self):
+        thanked_role = self.guild.get_role(reputation_config.thanked_role)
+        for member in self.guild.members:
+            if thanked_role not in member.roles:
+                if await self.db.get_user_rep(member.id) >= reputation_config.thanked_role_threshold:
+                    await member.add_roles(thanked_role, reason="Reached enough thanks")
+
 
     @commands.command(hidden=True)
     # @is_aight()
-    async def testNotify(self, ctx: commands.Context):
-        await self.notifyUserOfThank(ctx.author, ctx.author)
+    async def test_notify(self, ctx: commands.Context):
+        await self.notify_user_of_thank(ctx.author, ctx.author)
 
 
     @commands.command(name="rep", aliases=["ep", "score", "thanks"])
