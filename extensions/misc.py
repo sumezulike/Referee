@@ -126,7 +126,9 @@ class Misc(commands.Cog):
     @commands.command()
     @is_aight()
     async def shorten(self, ctx: commands.Context, url: str):
+        url = f"http://{url}" if not url.startswith("http") else url
         payload = {"long_url": url}
+        logger.debug((url, payload))
         headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0",
                    "Connection": "close",
                    "Authorization": f"Bearer {config.bitly_token}"
@@ -135,8 +137,13 @@ class Misc(commands.Cog):
         async with aiohttp.ClientSession(headers=headers) as session:
             short = await session.post("https://api-ssl.bitly.com/v4/shorten", json=payload)
             resp = await short.json()
-            await ctx.send(
-                embed=discord.Embed(description=f"{resp['link']}", color=discord.Colour.dark_gold()))
+            logger.debug(resp)
+            try:
+                await ctx.send(
+                    embed=discord.Embed(description=f"{resp['link']}", color=discord.Colour.dark_gold()))
+            except KeyError:
+                await ctx.send(
+                    embed=discord.Embed(description=f"Bit.ly error: {resp['description']}", color=discord.Colour.dark_gold()), delete_after=15)
 
 
     @commands.command(name="b64")
