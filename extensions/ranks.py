@@ -73,7 +73,7 @@ class Ranks(commands.Cog):
                         await self.bot.http.remove_reaction(
                             message_id=rank.message_id,
                             channel_id=ranks_config.ranks_channel_id,
-                            emoji=emoji.white_check_mark,
+                            emoji=reaction.emoji,
                             member_id=user.id
                         )
 
