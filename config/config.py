@@ -81,3 +81,10 @@ class Warnings:
     warning_lifetime = int(config["Warnings"]["WarningLifetime"])
     warned_role_name = config["Warnings"]["WarnedRoleName"]
     default_warned_color = (int(x) for x in config["Warnings"]["defaultWarnedColor"].split())
+
+
+class Rolegroups:
+    channel_id = int(config["Rolegroups"]["RolegroupsChannelID"])
+    cooldown_count = int(config["Rolegroups"]["CooldownCount"])
+    cooldown_time = int(config["Rolegroups"]["CooldownTime"])
+    role_count_limit = int(config["Rolegroups"]["RoleCountLimit"])

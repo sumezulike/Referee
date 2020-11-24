@@ -17,6 +17,9 @@ class Rolegroup:
         elif role_id:
             self.roles = {k: v for k, v in self.roles.items() if v != role_id}
 
+    def get_role(self, emoji: str):
+        return self.roles.get(emoji)
+
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return False
