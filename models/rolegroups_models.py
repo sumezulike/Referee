@@ -20,6 +20,9 @@ class Rolegroup:
     def get_role(self, emoji: str):
         return self.roles.get(emoji)
 
+    def get_emoji(self, role_id):
+        return {v: k for k, v in self.roles.items()}.get(role_id, None)
+
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return False
