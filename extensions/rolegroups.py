@@ -14,7 +14,7 @@ from Referee import is_aight
 
 logger = logging.getLogger("Referee")
 
-control_emojis = [emoji.plus, emoji.white_check_mark, emoji.x]
+control_emojis = [emoji.plus, emoji.white_check_mark, emoji.x]#, emoji.pencil]
 edit_control_emojis = [emoji.pencil, emoji.rotating_arrows, emoji.trashcan]
 
 
@@ -57,6 +57,8 @@ class Rolegroups(commands.Cog):
         self.on_cooldown: List[int] = []
         self.latest_reactions: Dict[int: int] = {}
         self.editing_mod: discord.Member = None
+        self.edit_save_actions = []
+        self.edit_cancel_actions = []
         self.temp_rolegroups: Dict[str: Rolegroup] = dict()
         self.guild: discord.Guild = None
 
@@ -73,7 +75,7 @@ class Rolegroups(commands.Cog):
         self.bot.loop.create_task(self.bg_check())
 
         for rg in await self.db.get_all_rolegroups():
-            await self.cancel_editing(rg)
+            await self.stop_editing(rg, save_changes=False)
 
     async def bg_check(self):
         """
@@ -83,8 +85,9 @@ class Rolegroups(commands.Cog):
             await asyncio.sleep(1)
 
         while not self.bot.is_closed():
+            logger.info(f"Autoclearing user reactions")
             await self.clear_user_reactions()
-            await asyncio.sleep(60 * 60 * 24)  # task runs every 24h
+            await asyncio.sleep(60 * 60)  # task runs every hour
 
     async def clear_user_reactions(self):
         for rolegroup in await self.db.get_all_rolegroups():
@@ -158,6 +161,7 @@ class Rolegroups(commands.Cog):
         if payload.channel_id == rolegroups_config.channel_id and payload.user_id != self.bot.user.id:
 
             if payload.user_id in self.on_cooldown:
+                logger.debug(f"User {payload.user_id} on cooldown, ignoring")
                 await asyncio.sleep(1)
                 await self.bot.http.remove_reaction(
                     message_id=payload.message_id,
@@ -171,6 +175,7 @@ class Rolegroups(commands.Cog):
 
             rolegroup: Rolegroup = await self.db.get_rolegroup(message_id=payload.message_id)
             if rolegroup:
+                logger.debug(f"Reaction {payload.emoji} to {rolegroup.name} from {member.name}")
                 try:
                     await self.handle_rolegroup_reaction(rolegroup=rolegroup, member=member, reaction_emoji=str(payload.emoji))
                 except Exception as e:
@@ -179,23 +184,29 @@ class Rolegroups(commands.Cog):
             await self.bot.http.remove_reaction(message_id=payload.message_id, channel_id=payload.channel_id, emoji=payload.emoji, member_id=payload.user_id)
 
     async def handle_rolegroup_reaction(self, rolegroup: Rolegroup, member: discord.Member, reaction_emoji: str):
+        if self.editing_mod:
+            rolegroup = self.get_temp_rolegroup(rolegroup)
         role_id = rolegroup.get_role(reaction_emoji)
         role = self.guild.get_role(role_id)
-        if role is None:
+        if role_id and role is None and reaction_emoji not in control_emojis:
+            logger.info(f"Forgetting inexistent role with id {role_id}")
             rolegroup.del_role(role_id=role_id)
             if self.editing_mod:
                 await self.update_temp_rolegroup(rolegroup)
             else:
                 await self.update_db(rolegroup)
+            await self.update_rolegroup_message(rolegroup)
 
         if self.editing_mod and member.id == self.editing_mod.id:
-            logger.info("Editing mode")
+            logger.debug(f"Editing mode: {reaction_emoji}")
             if reaction_emoji == emoji.plus:
                 await self.add_new_role_prompt(member, rolegroup)
+ #           elif reaction_emoji == emoji.pencil:
+  #              await self.rename_rolegroup_prompt(member, rolegroup)
             elif reaction_emoji == emoji.white_check_mark:
-                await self.stop_editing(rolegroup)
+                await self.stop_editing(rolegroup, save_changes=True)
             elif reaction_emoji == emoji.x:
-                await self.cancel_editing(rolegroup)
+                await self.stop_editing(rolegroup, save_changes=False)
             else:
                 await self.edit_role_prompt(member=member, rolegroup=rolegroup, role=role)
             return
@@ -220,6 +231,7 @@ class Rolegroups(commands.Cog):
             await self.notify_role_removed(member, role)
 
     async def update_db(self, rolegroup: Rolegroup):
+        logger.debug(f"Updating db with {rolegroup.name}")
         await self.db.delete_rolegroup(rolegroup.name)
         await self.db.add_rolegroup(rolegroup)
 
@@ -227,105 +239,61 @@ class Rolegroups(commands.Cog):
     @is_aight()
     async def rolegroup_cmd(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
-            helpmsg = f"""Usage: ```{self.bot.command_prefix}rolegroup COMMAND
+            helpmsg = f"""Usage: 
+{self.bot.command_prefix[0]}rolegroup *COMMAND*
+
 Commands:
-create ROLEGROUP_NAME
-destroy ROLEGROUP_NAME
-edit ROLEGROUP_NAME
-add ROLEGROUP_NAME ROLENAME
-del RLEGROUP_NAME ROLENAME
-```"""
-            await ctx.send(helpmsg, delete_after=30)
-            await ctx.message.delete(delay=30)
+create *ROLEGROUP_NAME*
+destroy *ROLEGROUP_NAME*
+edit *ROLEGROUP_NAME*
+add *ROLEGROUP_NAME* *ROLENAME*
+del *RLEGROUP_NAME* *ROLENAME*
+"""
+            await self.send_simple_embed(channel=ctx, content=helpmsg, delete_after=30)
+            await ctx.message.delete()
 
     @rolegroup_cmd.command(name="create")
     @is_aight()
-    async def create_rolegroup(self, ctx: commands.Context, name: str):
+    async def create_rolegroup(self, ctx: commands.Context, *, name: str=None):
+        def messagecheck(_message):
+            return _message.author.id == ctx.author.id and _message.content
+        if not name:
+            prompt = await self.send_simple_embed(channel=ctx,
+                                                  content=f"Send a name for the new rolegroup",
+                                                  mentions=ctx.author)
+            try:
+                message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
+            except asyncio.TimeoutError:
+                logger.error("creeate rolegroup, name timed out")
+                await prompt.delete()
+                return
+            else:
+                name: str = message.content
+                await message.delete()
+            finally:
+                await prompt.delete()
+
+        if await self.db.get_rolegroup(name=name):
+            await self.send_simple_embed(channel=ctx, content="A role group with that name already exists", delete_after=5)
+            await ctx.message.delete()
+            return
         rolegroup = Rolegroup(name=name)
         msg = await self.create_rolegroup_message(rolegroup=rolegroup)
         rolegroup.message_id = msg.id
         await self.db.add_rolegroup(rolegroup=rolegroup)
         await ctx.message.delete()
 
-    @rolegroup_cmd.command(name="edit")
-    @is_aight()
-    async def edit_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T):
-        await self.start_editing(rolegroup, ctx.author)
-        helpmsg = f"""Use the reactions to edit {rolegroup.name}
-{emoji.plus}: add a role to the group
-{emoji.white_check_mark}: save changes and quit
-{emoji.x}: discard changes and quit
-Click an existing roles reaction to edit the role
-"""
-        await ctx.send(helpmsg, delete_after=30)
-        await ctx.message.delete(delay=30)
-
-    @rolegroup_cmd.command(name="add")
-    @is_aight()
-    async def add_role_to_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, role: Union[Role_T, str]):
-        def messagecheck(_message):
-            return _message.author.id == ctx.author.id and _message.content
-
-        if type(role) == str:
-            role_name = role
-        else:
-            role_name = role.name
-
-        prompt = await ctx.send(content=f"{ctx.author.mention} Send a non-custom emoji for **{role_name}**")
-        try:
-            message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
-        except asyncio.TimeoutError:
-            return
-        else:
-            try:
-                await message.add_reaction(emoji=message.content)
-            except Exception as e:
-                logger.error(e)
-                await ctx.send(f"\"{message.content}\" is not a valid emoji", delete_after=5)
-                return
-            else:
-                role_emoji = message.content
-                if role_emoji in control_emojis:
-                    await ctx.send(
-                        f"{', '.join(control_emojis[:-1])} and {control_emojis[-1]} cannot be assigned to roles",
-                        delete_after=5)
-                    return
-            finally:
-                await message.delete()
-        finally:
-            await prompt.delete()
-
-        if type(role) == str:
-            name = role
-            role = await self.guild.create_role(name=name, reason=f"Added to {rolegroup.name} by {ctx.author.name}")
-
-        rolegroup.add_role(role_id=role.id, emoji=role_emoji)
-        await self.update_db(rolegroup)
-        await self.update_rolegroup_message(rolegroup)
-
-    @rolegroup_cmd.command(name="del")
-    @is_aight()
-    async def del_role_from_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, role: Role_T):
-        try:
-            delete_role = await self.quick_embed_query(ctx=ctx, question=f"Also delete discord role?", reraise_timeout=True)
-        except asyncio.TimeoutError:
-            return
-        rolegroup.del_role(role_id=role.id)
-        if delete_role:
-            await role.delete(reason=f"Deleted by {ctx.author.name}")
-        await self.update_db(rolegroup)
-        await self.update_rolegroup_message(rolegroup)
-        await ctx.message.delete()
 
     @rolegroup_cmd.command(name="destroy")
     @is_aight()
-    async def destroy_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T):
+    async def destroy_rolegroup(self, ctx: commands.Context, *, rolegroup: Rolegroup_T):
         try:
             if rolegroup.roles:
                 delete_all = await self.quick_embed_query(ctx=ctx, question=f"Also delete all {len(rolegroup.roles)} discord roles?", reraise_timeout=True)
             else:
                 delete_all = False
         except asyncio.TimeoutError:
+            logger.error("destroy rolegroup timed out")
             return
         else:
             if delete_all:
@@ -337,23 +305,90 @@ Click an existing roles reaction to edit the role
                     except Exception as e:
                         logger.error(e)
 
-            rolegroup_msg = await self.get_rolegroup_message(rolegroup=rolegroup)
+            try:
+                rolegroup_msg = await self.get_rolegroup_message(rolegroup=rolegroup)
+                await rolegroup_msg.delete()
+            except Exception as e:
+                logger.error(e)
             await self.db.delete_rolegroup(rolegroup.name)
-            await rolegroup_msg.delete()
-        await ctx.message.delete()
+        finally:
+            await ctx.message.delete()
 
 
-    @commands.command()
+    @rolegroup_cmd.command(name="edit")
     @is_aight()
-    async def clean_reactions(self, ctx: commands.Context):
-        """
-        Resets the reactions on the rolegroup messages
-        """
-        await self.clear_user_reactions()
+    async def edit_rolegroup(self, ctx: commands.Context, *, rolegroup: Rolegroup_T):
+        await self.start_editing(rolegroup, ctx.author)
+        helpmsg = f"""Use the reactions to edit '{rolegroup.name}'
+{emoji.plus}: add a role to the group
+{emoji.white_check_mark}: save changes and quit
+{emoji.x}: discard changes and quit
+Click an existing roles reaction to edit the role
+"""
+        msg = await self.send_simple_embed(channel=ctx, content=helpmsg)
+        self.edit_cancel_actions.append(msg.delete())
+        self.edit_save_actions.append(msg.delete())
         await ctx.message.delete()
 
-    async def quick_embed_question(self, channel, member, question) -> str:
-        pass
+    @rolegroup_cmd.command(name="add")
+    @is_aight()
+    async def add_role_to_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, *, role: Union[Role_T, str]):
+        def message_check(_message):
+            return _message.author.id == ctx.author.id and _message.content
+
+        if type(role) == str:
+            role_name = role
+        else:
+            role_name = role.name
+
+        prompt = await self.send_simple_embed(channel=ctx, content=f"Send a non-custom emoji for **{role_name}**", mentions=ctx.author)
+        try:
+            message: discord.Message = await self.bot.wait_for("message", check=message_check, timeout=30)
+        except asyncio.TimeoutError:
+            logger.error("add_role timed out")
+            return
+        else:
+            try:
+                await message.add_reaction(emoji=message.content)
+            except Exception as e:
+                logger.error(e)
+                await self.send_simple_embed(channel=ctx, content=f"\"{message.content}\" is not a valid emoji", delete_after=5)
+                return
+            else:
+                role_emoji = message.content
+                if role_emoji in control_emojis:
+                    await self.send_simple_embed(channel=ctx, content=f"{', '.join(control_emojis[:-1])} and {control_emojis[-1]} cannot be assigned to roles",
+                        delete_after=5)
+                    return
+            finally:
+                await message.delete()
+        finally:
+            await prompt.delete()
+            await ctx.message.delete()
+
+        if type(role) == str:
+            logger.info(f"Creating new role {role} for {rolegroup.name}")
+            name = role
+            role = await self.guild.create_role(name=name, reason=f"Added to {rolegroup.name} by {ctx.author.name}")
+
+        rolegroup.add_role(role_id=role.id, emoji=role_emoji)
+        await self.update_db(rolegroup)
+        await self.update_rolegroup_message(rolegroup)
+
+    @rolegroup_cmd.command(name="del")
+    @is_aight()
+    async def del_role_from_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, *, role: Role_T):
+        try:
+            delete_role = await self.quick_embed_query(ctx=ctx, question=f"Also delete discord role?", reraise_timeout=True)
+        except asyncio.TimeoutError:
+            logger.error("del_role timed out")
+            return
+        rolegroup.del_role(role_id=role.id)
+        if delete_role:
+            await role.delete(reason=f"Deleted by {ctx.author.name}")
+        await self.update_db(rolegroup)
+        await self.update_rolegroup_message(rolegroup)
+        await ctx.message.delete()
 
 
     async def quick_embed_query(self, ctx: Union[commands.Context, Tuple[discord.TextChannel, discord.Member]], question: str, reraise_timeout: bool = True) -> bool:
@@ -364,6 +399,7 @@ Click an existing roles reaction to edit the role
         :param reraise_timeout: Whether an exception should be raised on timeout, defaults to True
         :return: bool answer
         """
+
         def check(_reaction, _user):
             return _user == member and str(_reaction.emoji) in [emoji.x, emoji.white_check_mark]
 
@@ -374,9 +410,9 @@ Click an existing roles reaction to edit the role
             channel = ctx[0]
             member = ctx[1]
 
-        embed = discord.Embed(title=question, color=discord.Color.dark_gold())
+        logger.debug(f"Sending query '{question}' for {member.name}")
 
-        msg = await channel.send(embed=embed)
+        msg = await self.send_simple_embed(channel=channel, content=question)
         await msg.add_reaction(emoji.white_check_mark)
         await msg.add_reaction(emoji.x)
 
@@ -389,7 +425,7 @@ Click an existing roles reaction to edit the role
             else:
                 return False
         else:
-            await channel.send(embed=discord.Embed(title=reaction.emoji), delete_after=5)
+            await self.send_simple_embed(channel=channel, content=reaction.emoji, delete_after=2)
             if reaction.emoji == emoji.white_check_mark:
                 await msg.delete()
                 return True
@@ -403,16 +439,15 @@ Click an existing roles reaction to edit the role
         """
         channel = self.guild.get_channel(rolegroups_config.channel_id)
 
-        embed = discord.Embed(title=rolegroup.name)
-        msg = await channel.send(embed=embed)
+        msg = await self.send_simple_embed(channel=channel, content=rolegroup.name)
         return msg
 
     async def update_rolegroup_message(self, rolegroup: Rolegroup):
+        logger.debug(f"Updating embed for {rolegroup.name}")
         rolegroup_msg = await self.get_rolegroup_message(rolegroup=rolegroup)
         for reaction in rolegroup_msg.reactions:
             if reaction.emoji in control_emojis:
                 continue
-            logger.debug(f"Testing {reaction.emoji}")
             if not rolegroup.get_role(reaction.emoji):
                 await self.bot.http.remove_reaction(
                     message_id=rolegroup.message_id,
@@ -420,54 +455,53 @@ Click an existing roles reaction to edit the role
                     emoji=reaction.emoji,
                     member_id=self.bot.user.id
                 )
-        embed = discord.Embed(title=rolegroup.name)
+        embed_roles_texts = []
         for role_emoji, role_id in rolegroup.roles.items():
             role = self.guild.get_role(role_id=role_id)
             if role is None:
+                logger.info(f"Forgetting role with id {role_id}")
                 rolegroup.del_role(role_id=role_id)
                 if self.editing_mod:
                     await self.update_temp_rolegroup(rolegroup)
                 else:
                     await self.update_db(rolegroup)
+                await self.update_rolegroup_message(rolegroup)
                 continue
-            embed.add_field(name="-", value=f"{role_emoji}: **{role.name}**")
+            embed_roles_texts.append(f"{role_emoji} | **{role.name}**")
+
+        embed_text = f"{rolegroup.name}\n"+'\n'.join(embed_roles_texts)
+        embed = discord.Embed(title=embed_text, color=discord.Color.dark_gold())
+
         await rolegroup_msg.edit(embed=embed)
         for role_emoji, role_id in rolegroup.roles.items():
             await rolegroup_msg.add_reaction(emoji=role_emoji)
-
 
 
     async def add_new_role_prompt(self, member: discord.Member, rolegroup: Rolegroup):
         def messagecheck(_message):
             return _message.author.id == member.id and _message.content
 
-        rolegroup = await self.get_temp_rolegroup(rolegroup)
-        assert type(rolegroup) == Rolegroup
-        assert type(member) == discord.Member
+        rolegroup = self.get_temp_rolegroup(rolegroup)
 
         channel: discord.TextChannel = self.guild.get_channel(rolegroups_config.channel_id)
-        prompt = await channel.send(f"{member.mention} Send the id of an existing role or a name for the new role")
+        prompt = await self.send_simple_embed(channel=channel, content=f"Send the id of an existing role or a name for the new role", mentions=member)
         try:
             message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
         except asyncio.TimeoutError:
+            logger.error("add prompt, id/name timed out")
             await prompt.delete()
             return
         else:
             name: str = message.content
-            role = None
-            if name.isnumeric():
-                role = self.guild.get_role(int(name))
-            if not role:
-                role = await self.guild.create_role(name=name, reason=f"Added to {rolegroup.name} by {member.name}")
-                logger.info(f"Created role {role.name}")
             await message.delete()
 
         await prompt.delete()
-        prompt = await channel.send(content=f"{member.mention} Send a non-custom emoji for **{role.name}**")
+        prompt = await self.send_simple_embed(channel=channel, content=f"Send a non-custom emoji for **{name}**", mentions=member)
         try:
             message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
         except asyncio.TimeoutError:
             await prompt.delete()
+            logger.error("add prompt, emoji timed out")
             return
 
         else:
@@ -475,15 +509,26 @@ Click an existing roles reaction to edit the role
                 await message.add_reaction(emoji=message.content)
             except Exception as e:
                 logger.error(e)
-                await channel.send(f"\"{message.content}\" is not a valid emoji", delete_after=5)
+                await self.send_simple_embed(channel=channel, content=f"\"{message.content}\" is not a valid emoji", delete_after=5)
                 return
             else:
                 role_emoji = message.content
                 if role_emoji in control_emojis:
-                    await channel.send(
-                        f"{', '.join(control_emojis[:-1])} and {control_emojis[-1]} cannot be assigned to roles",
+                    await self.send_simple_embed(channel=channel, content=f"{', '.join(control_emojis[:-1])} and {control_emojis[-1]} cannot be assigned to roles",
                         delete_after=5)
                     return
+                if len(role_emoji) > 2:
+                    await self.send_simple_embed(channel=channel, content=f"{role_emoji} is a custom emoji",
+                                                 delete_after=5)
+                    return
+
+                role = None
+                if name.isnumeric():
+                    role = self.guild.get_role(int(name))
+                if not role:
+                    role = await self.guild.create_role(name=name, reason=f"Added to {rolegroup.name} by {member.name}")
+                    self.edit_cancel_actions.append(role.delete(reason=f"Cancelled rolegroup editing"))
+                    logger.info(f"Created role {role.name}")
 
                 rolegroup.add_role(role_id=role.id, emoji=role_emoji)
                 await self.update_temp_rolegroup(rolegroup)
@@ -500,10 +545,10 @@ Click an existing roles reaction to edit the role
         def reaction_check(_reaction, _user):
             return _reaction.message == prompt and _user.id == member.id and _reaction.emoji in edit_control_emojis
 
-        rolegroup = await self.get_temp_rolegroup(rolegroup)
+        rolegroup = self.get_temp_rolegroup(rolegroup)
 
         channel: discord.TextChannel = self.guild.get_channel(rolegroups_config.channel_id)
-        embed = discord.Embed(title=f"{rolegroup.get_emoji(role.id)} {role.name}")
+        embed = discord.Embed(title=f"{rolegroup.get_emoji(role.id)} {role.name}", color=discord.Color.dark_gold())
         embed.add_field(name=f"Use reactions to edit {role.name}", value=f"{emoji.pencil}: edit name\n{emoji.rotating_arrows}: change emoji\n{emoji.trashcan}: delete")
         prompt = await channel.send(embed=embed)
         for e in edit_control_emojis:
@@ -511,38 +556,45 @@ Click an existing roles reaction to edit the role
         try:
             reaction, user = await self.bot.wait_for("reaction_add", check=reaction_check, timeout=60)
         except asyncio.TimeoutError:
+            logger.error("edit prompt timed out")
             return
         else:
             if reaction.emoji == emoji.pencil:
-                sub_prompt = await channel.send(f"Send a new name for {rolegroup.get_emoji(role.id)}")
+                sub_prompt = await self.send_simple_embed(channel=channel, content=f"Send a new name for {rolegroup.get_emoji(role.id)}")
                 try:
                     message = await self.bot.wait_for("message", check=messagecheck, timeout=60)
                 except asyncio.TimeoutError:
+                    logger.error("edit prompt, new name timed out")
                     return
                 else:
+                    prev = role.name
                     await role.edit(name=message.content)
+                    self.edit_cancel_actions.append(role.edit(name=prev))
                     await message.delete()
                 finally:
                     await sub_prompt.delete()
             elif reaction.emoji == emoji.rotating_arrows:
-                sub_prompt = await channel.send(f"Send a new emoji for {role.name}")
+                sub_prompt = await self.send_simple_embed(channel=channel, content=f"Send a new non-custom emoji for {role.name}")
                 try:
                     message = await self.bot.wait_for("message", check=messagecheck, timeout=60)
                 except asyncio.TimeoutError:
+                    logger.error("edit prompt, new emoji timed out")
                     return
                 else:
                     try:
                         await message.add_reaction(emoji=message.content)
                     except Exception as e:
                         logger.error(e)
-                        await channel.send(f"\"{message.content}\" is not a valid emoji", delete_after=5)
+                        await self.send_simple_embed(channel=channel, content=f"\"{message.content}\" is not a valid emoji", delete_after=5)
                         return
                     else:
                         role_emoji = message.content
                         if role_emoji in control_emojis:
-                            await channel.send(
-                                f"{', '.join(control_emojis[:-1])} and {control_emojis[-1]} cannot be assigned to roles",
+                            await self.send_simple_embed(channel=channel, content=f"{', '.join(control_emojis[:-1])} and {control_emojis[-1]} cannot be assigned to roles",
                                 delete_after=5)
+                            return
+                        if len(role_emoji) > 2:
+                            await self.send_simple_embed(channel=channel, content=f"{role_emoji} is a custom emoji", delete_after=5)
                             return
 
                         rolegroup.del_role(role_id=role.id)
@@ -555,43 +607,74 @@ Click an existing roles reaction to edit the role
                 try:
                     delete_role = await self.quick_embed_query(ctx=(channel, member), question="Also delete discord role?", reraise_timeout=True)
                 except asyncio.TimeoutError:
+                    logger.error("edit prompt, delete role timed out")
                     return
                 else:
                     rolegroup.del_role(role.id)
                     if delete_role:
-                        await role.delete(reason=f"Deleted by {member.name}")
+                        self.edit_save_actions.append(role.delete(reason=f"Deleted by {member.name}"))
                     await self.update_temp_rolegroup(rolegroup)
-                    await self.stop_editing(rolegroup)
             await self.update_temp_rolegroup(rolegroup)
             await self.update_rolegroup_message(rolegroup)
         finally:
             await prompt.delete()
 
+    async def rename_rolegroup_prompt(self, member: discord.Member, rolegroup: Rolegroup):
+        def messagecheck(_message):
+            return _message.author.id == member.id and _message.content
+
+        rolegroup = self.get_temp_rolegroup(rolegroup)
+
+        channel: discord.TextChannel = self.guild.get_channel(rolegroups_config.channel_id)
+        prompt = await self.send_simple_embed(channel=channel, content=f"Send a new name for {rolegroup.name}", mentions=member)
+        try:
+            message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
+        except asyncio.TimeoutError:
+            logger.error("rename rolegroup timed out")
+            await prompt.delete()
+            return
+        else:
+            name: str = message.content
+            await message.delete()
+
+            rolegroup.name = name
+            await self.update_temp_rolegroup(rolegroup)
+
+        finally:
+            await prompt.delete()
+
+
 
     async def start_editing(self, rolegroup: Rolegroup, editor: discord.Member):
+        logger.info(f"Started editing")
         await self.load_temp_rolegroups()
         self.editing_mod = editor
         rolegroup_msg = await self.get_rolegroup_message(rolegroup=rolegroup)
         for e in control_emojis:
             await rolegroup_msg.add_reaction(e)
 
-    async def stop_editing(self, rolegroup: Rolegroup):
+    async def stop_editing(self, rolegroup: Rolegroup, save_changes: bool):
         rolegroup_msg = await self.get_rolegroup_message(rolegroup=rolegroup)
         for e in control_emojis:
             await rolegroup_msg.remove_reaction(e, member=self.bot.user)
         await self.clear_user_reactions()
-        self.editing_mod = None
-        await self.save_temp_rolegroups()
-        await self.update_rolegroup_message(await self.db.get_rolegroup(message_id=rolegroup.message_id))
+        actions = self.edit_save_actions if save_changes else self.edit_cancel_actions[::-1]
+        for action in actions:
+            try:
+                await action
+            except Exception as e:
+                logger.error(e)
 
-    async def cancel_editing(self, rolegroup: Rolegroup):
-        rolegroup_msg = await self.get_rolegroup_message(rolegroup=rolegroup)
-        for e in control_emojis:
-            await rolegroup_msg.remove_reaction(e, member=self.bot.user)
-        await self.clear_user_reactions()
+        self.edit_save_actions = []
+        self.edit_cancel_actions = []
         self.editing_mod = None
+
+        if save_changes:
+            await self.save_temp_rolegroups()
         await self.clear_temp_rolegroups()
         await self.update_rolegroup_message(await self.db.get_rolegroup(message_id=rolegroup.message_id))
+        logger.info(f"Stopped editing. {'Saved' if save_changes else 'Discarded'} changes.")
+
 
     async def get_rolegroup_message(self, rolegroup: Rolegroup) -> discord.Message:
         channel = self.guild.get_channel(rolegroups_config.channel_id)
@@ -599,21 +682,36 @@ Click an existing roles reaction to edit the role
         return msg
 
     async def load_temp_rolegroups(self):
+        logger.debug(f"Loading temp rolegroups from db")
         self.temp_rolegroups = {r.name: r for r in await self.db.get_all_rolegroups()}
 
     async def update_temp_rolegroup(self, rolegroup: Rolegroup):
         self.temp_rolegroups[rolegroup.name] = rolegroup
 
-    async def get_temp_rolegroup(self, rolegroup: Rolegroup) -> Rolegroup:
+    def get_temp_rolegroup(self, rolegroup: Rolegroup) -> Rolegroup:
         return self.temp_rolegroups.get(rolegroup.name)
 
     async def save_temp_rolegroups(self):
+        logger.debug(f"Saving temp rolegroups to db")
         for name, rg in self.temp_rolegroups.items():
             await self.update_db(rg)
-        self.temp_rolegroups = {}
 
     async def clear_temp_rolegroups(self):
+        logger.debug(f"Clearing temp rolegroups")
         self.temp_rolegroups = {}
+
+    async def send_simple_embed(self, channel: discord.TextChannel, content: str, delete_after=None, mentions: Union[List[discord.Member], discord.Member]=None) -> discord.Message:
+        embed = discord.Embed(title=content, color=discord.Color.dark_gold())
+        if mentions:
+            if type(mentions) == list:
+                embed.description = " ".join(u.mention for u in mentions)
+            else:
+                embed.description = mentions.mention
+        if delete_after:
+            msg = await channel.send(embed=embed, delete_after=delete_after)
+        else:
+            msg = await channel.send(embed=embed)
+        return msg
 
 def setup(bot: commands.Bot):
     bot.add_cog(Rolegroups(bot))
