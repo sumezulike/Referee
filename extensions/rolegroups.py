@@ -456,11 +456,11 @@ Click an existing roles reaction to edit the role
                     member_id=self.bot.user.id
                 )
         embed_roles_texts = []
-        for role_emoji, role_id in rolegroup.roles.items():
-            role = self.guild.get_role(role_id=role_id)
-            if role is None:
-                logger.info(f"Forgetting role with id {role_id}")
-                rolegroup.del_role(role_id=role_id)
+        emoji_full_role = [(role_emoji, self.guild.get_role(role_id) or role_id) for role_emoji, role_id in rolegroup.roles.items()]
+        for role_emoji, role in sorted(emoji_full_role, key=lambda r: r[1].name.lower()):
+            if type(role) != discord.Role:
+                logger.info(f"Forgetting role with id {role}")
+                rolegroup.del_role(role_id=role)
                 if self.editing_mod:
                     await self.update_temp_rolegroup(rolegroup)
                 else:
@@ -468,13 +468,12 @@ Click an existing roles reaction to edit the role
                 await self.update_rolegroup_message(rolegroup)
                 continue
             embed_roles_texts.append(f"{role_emoji} | **{role.name}**")
+            await rolegroup_msg.add_reaction(emoji=role_emoji)
 
         embed_text = f"{rolegroup.name}\n"+'\n'.join(embed_roles_texts)
         embed = discord.Embed(title=embed_text, color=discord.Color.dark_gold())
 
         await rolegroup_msg.edit(embed=embed)
-        for role_emoji, role_id in rolegroup.roles.items():
-            await rolegroup_msg.add_reaction(emoji=role_emoji)
 
 
     async def add_new_role_prompt(self, member: discord.Member, rolegroup: Rolegroup):
