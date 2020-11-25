@@ -219,7 +219,7 @@ class Rolegroups(commands.Cog):
         if role not in member.roles:
             if sum(1 for role in member.roles if
                    role.id in rolegroup.roles.values()) >= rolegroups_config.role_count_limit:
-                await self.warn_limit_exceeded(member, role)
+                await self.warn_limit_exceeded(member, rolegroup)
                 logger.info(f"Stopped {member.name} from adding {role.name}, too many roles")
             else:
                 await member.add_roles(role)
