@@ -81,22 +81,53 @@ class PGRolegroupsDB:
 
         return rolegroup
 
+    async def update_rolegroup(self, rolegroup: Rolegroup) -> Rolegroup:
+        """
+        Updates an existing rolegroup
+        :param rolegroup:
+        :return:
+        """
+        old = await self.get_rolegroup(rolegroup_id=rolegroup.db_id)
 
-    async def get_rolegroup(self, rolegroup_id: int) -> Rolegroup:
+        if old.name != rolegroup.name:
+            update = f"UPDATE rolegroups SET name = $1 WHERE id = $2"
+            async with self.pool.acquire() as con:
+                await con.execute(update, rolegroup.name, rolegroup.db_id)
+        old_roles = old.roles
+        new_roles = rolegroup.roles
+
+        remove = [x for x in old_roles.items() if x not in new_roles.items()]
+        add = [x for x in new_roles.items() if x not in old_roles.items()]
+
+        delete = f"DELETE FROM rolegroup_roles WHERE rolegroup_id=$1 AND emoji=$2"
+        insert = f"INSERT into rolegroup_roles(rolegroup_id, role_id, emoji) VALUES($1, $2, $3)"
+        async with self.pool.acquire() as con:
+            for emoji, _ in remove:
+                await con.execute(delete, rolegroup.db_id, emoji)
+
+            for emoji, role_id in add:
+                await con.execute(insert, rolegroup.db_id, role_id, emoji)
+
+        return await self.get_rolegroup(rolegroup_id=rolegroup.db_id)
+
+    async def get_rolegroup(self, rolegroup_id: int = None, message_id: int = None) -> Rolegroup:
         """
         This method looks up a rolegroup either by name or discord message ID
         :param id: The db id of the rolegroup selection message
         :return: The found and reconstructed Rolegroup object
         """
-        query = "SELECT id, name, message_id FROM rolegroups where id = $1"
+        if not rolegroup_id and not message_id:
+            raise Exception("get_rolegroup called without arguments")
+
+        query = f"SELECT id, name, message_id FROM rolegroups where {'id' if rolegroup_id else 'message_id'} = $1"
 
         async with self.pool.acquire() as con:
-            result: asyncpg.Record = await con.fetchrow(query, rolegroup_id)
+            result: asyncpg.Record = await con.fetchrow(query, rolegroup_id or message_id)
 
             if result:
                 r = Rolegroup(name=result["name"], message_id=result["message_id"], db_id=result["id"])
                 query = "SELECT role_id, emoji FROM rolegroup_roles where rolegroup_id = $1"
-                rows: asyncpg.Record = await con.fetch(query, rolegroup_id)
+                rows: asyncpg.Record = await con.fetch(query, r.db_id)
                 for row in rows:
                     r.add_role(role_id=row["role_id"], emoji=row["emoji"])
                 return r
@@ -104,6 +135,7 @@ class PGRolegroupsDB:
     async def delete_rolegroup(self, rolegroup_id: int):
         """
         Delete a rolegroup_cmd by discord role ID
+        :param rolegroup_id:
         :param id: The db id of the rolegroup
         """
         query = "DELETE FROM rolegroups WHERE id = $1"
@@ -119,7 +151,7 @@ class PGRolegroupsDB:
         :return: List of Rolegroup objects
         """
         async with self.pool.acquire() as con:
-            query = "SELECT message_id FROM rolegroups"
+            query = "SELECT id FROM rolegroups"
 
             rows = await con.fetch(query)
             return [await self.get_rolegroup(rolegroup_id=row["id"]) for row in rows]
