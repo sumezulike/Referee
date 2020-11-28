@@ -427,6 +427,21 @@ Click an existing roles reaction to edit the role
         await ctx.message.delete()
 
 
+    @rolegroup_cmd.command(name="clean")
+    @is_aight()
+    async def clean_rolegroup_message(self, ctx: commands.Context, rolegroup: Rolegroup_T):
+        rolegroup_msg = await self.get_rolegroup_message(rolegroup=rolegroup)
+        for reaction in rolegroup_msg.reactions:
+            async for user in reaction.users():
+                await self.bot.http.remove_reaction(
+                    message_id=rolegroup.message_id,
+                    channel_id=rolegroups_config.channel_id,
+                    emoji=reaction.emoji,
+                    member_id=user.id
+                )
+        await self.update_rolegroup_message(rolegroup=rolegroup)
+        await ctx.message.delete()
+
     async def quick_embed_query(self, ctx: Union[commands.Context, Tuple[discord.TextChannel, discord.Member]],
                                 question: str, reraise_timeout: bool = True) -> bool:
         """
