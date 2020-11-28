@@ -509,11 +509,12 @@ Click an existing roles reaction to edit the role
                     await self.db.update_rolegroup(rolegroup)
                 await self.update_rolegroup_message(rolegroup)
                 continue
-            embed_roles_texts.append(f"{role_emoji} | **{role.name}**")
+            embed_roles_texts.append(f"{role_emoji}  |  **{role.name}**")
             await rolegroup_msg.add_reaction(emoji=role_emoji)
 
-        embed_text = f"{rolegroup.name}\n" + '\n'.join(embed_roles_texts)
-        embed = discord.Embed(title=embed_text, color=discord.Color.dark_gold())
+        embed_text = '\n'.join(embed_roles_texts)
+        embed = discord.Embed(title=rolegroup.name, color=discord.Color.dark_gold())
+        embed.add_field(name="*", value=embed_text)
 
         await rolegroup_msg.edit(embed=embed)
 
@@ -567,6 +568,11 @@ Click an existing roles reaction to edit the role
                 if len(role_emoji) > 2:
                     await self.send_simple_embed(channel=channel, content=f"{role_emoji} is a custom emoji",
                                                  delete_after=5)
+                    return
+
+                if role_emoji in rolegroup.roles.keys():
+                    await self.send_simple_embed(channel=channel,
+                                                 content=f"{role_emoji} is already assigned to {await self.guild.get_role(rolegroup.get_role(role_emoji)).name}.\nIf you want to rename it, click the {role_emoji} reaction")
                     return
 
                 role = None
