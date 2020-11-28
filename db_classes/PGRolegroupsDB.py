@@ -62,63 +62,56 @@ class PGRolegroupsDB:
             for query in creation:
                 await con.execute(query)
 
-    async def add_rolegroup(self, rolegroup: Rolegroup):
+    async def add_rolegroup(self, rolegroup: Rolegroup) -> Rolegroup:
         """
-        Inserts a rolegroup_cmd row into the db
+        Inserts a rolegroup row into the db
         :param rolegroup: The new rolegroup_cmd object
         """
 
         insert = "INSERT into rolegroups(name, message_id) VALUES($1, $2) RETURNING id"
         async with self.pool.acquire() as con:
             res = await con.fetch(insert, rolegroup.name, rolegroup.message_id)
-            id = res[0]["id"]
+            rolegroup_id = res[0]["id"]
+            rolegroup.db_id = rolegroup_id
 
         insert = "INSERT into rolegroup_roles(rolegroup_id, role_id, emoji) VALUES($1, $2, $3)"
         async with self.pool.acquire() as con:
             for emoji, role_id in rolegroup.roles.items():
-                await con.execute(insert, id, role_id, emoji)
+                await con.execute(insert, rolegroup_id, role_id, emoji)
+
+        return rolegroup
 
 
-    async def get_rolegroup(self, name: str = None, message_id: int = None) -> Rolegroup:
+    async def get_rolegroup(self, rolegroup_id: int) -> Rolegroup:
         """
-        This method looks up a rolegroup_cmd either by name or discord message ID
-        :param name: The name of the rolegroup_cmd
-        :param message_id: The discord id of the rolegroup_cmd selection message
+        This method looks up a rolegroup either by name or discord message ID
+        :param id: The db id of the rolegroup selection message
         :return: The found and reconstructed Rolegroup object
         """
-        if name is None and message_id is None:
-            raise Exception("get_rolegroup called without arguments")
-
-        if name:
-            query = "SELECT id, name, message_id FROM rolegroups where name = $1"
-
-        else:
-            query = "SELECT id, name, message_id FROM rolegroups where message_id = $1"
+        query = "SELECT id, name, message_id FROM rolegroups where id = $1"
 
         async with self.pool.acquire() as con:
-            result: asyncpg.Record = await con.fetchrow(query, name or message_id)
+            result: asyncpg.Record = await con.fetchrow(query, rolegroup_id)
 
             if result:
-                r = Rolegroup(name=result["name"], message_id=result["message_id"])
-                rolegroup_id = result["id"]
+                r = Rolegroup(name=result["name"], message_id=result["message_id"], db_id=result["id"])
                 query = "SELECT role_id, emoji FROM rolegroup_roles where rolegroup_id = $1"
                 rows: asyncpg.Record = await con.fetch(query, rolegroup_id)
                 for row in rows:
                     r.add_role(role_id=row["role_id"], emoji=row["emoji"])
                 return r
 
-    async def delete_rolegroup(self, name: str):
+    async def delete_rolegroup(self, rolegroup_id: int):
         """
         Delete a rolegroup_cmd by discord role ID
-        :param name: The name of the rolegroup_cmd
+        :param id: The db id of the rolegroup
         """
-        query = "DELETE FROM rolegroups WHERE name = $1 RETURNING id"
+        query = "DELETE FROM rolegroups WHERE id = $1"
 
         async with self.pool.acquire() as con:
-            res = await con.fetch(query, name)
-            deleted_id = res[0]["id"]
+            await con.execute(query, rolegroup_id)
             query = "DELETE FROM rolegroup_roles WHERE rolegroup_id = $1"
-            await con.execute(query, deleted_id)
+            await con.execute(query, rolegroup_id)
 
     async def get_all_rolegroups(self) -> List[Rolegroup]:
         """
@@ -129,4 +122,4 @@ class PGRolegroupsDB:
             query = "SELECT message_id FROM rolegroups"
 
             rows = await con.fetch(query)
-            return [await self.get_rolegroup(message_id=row["message_id"]) for row in rows]
+            return [await self.get_rolegroup(rolegroup_id=row["id"]) for row in rows]
