@@ -50,8 +50,6 @@ class Rolegroups(commands.Cog):
             id_matches = list(filter(lambda r: str(r.db_id) == argument, rolegroups))
             name_matches = list(filter(lambda r: r.name.lower().startswith(argument.lower()), rolegroups))
 
-            logger.debug(f"Matches: {id_matches}, {name_matches}")
-
             if id_matches:
                 return (id_matches + name_matches)[0]
             elif name_matches:
