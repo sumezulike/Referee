@@ -173,7 +173,6 @@ class Ranks(commands.Cog):
                         logger.info(f"Removed {role.name} from {member.name}")
                         await self.notify_role_removed(member, role)
 
-            logger.info(payload)
             await self.bot.http.remove_reaction(message_id=payload.message_id, channel_id=payload.channel_id, emoji=payload.emoji, member_id=payload.user_id)
 
     @commands.command(aliases=["create_rank", "add_ranks", "create_ranks"])
