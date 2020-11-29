@@ -20,7 +20,7 @@ edit_control_emojis = [emoji.pencil, emoji.rotating_arrows, emoji.trashcan]
 
 
 class Rolegroups(commands.Cog):
-    class Role_T(commands.RoleConverter, discord.Role):
+    class Role_T(commands.RoleConverter):
         """
         This class is only to be used as a converter for command arguments
         """
