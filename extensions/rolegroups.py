@@ -464,6 +464,14 @@ Click an existing roles reaction to edit the role
         await ctx.message.delete()
 
 
+    @rolegroup_cmd.command(name="rename")
+    @is_aight()
+    async def rename_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, *, name: str):
+        rolegroup.name = name
+        await self.db.update_rolegroup(rolegroup)
+        await self.update_rolegroup_message(rolegroup)
+        await ctx.message.delete()
+
     @rolegroup_cmd.command(name="id", aliases=["ids"])
     @is_aight()
     async def rolegroup_ids(self, ctx: commands.Context):
