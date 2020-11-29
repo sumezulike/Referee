@@ -58,6 +58,11 @@ class Rolegroups(commands.Cog):
                 if len(name_matches) == 1:
                     return name_matches[0]
                 else:
+                    text = f"I am not sure which rolegroup you mean. \nYou can also use the unique ID:\n" + "\n".join(
+                        f"**{r.db_id}** for {r.name}" for r in name_matches
+                    )
+                    embed = discord.Embed(title=text)
+                    await ctx.send(embed=embed, delete_after=30)
                     raise commands.BadArgument(
                         f"Too many matches found for {argument}: {', '.join(r.name for r in name_matches)}")
             else:
@@ -363,7 +368,8 @@ Click an existing roles reaction to edit the role
 
     @rolegroup_cmd.command(name="mv", aliases=["move"])
     @is_aight()
-    async def move_role_between_groups(self, ctx: commands.Context, from_group: Rolegroup_T, role: Union[Role_T, str], to_group: Rolegroup_T):
+    async def move_role_between_groups(self, ctx: commands.Context, from_group: Rolegroup_T, role: Union[Role_T, str],
+                                       to_group: Rolegroup_T):
         logger.debug(f"Moving from {from_group} to {to_group}")
         if type(role) == discord.Role:
             temp = {"emoji": from_group.get_emoji(role.id), "role_id": role.id}
@@ -385,14 +391,18 @@ Click an existing roles reaction to edit the role
             logger.error(f"Unable to move role: {temp}")
         await ctx.message.delete()
 
+
     @rolegroup_cmd.command(name="add")
     @is_aight()
     async def add_role_to_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, *, role: Union[Role_T, str]):
         def message_check(_message):
             return _message.author.id == ctx.author.id and _message.content
 
+
         if self.is_full(rolegroup):
-            await self.send_simple_embed(channel=ctx, content=f"The maximum number of roles for {rolegroup.name} has been reached.\nRemove some roles or create a new group", delete_after=30)
+            await self.send_simple_embed(channel=ctx,
+                                         content=f"The maximum number of roles for {rolegroup.name} has been reached.\nRemove some roles or create a new group",
+                                         delete_after=30)
             await ctx.message.delete()
             return
 
@@ -464,6 +474,7 @@ Click an existing roles reaction to edit the role
         await self.send_simple_embed(channel=ctx, content=text, delete_after=30)
         await ctx.message.delete()
 
+
     @rolegroup_cmd.command(name="clean")
     @is_aight()
     async def clean_rolegroup_message(self, ctx: commands.Context, rolegroup: Rolegroup_T):
@@ -478,6 +489,7 @@ Click an existing roles reaction to edit the role
                 )
         await self.update_rolegroup_message(rolegroup=rolegroup)
         await ctx.message.delete()
+
 
     async def quick_embed_query(self, ctx: Union[commands.Context, Tuple[discord.TextChannel, discord.Member]],
                                 question: str, reraise_timeout: bool = True) -> bool:
@@ -580,7 +592,9 @@ Click an existing roles reaction to edit the role
 
         channel: discord.TextChannel = self.guild.get_channel(rolegroups_config.channel_id)
         if self.is_full(rolegroup):
-            await self.send_simple_embed(channel=channel, content=f"The maximum number of roles for {rolegroup.name} has been reached.\nRemove some roles or create a new group", delete_after=30)
+            await self.send_simple_embed(channel=channel,
+                                         content=f"The maximum number of roles for {rolegroup.name} has been reached.\nRemove some roles or create a new group",
+                                         delete_after=30)
             return
 
         prompt = await self.send_simple_embed(channel=channel,
@@ -825,16 +839,19 @@ Click an existing roles reaction to edit the role
         logger.debug(f"Clearing temp rolegroups")
         self.temp_rolegroups = {}
 
+
     @staticmethod
     def is_full(rolegroup: Rolegroup):
         return len(rolegroup.roles) >= MAX_REACTIONS - len(control_emojis)
+
 
     @staticmethod
     async def send_simple_embed(channel: Union[discord.TextChannel, commands.Context, discord.User], content: str,
                                 delete_after=None,
                                 mentions: Union[List[discord.Member], discord.Member] = None) -> discord.Message:
 
-        embed = discord.Embed(title=content if len(content) < 256 else emoji.white_check_mark, color=discord.Color.dark_gold())
+        embed = discord.Embed(title=content if len(content) < 256 else emoji.white_check_mark,
+                              color=discord.Color.dark_gold())
         if not len(content) < 256:
             embed.add_field(name="*", value=content)
         if mentions:
