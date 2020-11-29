@@ -1,6 +1,5 @@
 from typing import Dict
 
-
 class Rolegroup:
 
     def __init__(self, name: str, message_id: int = None, db_id: int = None):
