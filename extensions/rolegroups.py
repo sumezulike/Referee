@@ -470,7 +470,7 @@ Click an existing roles reaction to edit the role
     @is_aight()
     async def rolegroup_ids(self, ctx: commands.Context):
         rolegroups = await self.db.get_all_rolegroups()
-        text = "\n".join(f"{r.db_id}: {r.name} ({len(r.roles)} roles)" for r in rolegroups)
+        text = "\n".join(f"{r.db_id}: {r.name} ({len(r.roles)} roles)" for r in sorted(rolegroups, key=lambda x: x.db_id))
         await self.send_simple_embed(channel=ctx, content=text, delete_after=30)
         await ctx.message.delete()
 
