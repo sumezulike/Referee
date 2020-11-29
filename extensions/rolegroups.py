@@ -379,8 +379,8 @@ Click an existing roles reaction to edit the role
             from_group.del_role(role_id=temp.get("role_id"))
             await self.db.update_rolegroup(from_group)
 
-            await self.update_rolegroup_message(to_group)
             await self.update_rolegroup_message(from_group)
+            await self.update_rolegroup_message(to_group)
         else:
             logger.error(f"Unable to move role: {temp}")
         await ctx.message.delete()
