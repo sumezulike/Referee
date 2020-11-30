@@ -497,6 +497,16 @@ Click an existing roles reaction to edit the role
         await ctx.message.delete()
 
 
+    @rolegroup_cmd.command(name="count")
+    @is_aight()
+    async def count_rolegroup_members(self, ctx: commands.Context, rolegroup: Rolegroup_T):
+        embed = discord.Embed(title=f"{rolegroup.name}")
+        roles = sorted([self.guild.get_role(r_id) for r_id in rolegroup.roles.values()], key=lambda x: len(x.members), reverse=True)
+        text = "\n".join(f"{rolegroup.get_emoji(r.id)} {r.name}: {len(r.members)}" for r in roles)
+        embed.add_field(name="*", value=text)
+        await ctx.send(embed=embed)
+        await ctx.message.delete()
+
     async def quick_embed_query(self, ctx: Union[commands.Context, Tuple[discord.TextChannel, discord.Member]],
                                 question: str, reraise_timeout: bool = True) -> bool:
         """
