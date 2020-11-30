@@ -275,7 +275,7 @@ class Misc(commands.Cog):
         embed = discord.Embed(
             title=f"**{role.name}** ({len(role.members)} member{'s' if len(role.members) != 1 else ''})",
             color=role.color)
-        member_text = "\n".join(sorted(m.display_name for m in role.members))
+        member_text = "\n".join(sorted((m.display_name for m in role.members), key=lambda x: x.lower()))
         embed.add_field(name="Members", value=member_text)
         return embed
 
