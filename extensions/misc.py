@@ -12,9 +12,14 @@ import discord
 from discord.ext import commands
 
 import logging
+
+from discord.ext.commands import BadArgument
+
 from Referee import is_aight
 from config.config import Bot as config
 from utils import emoji
+
+from extensions.rolegroups import Role_T
 
 logger = logging.getLogger("Referee")
 
@@ -33,6 +38,7 @@ class Misc(commands.Cog):
         """
         self.guild: discord.Guild = self.bot.guilds[0]
 
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         content = message.content.lower()
@@ -43,8 +49,11 @@ class Misc(commands.Cog):
             gif_message = await message.channel.send(url)
             await gif_message.add_reaction(emoji.trashcan)
 
+
             def check(reaction: discord.Reaction, user):
-                return user == message.author and str(reaction.emoji) == emoji.trashcan and reaction.message.id == gif_message.id
+                return user == message.author and str(
+                    reaction.emoji) == emoji.trashcan and reaction.message.id == gif_message.id
+
 
             try:
                 reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
@@ -52,6 +61,7 @@ class Misc(commands.Cog):
                 await gif_message.remove_reaction(emoji.trashcan, self.bot.user)
             else:
                 await gif_message.delete()
+
 
     async def fetch_gif(self, query):
         query = query.replace("_", "-")
@@ -76,6 +86,7 @@ class Misc(commands.Cog):
                     return url
                 else:
                     logger.debug(f"No match")
+
 
     @commands.command(name="explain")
     async def lmgtfy(self, ctx: commands.Context, *, query: str):
@@ -123,6 +134,7 @@ class Misc(commands.Cog):
             await ctx.send(
                 embed=discord.Embed(description=f"[{query}]({resp['link']})", color=discord.Colour.dark_gold()))
 
+
     @commands.command()
     @is_aight()
     async def shorten(self, ctx: commands.Context, url: str):
@@ -143,7 +155,8 @@ class Misc(commands.Cog):
                     embed=discord.Embed(description=f"{resp['link']}", color=discord.Colour.dark_gold()))
             except KeyError:
                 await ctx.send(
-                    embed=discord.Embed(description=f"Bit.ly error: {resp['description']}", color=discord.Colour.dark_gold()), delete_after=15)
+                    embed=discord.Embed(description=f"Bit.ly error: {resp['description']}",
+                                        color=discord.Colour.dark_gold()), delete_after=15)
 
 
     @commands.command(name="b64")
@@ -152,6 +165,7 @@ class Misc(commands.Cog):
         Decode a base64 encoded string
         :param query: A base64 encoded string. Omit to have Referee find one in the previous messages
         """
+
 
         async def get_b64_strings(text: str) -> typing.Dict[str, str]:
             enc = filter(lambda x: len(x) % 4 == 0, re.findall(r"[a-zA-Z0-9+/]+={0,2}", text))
@@ -204,14 +218,15 @@ class Misc(commands.Cog):
             try:
                 await channel.edit(reason="1. April", name=channel.name[::-1])
             except Exception as e:
-                logger.error(str(e)+channel.name)
+                logger.error(str(e) + channel.name)
 
 
     @commands.command(hidden=True)
     @is_aight()
     async def april_reverse(self, ctx: commands.Context):
         await asyncio.sleep(1)
-        await ctx.send(f"{ctx.message.created_at} | extensions/misc.py:115 | > TUlIIFRPRyBPQU1M | An error occured while trying to rename {ctx.author.id}")
+        await ctx.send(
+            f"{ctx.message.created_at} | extensions/misc.py:115 | > TUlIIFRPRyBPQU1M | An error occured while trying to rename {ctx.author.id}")
 
 
     @commands.command(hidden=True)
@@ -221,7 +236,49 @@ class Misc(commands.Cog):
             try:
                 await member.edit(reason="1. April", nick=member.display_name[::-1])
             except Exception as e:
-                logger.error(str(e)+member.name)
+                logger.error(str(e) + member.name)
+
+
+    @commands.command(name="info", aliases=["whois", "whoisin", "whatis"])
+    async def show_info(self, ctx: commands.Context, *, subject: typing.Union[Role_T, discord.Member]):
+        """
+        :param subject: Role or member so far
+        :return:
+        """
+        if type(subject) == discord.Role:
+            embed = await self.get_role_info_embed(subject)
+        elif type(subject) == discord.Member:
+            embed = await self.get_member_info_embed(subject)
+        else:
+            raise BadArgument("Unknown subject type")
+        await ctx.send(embed=embed)
+        await ctx.message.delete()
+
+
+    async def get_member_info_embed(self, member: discord.Member) -> discord.Embed:
+        embed = discord.Embed(title=f"**{member.name}#{member.discriminator}** {'('+member.nick+')' if member.nick else ''}", color=member.color)
+        id_text = f"- {member.top_role.name} "
+        if member.bot:
+            id_text += "(Bot) "
+        if member.system:
+            id_text += "(System) "
+        id_text += f"-"
+        embed.add_field(name=member.id, value=id_text, inline=False)
+        embed.add_field(name="Joined discord:", value=member.created_at.strftime("%d. %b %Y %H:%M"), inline=False)
+        embed.add_field(name="Joined this server:", value=member.joined_at.strftime("%d. %b %Y %H:%M"), inline=False)
+        embed.add_field(name="Roles:", value=', '.join(r.name for r in reversed(member.roles[1:])), inline=False)
+        embed.set_image(url=member.avatar_url)
+        return embed
+
+
+    async def get_role_info_embed(self, role: discord.Role) -> discord.Embed:
+        embed = discord.Embed(
+            title=f"**{role.name}** ({len(role.members)} member{'s' if len(role.members) != 1 else ''})",
+            color=role.color)
+        member_text = "\n".join(sorted(m.display_name for m in role.members))
+        embed.add_field(name="Members", value=member_text)
+        return embed
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(Misc(bot))

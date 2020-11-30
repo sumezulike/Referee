@@ -19,52 +19,55 @@ control_emojis = [emoji.plus, emoji.white_check_mark, emoji.x, emoji.pencil]
 edit_control_emojis = [emoji.pencil, emoji.rotating_arrows, emoji.trashcan]
 
 
-class Rolegroups(commands.Cog):
-    class Role_T(commands.RoleConverter):
-        """
-        This class is only to be used as a converter for command arguments
-        """
+class Role_T(commands.RoleConverter):
+    """
+    This class is only to be used as a converter for command arguments
+    """
 
 
-        async def convert(self, ctx: commands.Context, argument) -> discord.Role:
-            try:
-                role = await super().convert(ctx, argument)
-                return role
-            except commands.BadArgument:
-                existing_roles = list(filter(lambda r: r.name.lower() == argument.lower(), ctx.guild.roles))
-                if existing_roles:
-                    return existing_roles[0]
-                else:
-                    raise commands.BadArgument
-
-    class Rolegroup_T(commands.RoleConverter):
-        """
-        This class is only to be used as a converter for command arguments
-        """
-
-
-        async def convert(self, ctx: commands.Context, argument: str) -> Rolegroup:
-            db: PGRolegroupsDB = ctx.bot.cogs["Rolegroups"].db
-            rolegroups = await db.get_all_rolegroups()
-
-            id_matches = list(filter(lambda r: str(r.db_id) == argument, rolegroups))
-            name_matches = list(filter(lambda r: r.name.lower().startswith(argument.lower()), rolegroups))
-
-            if id_matches:
-                return (id_matches + name_matches)[0]
-            elif name_matches:
-                if len(name_matches) == 1:
-                    return name_matches[0]
-                else:
-                    text = f"I am not sure which rolegroup you mean. \nYou can also use the unique ID:\n" + "\n".join(
-                        f"**{r.db_id}** for {r.name}" for r in name_matches
-                    )
-                    embed = discord.Embed(title=text)
-                    await ctx.send(embed=embed, delete_after=30)
-                    raise commands.BadArgument(
-                        f"Too many matches found for {argument}: {', '.join(r.name for r in name_matches)}")
+    async def convert(self, ctx: commands.Context, argument) -> discord.Role:
+        try:
+            role = await super().convert(ctx, argument)
+            return role
+        except commands.BadArgument:
+            existing_roles = list(filter(lambda r: r.name.lower() == argument.lower(), ctx.guild.roles))
+            if existing_roles:
+                return existing_roles[0]
             else:
-                raise commands.BadArgument(f"No Rolegroups found with {argument}")
+                raise commands.BadArgument
+
+
+class Rolegroup_T(commands.RoleConverter):
+    """
+    This class is only to be used as a converter for command arguments
+    """
+
+
+    async def convert(self, ctx: commands.Context, argument: str) -> Rolegroup:
+        db: PGRolegroupsDB = ctx.bot.cogs["Rolegroups"].db
+        rolegroups = await db.get_all_rolegroups()
+
+        id_matches = list(filter(lambda r: str(r.db_id) == argument, rolegroups))
+        name_matches = list(filter(lambda r: r.name.lower().startswith(argument.lower()), rolegroups))
+
+        if id_matches:
+            return (id_matches + name_matches)[0]
+        elif name_matches:
+            if len(name_matches) == 1:
+                return name_matches[0]
+            else:
+                text = f"I am not sure which rolegroup you mean. \nYou can also use the unique ID:\n" + "\n".join(
+                    f"**{r.db_id}** for {r.name}" for r in name_matches
+                )
+                embed = discord.Embed(title=text)
+                await ctx.send(embed=embed, delete_after=30)
+                raise commands.BadArgument(
+                    f"Too many matches found for {argument}: {', '.join(r.name for r in name_matches)}")
+        else:
+            raise commands.BadArgument(f"No Rolegroups found with {argument}")
+
+
+class Rolegroups(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -472,11 +475,13 @@ Click an existing roles reaction to edit the role
         await self.update_rolegroup_message(rolegroup)
         await ctx.message.delete()
 
+
     @rolegroup_cmd.command(name="id", aliases=["ids"])
     @is_aight()
     async def rolegroup_ids(self, ctx: commands.Context):
         rolegroups = await self.db.get_all_rolegroups()
-        text = "\n".join(f"{r.db_id}: {r.name} ({len(r.roles)} roles)" for r in sorted(rolegroups, key=lambda x: x.db_id))
+        text = "\n".join(
+            f"{r.db_id}: {r.name} ({len(r.roles)} roles)" for r in sorted(rolegroups, key=lambda x: x.db_id))
         await self.send_simple_embed(channel=ctx, content=text, delete_after=30)
         await ctx.message.delete()
 
@@ -501,11 +506,13 @@ Click an existing roles reaction to edit the role
     @is_aight()
     async def count_rolegroup_members(self, ctx: commands.Context, rolegroup: Rolegroup_T):
         embed = discord.Embed(title=f"{rolegroup.name}")
-        roles = sorted([self.guild.get_role(r_id) for r_id in rolegroup.roles.values()], key=lambda x: len(x.members), reverse=True)
+        roles = sorted([self.guild.get_role(r_id) for r_id in rolegroup.roles.values()], key=lambda x: len(x.members),
+                       reverse=True)
         text = "\n".join(f"{rolegroup.get_emoji(r.id)} {r.name}: {len(r.members)}" for r in roles)
         embed.add_field(name="*", value=text)
         await ctx.send(embed=embed)
         await ctx.message.delete()
+
 
     async def quick_embed_query(self, ctx: Union[commands.Context, Tuple[discord.TextChannel, discord.Member]],
                                 question: str, reraise_timeout: bool = True) -> bool:
