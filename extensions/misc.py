@@ -44,24 +44,24 @@ class Misc(commands.Cog):
         content = message.content.lower()
         if len(content.split()) == 1 and content.endswith(".gif") and not content.startswith("http"):
             await self.provide_gif(message)
+        if not any(message.content.startswith(p) for p in self.bot.command_prefix):
+            b64_finds = await self.get_b64_strings(message.content)
+            if b64_finds and min(map(len, b64_finds.keys())) > 6:
+                res = "\n".join(f"'{c}' => **{d}**" for c, d in b64_finds.items())
+                embed = discord.Embed(title="b64 decoding service", description=res)
+                msg = await message.channel.send(embed=embed)
+                await msg.add_reaction(emoji.trashcan)
 
-        b64_finds = await self.get_b64_strings(message.content)
-        if b64_finds and min(map(len, b64_finds.keys())) > 6:
-            res = "\n".join(f"'{c}' => **{d}**" for c, d in b64_finds.items())
-            embed = discord.Embed(title="b64 decoding service", description=res)
-            msg = await message.channel.send(embed=embed)
-            await msg.add_reaction(emoji.trashcan)
+                def check(reaction: discord.Reaction, user):
+                    return user == message.author and str(
+                        reaction.emoji) == emoji.trashcan and reaction.message.id == msg.id
 
-            def check(reaction: discord.Reaction, user):
-                return user == message.author and str(
-                    reaction.emoji) == emoji.trashcan and reaction.message.id == msg.id
-
-            try:
-                reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
-            except asyncio.TimeoutError:
-                await msg.remove_reaction(emoji.trashcan, self.bot.user)
-            else:
-                await msg.delete()
+                try:
+                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+                except asyncio.TimeoutError:
+                    await msg.remove_reaction(emoji.trashcan, self.bot.user)
+                else:
+                    await msg.delete()
 
 
     async def provide_gif(self, message: discord.Message):
