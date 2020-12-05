@@ -62,6 +62,14 @@ class Misc(commands.Cog):
                     await msg.remove_reaction(emoji.trashcan, self.bot.user)
                 else:
                     await msg.delete()
+        calc = message.content
+        if len(calc) > 3 and set(calc).issubset(set("0123456789+-*/().")) and "**" not in calc:
+            try:
+                result = eval(calc)
+            except Exception as e:
+                result = e.__class__.__name__
+            embed = discord.Embed(title=result)
+            await message.channel.send(embed=embed, delete_after=30)
 
 
     async def provide_gif(self, message: discord.Message):
