@@ -190,7 +190,8 @@ class Misc(commands.Cog):
                 if all(x in string.printable for x in set(dec)):
                     solved[code] = dec
             except Exception as ex:
-                logger.error(ex)
+                # logger.error(ex)  # this is noisy and not neccesary
+                pass
         return solved
 
     @commands.command(name="b64")
