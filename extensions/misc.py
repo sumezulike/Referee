@@ -48,7 +48,7 @@ class Misc(commands.Cog):
             b64_finds = await self.get_b64_strings(message.content)
             if b64_finds and min(map(len, b64_finds.keys())) > 6:
                 res = "\n".join(f"'{c}' => **{d}**" for c, d in b64_finds.items())
-                embed = discord.Embed(title="b64 decoding service", description=res)
+                embed = discord.Embed(title="Decoded b64:", description=res)
                 msg = await message.channel.send(embed=embed)
                 await msg.add_reaction(emoji.trashcan)
 
@@ -63,12 +63,24 @@ class Misc(commands.Cog):
                 else:
                     await msg.delete()
         calc = message.content
-        if len(calc) > 3 and set(calc).issubset(set("0123456789+-*/().")) and "**" not in calc:
+        if len(calc) >= 3 and set(calc).issubset(set("0123456789+-*/().")) and "**" not in calc and set(calc)&set("+-*/"):
+            logger.debug(f"Calculating {calc} for {message.author}")
             try:
                 result = eval(calc)
+            except SyntaxError:
+                await message.add_reaction(emoji.x)
+                return
             except Exception as e:
                 result = e.__class__.__name__
-            embed = discord.Embed(title=result)
+            logger.debug(f"Result: {result}")
+            if not type(result) == str:
+                answer = f"{calc} = **{result}**"
+                if len(answer) >= 2000:
+                    answer = str(result)
+            else:
+                answer = result
+
+            embed = discord.Embed(title="Result:", description=answer)
             await message.channel.send(embed=embed, delete_after=30)
 
 
