@@ -227,7 +227,7 @@ class Misc(commands.Cog):
             except Exception as e:
                 logger.error(e)
                 embed = discord.Embed(description=f"{query} is not valid base64", color=discord.Colour.dark_gold())
-                embed.add_field(name="In case you wanted to encode:", value=b64encode(query).decode())
+                embed.add_field(name="In case you wanted to encode:", value=b64encode(query.encode()).decode())
 
             await ctx.send(embed=embed)
 
