@@ -125,13 +125,7 @@ class Reputation(commands.Cog):
                                 if member_rep == 1:
                                     await self.notify_user_of_thank(member, message.author)
 
-                                thanked_role = self.guild.get_role(reputation_config.thanked_role)
-                                if thanked_role not in member.roles:
-                                    if member_rep >= reputation_config.thanked_role_threshold:
-                                        await member.add_roles(thanked_role,
-                                                               reason=f"Got enough thanks ({member_rep}/{reputation_config.thanked_role_threshold})")
-                                        logger.info(
-                                            f"Added {thanked_role.name} to {member.name} with {member_rep} points")
+                                await self.check_thanked_roles(member)
 
 
                         try:
@@ -221,10 +215,11 @@ class Reputation(commands.Cog):
             return False
 
 
-    async def check_thanked_roles(self):
-        logger.debug("Checking all members for thank autorole")
+    async def check_thanked_roles(self, member=None):
+        if not member:
+            logger.debug("Checking all members for thank autorole")
         thanked_role = self.guild.get_role(reputation_config.thanked_role)
-        for member in self.guild.members:
+        for member in self.guild.members if not member else [member]:
             if thanked_role not in member.roles:
                 member_rep = await self.db.get_user_rep(member.id)
                 if member_rep >= reputation_config.thanked_role_threshold:

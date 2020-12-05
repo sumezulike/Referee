@@ -203,7 +203,7 @@ class Misc(commands.Cog):
 
         if not query:
             found_hits = {}
-            async for m in ctx.channel.history(limit=20, reverse=True):
+            async for m in ctx.channel.history(limit=20, oldest_first=False):
                 results = await self.get_b64_strings(m.content)
                 for c, d in results.items():
                     sub = await self.get_b64_strings(d)
@@ -227,7 +227,7 @@ class Misc(commands.Cog):
                 embed = discord.Embed(description=f"{answer}", color=discord.Colour.dark_gold())
             except Exception as e:
                 logger.error(e)
-                embed = discord.Embed(description=f"{query} is not valid base64", color=discord.Colour.dark_gold())
+                embed = discord.Embed(description=f"That is not valid base64", color=discord.Colour.dark_gold())
                 embed.add_field(name="In case you wanted to encode:", value=b64encode(query.encode()).decode())
 
             await ctx.send(embed=embed)
