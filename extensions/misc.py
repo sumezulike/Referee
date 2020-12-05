@@ -67,18 +67,16 @@ class Misc(commands.Cog):
             logger.debug(f"Calculating {calc} for {message.author}")
             try:
                 result = eval(calc)
+                answer = f"{calc} = **{result}**"
+                if len(answer) >= 2000:
+                    answer = str(result)
             except SyntaxError:
                 await message.add_reaction(emoji.x)
                 return
             except Exception as e:
                 result = e.__class__.__name__
-            logger.debug(f"Result: {result}")
-            if not type(result) == str:
-                answer = f"{calc} = **{result}**"
-                if len(answer) >= 2000:
-                    answer = str(result)
-            else:
                 answer = result
+            logger.debug(f"Result: {result}")
 
             embed = discord.Embed(title="Result:", description=answer)
             await message.channel.send(embed=embed, delete_after=30)
