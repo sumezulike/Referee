@@ -106,9 +106,11 @@ class Reputation(commands.Cog):
                         thumbs_up_reaction = discord.utils.find(lambda x: x.emoji == emoji.thumbs_up,
                                                                 message.reactions)
 
+
                         def check(_reaction: discord.Reaction, _user):
                             return _reaction.message.id == message.id and _user == message.author and str(
                                 _reaction.emoji) in [emoji.trashcan, emoji.thumbs_up]
+
 
                         async def save_thanks(members):
                             for member in members:
@@ -126,7 +128,11 @@ class Reputation(commands.Cog):
                                 thanked_role = self.guild.get_role(reputation_config.thanked_role)
                                 if thanked_role not in member.roles:
                                     if member_rep >= reputation_config.thanked_role_threshold:
-                                        await member.add_roles(thanked_role, reason=f"Got enough thanks ({member_rep}/{reputation_config.thanked_role_threshold})")
+                                        await member.add_roles(thanked_role,
+                                                               reason=f"Got enough thanks ({member_rep}/{reputation_config.thanked_role_threshold})")
+                                        logger.info(
+                                            f"Added {thanked_role.name} to {member.name} with {member_rep} points")
+
 
                         try:
                             reaction, user = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
@@ -213,6 +219,7 @@ class Reputation(commands.Cog):
                 return False
         else:
             return False
+
 
     async def check_thanked_roles(self):
         logger.debug("Checking all members for thank autorole")
