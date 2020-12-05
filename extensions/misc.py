@@ -1,6 +1,6 @@
 import asyncio
 import typing
-from base64 import b64decode
+from base64 import b64decode, b64encode
 import re
 import string
 from builtins import filter
@@ -196,7 +196,7 @@ class Misc(commands.Cog):
     @commands.command(name="b64")
     async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
         """
-        Decode a base64 encoded string
+        Decode a base64 encoded string, will encode if decoding fails
         :param query: A base64 encoded string. Omit to have Referee find one in the previous messages
         """
 
@@ -227,6 +227,7 @@ class Misc(commands.Cog):
             except Exception as e:
                 logger.error(e)
                 embed = discord.Embed(description=f"{query} is not valid base64", color=discord.Colour.dark_gold())
+                embed.add_field(name="In case you wanted to encode:", value=b64encode(query).decode())
 
             await ctx.send(embed=embed)
 
