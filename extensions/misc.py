@@ -42,25 +42,45 @@ class Misc(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         content = message.content.lower()
-        if len(content.split()) == 1 and content.endswith(".gif"):
-            logger.debug(f"Fetching gif: {content}")
-            query = content.split(".gif")[0]
-            url = await self.fetch_gif(query)
-            gif_message = await message.channel.send(url)
-            await gif_message.add_reaction(emoji.trashcan)
-
+        if len(content.split()) == 1 and content.endswith(".gif") and not content.startswith("http"):
+            await self.provide_gif(message)
+        if solved:=await self.get_b64_strings(message.content):
+            res = "\n".join(f"'{c}' => **{d}**" for c, d in solved.items())
+            embed = discord.Embed(title="b64 decoding service", description=res)
+            msg = await message.channel.send(embed=embed)
+            await msg.add_reaction(emoji.trashcan)
 
             def check(reaction: discord.Reaction, user):
                 return user == message.author and str(
-                    reaction.emoji) == emoji.trashcan and reaction.message.id == gif_message.id
-
+                    reaction.emoji) == emoji.trashcan and reaction.message.id == msg.id
 
             try:
                 reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
             except asyncio.TimeoutError:
-                await gif_message.remove_reaction(emoji.trashcan, self.bot.user)
+                await msg.remove_reaction(emoji.trashcan, self.bot.user)
             else:
-                await gif_message.delete()
+                await msg.delete()
+
+
+    async def provide_gif(self, message: discord.Message):
+        content = message.content.lower()
+        logger.debug(f"Fetching gif: {content}")
+        query = content.split(".gif")[0]
+        url = await self.fetch_gif(query)
+        gif_message = await message.channel.send(url)
+        await gif_message.add_reaction(emoji.trashcan)
+
+
+        def check(reaction: discord.Reaction, user):
+            return user == message.author and str(
+                reaction.emoji) == emoji.trashcan and reaction.message.id == gif_message.id
+
+        try:
+            reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await gif_message.remove_reaction(emoji.trashcan, self.bot.user)
+        else:
+            await gif_message.delete()
 
 
     async def fetch_gif(self, query):
@@ -159,6 +179,18 @@ class Misc(commands.Cog):
                                         color=discord.Colour.dark_gold()), delete_after=15)
 
 
+    async def get_b64_strings(self, text: str) -> typing.Dict[str, str]:
+        enc = filter(lambda x: len(x) % 4 == 0, re.findall(r"[a-zA-Z0-9+/]+={0,2}", text))
+        solved = {}
+        for code in enc:
+            try:
+                dec = b64decode(code).decode()
+                if all(x in string.printable for x in set(dec)):
+                    solved[code] = dec
+            except Exception as ex:
+                logger.error(ex)
+        return solved
+
     @commands.command(name="b64")
     async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
         """
@@ -166,29 +198,15 @@ class Misc(commands.Cog):
         :param query: A base64 encoded string. Omit to have Referee find one in the previous messages
         """
 
-
-        async def get_b64_strings(text: str) -> typing.Dict[str, str]:
-            enc = filter(lambda x: len(x) % 4 == 0, re.findall(r"[a-zA-Z0-9+/]+={0,2}", text))
-            solved = {}
-            for code in enc:
-                try:
-                    dec = b64decode(code).decode()
-                    if all(x in string.printable for x in set(dec)):
-                        solved[code] = dec
-                except Exception as ex:
-                    logger.error(ex)
-            return solved
-
-
         if not query:
             found_hits = {}
             async for m in ctx.channel.history(limit=20, reverse=True):
-                results = await get_b64_strings(m.content)
+                results = await self.get_b64_strings(m.content)
                 for c, d in results.items():
-                    sub = await get_b64_strings(d)
+                    sub = await self.get_b64_strings(d)
                     levels = 1
                     while sub:
-                        sub = await get_b64_strings(d)
+                        sub = await self.get_b64_strings(d)
                         if sub:
                             d = sub.get(d)
                             levels += 1
