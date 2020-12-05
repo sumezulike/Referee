@@ -44,8 +44,10 @@ class Misc(commands.Cog):
         content = message.content.lower()
         if len(content.split()) == 1 and content.endswith(".gif") and not content.startswith("http"):
             await self.provide_gif(message)
-        if solved:=await self.get_b64_strings(message.content):
-            res = "\n".join(f"'{c}' => **{d}**" for c, d in solved.items())
+
+        b64_finds = await self.get_b64_strings(message.content)
+        if b64_finds and min(map(len, b64_finds.keys())) > 6:
+            res = "\n".join(f"'{c}' => **{d}**" for c, d in b64_finds.items())
             embed = discord.Embed(title="b64 decoding service", description=res)
             msg = await message.channel.send(embed=embed)
             await msg.add_reaction(emoji.trashcan)
