@@ -259,34 +259,6 @@ class Misc(commands.Cog):
             await ctx.send(embed=embed)
 
 
-    @commands.command(hidden=True)
-    @is_aight()
-    async def april_reverse_but_we_fooled_latt(self, ctx: commands.Context):
-        for channel in self.guild.channels:
-            try:
-                await channel.edit(reason="1. April", name=channel.name[::-1])
-            except Exception as e:
-                logger.error(str(e) + channel.name)
-
-
-    @commands.command(hidden=True)
-    @is_aight()
-    async def april_reverse(self, ctx: commands.Context):
-        await asyncio.sleep(1)
-        await ctx.send(
-            f"{ctx.message.created_at} | extensions/misc.py:115 | > TUlIIFRPRyBPQU1M | An error occured while trying to rename {ctx.author.id}")
-
-
-    @commands.command(hidden=True)
-    @is_aight()
-    async def april_reverse_names(self, ctx: commands.Context):
-        for member in sorted(self.guild.members, key=lambda m: m.top_role, reverse=True):
-            try:
-                await member.edit(reason="1. April", nick=member.display_name[::-1])
-            except Exception as e:
-                logger.error(str(e) + member.name)
-
-
     @commands.command(name="info", aliases=["whois", "whoisin", "whatis"])
     async def show_info(self, ctx: commands.Context, *, subject: typing.Union[Role_T, discord.Member]):
         """

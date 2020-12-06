@@ -28,7 +28,6 @@ class Reputation(commands.Cog):
         self.bot = bot
         self.db = PGReputationDB()
         self.guild = None
-        self.muted = {}
 
 
     @commands.Cog.listener()
@@ -50,14 +49,6 @@ class Reputation(commands.Cog):
                 mentioned_members = message.mentions
                 logger.info(
                     f"Recieved thanks from {message.author} to {', '.join(str(m) for m in mentioned_members)}: {message.content}")
-
-                if message.author.id in self.muted:
-                    if self.muted.get(message.author.id) > datetime.now():
-                        logger.debug(f"Thanking canceled: User is muted")
-                        await message.add_reaction(emoji.x)
-                        return
-                    else:
-                        self.muted.pop(message.author.id)
 
                 if await self.is_on_cooldown(source_user_id=message.author.id):
                     if mentioned_members:
@@ -263,46 +254,6 @@ class Reputation(commands.Cog):
                         value=f"{rep} " + (f"(Rank #{rank})" if rank else ""),
                         inline=True)
         await ctx.send(embed=embed)
-
-
-    @commands.command(name="thankmute", aliases=["tmute", "nothank", "nothanks"], hidden=True)
-    @is_aight()
-    async def thankmute(self, ctx: commands.Context, member: discord.Member, duration: str = None):
-        """
-        This is not neccesary
-        :param member:
-        :param duration:
-        """
-        if not duration:
-            await ctx.send(f"Usage: {ctx.prefix}thankmute @Member 10m\nPossible time units: s, m, h, d")
-            return
-
-        factors = {
-            "s": 1,
-            "m": 60,
-            "h": 60 * 60,
-            "d": 60 * 60 * 24
-        }
-        unit_names = {
-            "s": "second",
-            "m": "minute",
-            "h": "hour",
-            "d": "day"
-        }
-        unit = duration[-1].lower()
-        factor = factors.get(unit, 0)
-
-        number = duration[:-1] if factor else duration
-        factor = factor or 60
-
-        try:
-            seconds = int(number) * factor
-        except ValueError:
-            await ctx.send(f"Usage: {ctx.prefix}thankmute @Member 10m\nPossible time units: s, m, h, d")
-            return
-        end_time = datetime.now() + timedelta(seconds=seconds)
-        self.muted[member.id] = end_time
-        await ctx.message.add_reaction(emoji.white_check_mark)
 
 
     @commands.group(name="scoreboard")
