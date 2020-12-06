@@ -6,7 +6,7 @@ from discord.ext import commands
 from typing import List, Union, Dict
 
 from Referee import can_ban, can_kick
-from config.config import Ranks as ranks_config
+from config.config import Ranks as ranks_config, Timeouts
 from db_classes.PGRanksDB import PGRanksDB
 from models.ranks_models import Rank
 from utils import emoji
@@ -283,7 +283,7 @@ class Ranks(commands.Cog):
         await msg.add_reaction(emoji.x)
 
         try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.long, check=check)
         except asyncio.TimeoutError as e:
             await msg.delete()
             if reraise_timeout:

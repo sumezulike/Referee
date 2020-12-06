@@ -13,7 +13,7 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument
 
 from Referee import can_kick
-from config.config import Misc as config
+from config.config import Misc as config, Timeouts
 from extensions.rolegroups import Role_T
 from utils import emoji
 
@@ -54,7 +54,7 @@ class Misc(commands.Cog):
                 await msg.add_reaction(emoji.trashcan)
 
                 try:
-                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=emoji_check)
+                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=Timeouts.long, check=emoji_check)
                 except asyncio.TimeoutError:
                     await msg.remove_reaction(emoji.trashcan, self.bot.user)
                 else:
@@ -81,7 +81,7 @@ class Misc(commands.Cog):
             await msg.add_reaction(emoji.trashcan)
 
             try:
-                reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=emoji_check)
+                reaction, _ = await self.bot.wait_for('reaction_add', timeout=Timeouts.long, check=emoji_check)
             except asyncio.TimeoutError:
                 await msg.remove_reaction(emoji.trashcan, self.bot.user)
             else:
@@ -103,7 +103,7 @@ class Misc(commands.Cog):
 
 
         try:
-            reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+            reaction, _ = await self.bot.wait_for('reaction_add', timeout=Timeouts.long, check=check)
         except asyncio.TimeoutError:
             await gif_message.remove_reaction(emoji.trashcan, self.bot.user)
         else:

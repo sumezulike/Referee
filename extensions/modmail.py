@@ -7,7 +7,7 @@ import typing
 from discord.ext import commands
 
 from Referee import can_ban
-from config.config import ModMail as modmail_config
+from config.config import ModMail as modmail_config, Timeouts
 from db_classes.PGModMailDB import PGModMailDB
 from models import modmail_models
 from utils import emoji
@@ -238,7 +238,7 @@ class ModMail(commands.Cog):
 
 
         try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0,
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.long,
                                                      check=check)  # Wait for a choice by user who invoked command
         except asyncio.TimeoutError:
             await send_cancelled_answer()

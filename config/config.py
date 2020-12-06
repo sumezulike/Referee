@@ -7,6 +7,12 @@ config.read(CONFIG_PATH)
 if not config.sections():
     raise FileNotFoundError(f"No config in file: {CONFIG_PATH}")
 
+class __T:
+    def __init__(self):
+        self.long = float(config["Bot"]["TimeoutLong"])
+        self.mid = float(config["Bot"]["TimeoutMid"])
+        self.short = float(config["Bot"]["TimeoutShort"])
+Timeouts = __T()
 
 class Bot:
     extensions = config["Bot"]["Extensions"].split()

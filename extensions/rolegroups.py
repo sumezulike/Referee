@@ -6,7 +6,7 @@ from discord.ext import commands
 from typing import List, Union, Dict, Tuple
 
 from Referee import can_ban, can_kick
-from config.config import Rolegroups as rolegroups_config
+from config.config import Rolegroups as rolegroups_config, Timeouts
 from db_classes.PGRolegroupsDB import PGRolegroupsDB
 from models.rolegroups_models import Rolegroup
 from utils import emoji
@@ -294,7 +294,7 @@ del *RLEGROUP_NAME* *ROLENAME*
                                                   content=f"Send a name for the new rolegroup",
                                                   mentions=ctx.author)
             try:
-                message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
+                message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=Timeouts.long)
             except asyncio.TimeoutError:
                 logger.error("creeate rolegroup, name timed out")
                 await prompt.delete()
@@ -414,7 +414,7 @@ Click an existing roles reaction to edit the role
         prompt = await self.send_simple_embed(channel=ctx, content=f"Send a non-custom emoji for **{role_name}**",
                                               mentions=ctx.author)
         try:
-            message: discord.Message = await self.bot.wait_for("message", check=message_check, timeout=30)
+            message: discord.Message = await self.bot.wait_for("message", check=message_check, timeout=Timeouts.long)
         except asyncio.TimeoutError:
             logger.error("add_role timed out")
             return
@@ -542,7 +542,7 @@ Click an existing roles reaction to edit the role
         await msg.add_reaction(emoji.x)
 
         try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.long, check=check)
         except asyncio.TimeoutError as e:
             await msg.delete()
             if reraise_timeout:
@@ -623,7 +623,7 @@ Click an existing roles reaction to edit the role
                                               content=f"Send the id of an existing role or a name for the new role",
                                               mentions=member)
         try:
-            message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
+            message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=Timeouts.long)
         except asyncio.TimeoutError:
             logger.error("add prompt, id/name timed out")
             await prompt.delete()
@@ -636,7 +636,7 @@ Click an existing roles reaction to edit the role
         prompt = await self.send_simple_embed(channel=channel, content=f"Send a non-custom emoji for **{name}**",
                                               mentions=member)
         try:
-            message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
+            message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=Timeouts.long)
         except asyncio.TimeoutError:
             await prompt.delete()
             logger.error("add prompt, emoji timed out")
@@ -701,7 +701,7 @@ Click an existing roles reaction to edit the role
         for e in edit_control_emojis:
             await prompt.add_reaction(e)
         try:
-            reaction, user = await self.bot.wait_for("reaction_add", check=reaction_check, timeout=60)
+            reaction, user = await self.bot.wait_for("reaction_add", check=reaction_check, timeout=Timeouts.long)
         except asyncio.TimeoutError:
             logger.error("edit prompt timed out")
             return
@@ -710,7 +710,7 @@ Click an existing roles reaction to edit the role
                 sub_prompt = await self.send_simple_embed(channel=channel,
                                                           content=f"Send a new name for {rolegroup.get_emoji(role.id)}")
                 try:
-                    message = await self.bot.wait_for("message", check=messagecheck, timeout=60)
+                    message = await self.bot.wait_for("message", check=messagecheck, timeout=Timeouts.long)
                 except asyncio.TimeoutError:
                     logger.error("edit prompt, new name timed out")
                     return
@@ -725,7 +725,7 @@ Click an existing roles reaction to edit the role
                 sub_prompt = await self.send_simple_embed(channel=channel,
                                                           content=f"Send a new non-custom emoji for {role.name}")
                 try:
-                    message = await self.bot.wait_for("message", check=messagecheck, timeout=60)
+                    message = await self.bot.wait_for("message", check=messagecheck, timeout=Timeouts.long)
                 except asyncio.TimeoutError:
                     logger.error("edit prompt, new emoji timed out")
                     return
@@ -784,7 +784,7 @@ Click an existing roles reaction to edit the role
         prompt = await self.send_simple_embed(channel=channel, content=f"Send a new name for {rolegroup.name}",
                                               mentions=member)
         try:
-            message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=30)
+            message: discord.Message = await self.bot.wait_for("message", check=messagecheck, timeout=Timeouts.long)
         except asyncio.TimeoutError:
             logger.error("rename rolegroup timed out")
             return

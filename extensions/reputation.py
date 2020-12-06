@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 from discord.ext import commands
 from typing import Optional
 
-from config.config import Reputation as reputation_config
+from config.config import Reputation as reputation_config, Timeouts
 from db_classes.PGReputationDB import PGReputationDB
 from models.reputation_models import Thank
 from utils import emoji
@@ -116,7 +116,7 @@ class Reputation(commands.Cog):
 
 
                         try:
-                            reaction, user = await self.bot.wait_for('reaction_add', timeout=10.0, check=check)
+                            reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.short, check=check)
                         except asyncio.TimeoutError:
                             logger.debug("Thank confirmed: Timeout")
                             async for user in trash_reaction.users():

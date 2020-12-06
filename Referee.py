@@ -10,6 +10,7 @@ import typing
 from discord.ext import commands
 
 from config.config import Bot as config
+from config.config import Timeouts
 
 intents = discord.Intents.default()
 intents.members = True
@@ -55,7 +56,6 @@ def main():
     for ext in config.extensions:
         bot.load_extension(f"extensions.{ext}")
         logger.info(f"Loaded {ext}")
-
     bot.help_command = commands.DefaultHelpCommand(no_category="Core")
 
     bot.run(config.token)
@@ -109,7 +109,7 @@ async def ping(ctx: commands.Context):
 
 
     try:
-        await bot.wait_for("reaction_add", check=check, timeout=120)
+        await bot.wait_for("reaction_add", check=check, timeout=Timeouts.long)
     except asyncio.TimeoutError:
         pass
     await msg.delete()
