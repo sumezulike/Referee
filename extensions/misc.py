@@ -67,7 +67,7 @@ class Misc(commands.Cog):
             logger.debug(f"Calculating {calc} for {message.author}")
             try:
                 result = eval(calc)
-                answer = f"{calc} = **{result}**"
+                answer = f"`{calc}` = **{result}**"
                 if len(answer) >= 2000:
                     answer = str(result)
             except SyntaxError:
