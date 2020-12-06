@@ -1,25 +1,21 @@
 import asyncio
-import typing
-from base64 import b64decode, b64encode
+import logging
 import re
-import string
+import urllib.parse
+from base64 import b64decode, b64encode
 from builtins import filter
 
 import aiohttp
-import urllib.parse
-
 import discord
+import string
+import typing
 from discord.ext import commands
-
-import logging
-
 from discord.ext.commands import BadArgument
 
-from Referee import can_ban, can_kick
+from Referee import can_kick
 from config.config import Bot as config
-from utils import emoji
-
 from extensions.rolegroups import Role_T
+from utils import emoji
 
 logger = logging.getLogger("Referee")
 
@@ -45,6 +41,7 @@ class Misc(commands.Cog):
             return user == message.author and str(
                 reaction.emoji) == emoji.trashcan and reaction.message.id == msg.id
 
+
         content = message.content.lower()
         if len(content.split()) == 1 and content.endswith(".gif") and not content.startswith("http"):
             await self.provide_gif(message)
@@ -63,7 +60,8 @@ class Misc(commands.Cog):
                 else:
                     await msg.delete()
         calc = message.content.replace("\\", "").replace(" ", "").replace("`", "")
-        if len(calc) >= 3 and set(calc).issubset(set("0123456789+-*/().")) and "**" not in calc and set(calc)&set("+-*/"):
+        if len(calc) >= 3 and set(calc).issubset(set("0123456789+-*/().")) and "**" not in calc and set(calc) & set(
+                "+-*/"):
             logger.debug(f"Calculating {calc} for {message.author}")
             try:
                 result = eval(calc)
@@ -102,6 +100,7 @@ class Misc(commands.Cog):
         def check(reaction: discord.Reaction, user):
             return user == message.author and str(
                 reaction.emoji) == emoji.trashcan and reaction.message.id == gif_message.id
+
 
         try:
             reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
@@ -220,6 +219,7 @@ class Misc(commands.Cog):
                 pass
         return solved
 
+
     @commands.command(name="b64")
     async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
         """
@@ -276,7 +276,9 @@ class Misc(commands.Cog):
 
 
     async def get_member_info_embed(self, member: discord.Member) -> discord.Embed:
-        embed = discord.Embed(title=f"**{member.name}#{member.discriminator}** {'('+member.nick+')' if member.nick else ''}", color=member.color)
+        embed = discord.Embed(
+            title=f"**{member.name}#{member.discriminator}** {'(' + member.nick + ')' if member.nick else ''}",
+            color=member.color)
         id_text = f"- {member.top_role.name} "
         if member.bot:
             id_text += "(Bot) "

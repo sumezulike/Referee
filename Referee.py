@@ -1,15 +1,15 @@
 import asyncio
-
-import discord
-from discord.ext import commands
-import timeit
-from config.config import Bot as config
-
-import os
-import sys
 import logging
 import logging.handlers
+import os
+import sys
+
+import discord
+import timeit
 import typing
+from discord.ext import commands
+
+from config.config import Bot as config
 
 intents = discord.Intents.default()
 intents.members = True
@@ -68,7 +68,7 @@ async def on_ready():
     """
     logger_levels = {50: "CRITICAL", 40: "ERROR", 30: "WARNING", 20: "INFO", 10: "DEBUG"}
     logger.info("Ready!")
-    logger.info(f"Logging level: {logger_levels.get(lvl:=logger.level, f'Unknown ({lvl})')}")
+    logger.info(f"Logging level: {logger_levels.get(lvl := logger.level, f'Unknown ({lvl})')}")
     if (n := len(bot.guilds)) != 1:
         raise Exception(f"Too wrong number of guilds: {n}\n{', '.join(g.name for g in bot.guilds)}")
 
@@ -119,6 +119,7 @@ async def ping(ctx: commands.Context):
 def can_ban():
     perms = {"ban_members": True}
 
+
     def predicate(ctx):
         ch = ctx.channel
         permissions = ch.permissions_for(ctx.author)
@@ -133,8 +134,10 @@ def can_ban():
 
     return commands.check(predicate)
 
+
 def can_kick():
     perms = {"kick_members": True}
+
 
     def predicate(ctx):
         ch = ctx.channel
@@ -148,10 +151,10 @@ def can_kick():
             return True
         raise commands.MissingPermissions(missing)
 
+
     return commands.check(predicate)
 
 
-# noinspection PyUnusedLocal
 @bot.command(name="playing")
 @can_kick()
 async def playing(ctx: commands.Context, *, activity: str):
@@ -162,7 +165,6 @@ async def playing(ctx: commands.Context, *, activity: str):
     await bot.change_presence(activity=discord.Game(name=activity))
 
 
-# noinspection PyUnusedLocal
 @bot.command(name="watching")
 @can_kick()
 async def watching(ctx: commands.Context, *, activity: str):
@@ -173,7 +175,6 @@ async def watching(ctx: commands.Context, *, activity: str):
     await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.watching))
 
 
-# noinspection PyUnusedLocal
 @bot.command(name="say", aliases=["echo"])
 @can_kick()
 async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChannel] = None, *, msg: str):
@@ -189,7 +190,6 @@ async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChann
     await ctx.message.delete()
 
 
-# noinspection PyUnusedLocal
 @bot.command(name="listening")
 @can_kick()
 async def listening(ctx: commands.Context, *, activity: str):
@@ -202,7 +202,6 @@ async def listening(ctx: commands.Context, *, activity: str):
     await bot.change_presence(activity=discord.Activity(name=activity, type=discord.ActivityType.listening))
 
 
-# noinspection PyUnusedLocal
 @bot.command(name="stats", hidden=True)
 @can_kick()
 async def stats(ctx: commands.Context):

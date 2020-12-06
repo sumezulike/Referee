@@ -1,13 +1,12 @@
 import logging
 import re
-from typing import Optional, Union
 
 import discord
 from discord.ext import commands
-
-from db_classes.PGAutoreactDB import PGAutoreactDB
+from typing import Optional, Union
 
 import utils
+from db_classes.PGAutoreactDB import PGAutoreactDB
 
 logger = logging.getLogger("Referee")
 
@@ -55,7 +54,8 @@ class Autoreactions(commands.Cog):
 
     @commands.command(name="react")
     @can_ban()
-    async def add_autoreaction(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], regex: str, channel: Optional[discord.TextChannel] = None):
+    async def add_autoreaction(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], regex: str,
+                               channel: Optional[discord.TextChannel] = None):
         """
         Add an autoreaction instruction
         :param emoji: The emoji to react with

@@ -1,15 +1,15 @@
 import asyncio
-from typing import List, Union, Dict
+import logging
+
 import discord
 from discord.ext import commands
+from typing import List, Union, Dict
 
+from Referee import can_ban, can_kick
 from config.config import Ranks as ranks_config
 from db_classes.PGRanksDB import PGRanksDB
 from models.ranks_models import Rank
 from utils import emoji
-import logging
-
-from Referee import can_ban, can_kick
 
 logger = logging.getLogger("Referee")
 

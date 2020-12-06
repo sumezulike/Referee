@@ -1,28 +1,25 @@
+import asyncio
+import logging
 from datetime import datetime, timedelta
-from typing import Tuple
 
 import discord
 from discord.ext import commands
 
-from db_classes.PGWarningDB import PGWarningDB
+from Referee import can_kick
 from config.config import Warnings as warnings_config
-
-import asyncio
-
+from db_classes.PGWarningDB import PGWarningDB
 from models.warnings_models import RefWarning
-
 from utils import emoji
-import logging
-
-from Referee import can_ban, can_kick
 
 logger = logging.getLogger("Referee")
 
 punishments = {2: 4, 3: 24}
 
+
 def get_warned_color(color: tuple) -> tuple:
     def is_grey(c):
         return max([abs(c[0] - c[1]), abs(c[1] - c[2]), abs(c[0] - c[2])]) < 25
+
 
     new_color = (color[0] // 2, color[1] // 2, color[2] // 2)
     if sum(new_color) / 3 < 100 and is_grey(new_color):
@@ -38,10 +35,12 @@ class Warnings(commands.Cog):
         self.db = PGWarningDB()
         self.guild: discord.Guild = None  # initialized in on_ready
 
+
     @commands.Cog.listener()
     async def on_ready(self):
         self.bot.loop.create_task(self.bg_check())
         self.guild = self.bot.guilds[0]
+
 
     async def bg_check(self):
         """
@@ -53,6 +52,7 @@ class Warnings(commands.Cog):
         while not self.bot.is_closed():
             await self.check_all_members()
             await asyncio.sleep(120)  # task runs every second minute
+
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -68,9 +68,11 @@ class Warnings(commands.Cog):
                         f"{message.author.name}#{message.author.discriminator}")
             if message.author.top_role >= discord.utils.find(lambda m: m.name == 'Support', self.guild.roles):
                 ctx = await self.bot.get_context(message)
-                member = await discord.ext.commands.MemberConverter().convert(ctx=ctx, argument=message.content.split()[1])
+                member = await discord.ext.commands.MemberConverter().convert(ctx=ctx,
+                                                                              argument=message.content.split()[1])
                 reason = message.content.split(" ", 2)[2]
                 await self.warn(ctx=ctx, member=member, reason=reason)
+
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -78,6 +80,7 @@ class Warnings(commands.Cog):
         Checks on each join to make sure that members can't get rid of the warned role by leaving and rejoining
         """
         await self.check_warnings(member)
+
 
     @staticmethod
     def clean_content(message: discord.message) -> str:
@@ -88,6 +91,7 @@ class Warnings(commands.Cog):
         content = content.replace("***", "").replace("\\_", "_").replace("\\*", "*").replace("\\\\", "\\")
         return content
 
+
     @staticmethod
     def get_warned_roles(member: discord.Member) -> list:
         """
@@ -96,6 +100,7 @@ class Warnings(commands.Cog):
         warned_roles = list(filter(lambda r: r.name == warnings_config.warned_role_name, member.roles))
         return warned_roles
 
+
     async def acknowledge(self, message: discord.Message):
         """
         Briefly adds an emoji to a message
@@ -103,6 +108,7 @@ class Warnings(commands.Cog):
         await message.add_reaction(emoji.eye)
         await asyncio.sleep(1)
         await message.remove_reaction(emoji.eye, self.bot.user)
+
 
     # noinspection PyUnusedLocal
     async def enforce_punishments(self, ctx: commands.Context, member: discord.Member, warning: RefWarning):
@@ -121,6 +127,7 @@ class Warnings(commands.Cog):
             )
             await self.mute(member, punishments.get(num_warnings) * 60 * 60)
 
+
     async def check_warnings(self, member: discord.Member):
         """
         This method compares a users roles to the status in the db and marks or unmarks them as warned
@@ -135,12 +142,14 @@ class Warnings(commands.Cog):
         elif is_warned:
             await self.remove_warned_roles(member)
 
+
     async def check_all_members(self):
         """
         Checks the warnings for all members in a guiöd
         """
         for member in self.guild.members:
             await self.check_warnings(member)
+
 
     async def assign_warned_role(self, member: discord.Member):
         """
@@ -154,11 +163,12 @@ class Warnings(commands.Cog):
 
         warning_color = discord.Colour.from_rgb(*get_warned_color(member.colour.to_rgb()))
         warned_roles = list(
-            filter(lambda r: r.name == warnings_config.warned_role_name and r.colour == warning_color, self.guild.roles))
+            filter(lambda r: r.name == warnings_config.warned_role_name and r.colour == warning_color,
+                   self.guild.roles))
 
         if not warned_roles:
             role = await self.guild.create_role(name=warnings_config.warned_role_name,
-                                           colour=warning_color)
+                                                colour=warning_color)
             await asyncio.sleep(0.5)
         else:
             role = warned_roles[0]
@@ -168,12 +178,14 @@ class Warnings(commands.Cog):
 
         await member.add_roles(role)
 
+
     async def remove_warned_roles(self, member: discord.Member):
         """
         Removes all "warned" roles from a member
         """
         warned_roles = self.get_warned_roles(member)
         await member.remove_roles(*warned_roles)
+
 
     @staticmethod
     async def mute(member: discord.Member, mute_time_seconds: int):
@@ -187,7 +199,9 @@ class Warnings(commands.Cog):
         await asyncio.sleep(mute_time_seconds)
         await member.remove_roles(*muted_roles)
 
-    async def warning_str(self, warning: RefWarning, show_expiration: bool = False, show_warned_name: bool = False) -> str:
+
+    async def warning_str(self, warning: RefWarning, show_expiration: bool = False,
+                          show_warned_name: bool = False) -> str:
         """
         Returns information about a warning in a nice format
         """
@@ -202,6 +216,7 @@ class Warnings(commands.Cog):
         warn_str += f"**Reason:** {warning.reason}\n"
         warn_str += f"**Mod:** {warning.mod_name}\n"
         return warn_str
+
 
     @commands.command(name="warn")
     @can_kick()
@@ -223,6 +238,7 @@ class Warnings(commands.Cog):
         await self.enforce_punishments(ctx, member, warning)
         await self.acknowledge(ctx.message)
 
+
     @commands.command(name="clear")
     @can_kick()
     async def clear(self, ctx: commands.Context, member: discord.Member):
@@ -233,6 +249,7 @@ class Warnings(commands.Cog):
         await self.db.expire_warnings(member.id)
         await self.remove_warned_roles(member)
         await self.acknowledge(ctx.message)
+
 
     @commands.command(aliases=["warns", "?"])
     @can_kick()
@@ -266,6 +283,7 @@ class Warnings(commands.Cog):
 
         await ctx.send(embed=embed)
 
+
     @commands.command(aliases=["active", "!"])
     @can_kick()
     async def active_warnings(self, ctx: commands.Context):
@@ -279,7 +297,8 @@ class Warnings(commands.Cog):
 
         for member_id in active_warnings:
             warnings = await self.db.get_active_warnings(member_id)
-            active_str = "\n".join([await self.warning_str(w, show_warned_name=True, show_expiration=True) for w in warnings])
+            active_str = "\n".join(
+                [await self.warning_str(w, show_warned_name=True, show_expiration=True) for w in warnings])
             if active_str:
                 embed.add_field(name=ctx.guild.get_member(member_id), value=active_str, inline=False)
 

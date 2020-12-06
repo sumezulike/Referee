@@ -1,17 +1,16 @@
 import asyncio
-import typing
+import logging
+from datetime import datetime
 
 import discord
+import typing
 from discord.ext import commands
 
+from Referee import can_ban
+from config.config import ModMail as modmail_config
 from db_classes.PGModMailDB import PGModMailDB
 from models import modmail_models
 from utils import emoji
-from config.config import ModMail as modmail_config
-import logging
-
-from datetime import datetime
-from Referee import can_ban
 
 logger = logging.getLogger("Referee")
 
@@ -25,9 +24,11 @@ class ModMail(commands.Cog):
         self.last_messages_times = {}
         self.guild: discord.Guild = None
 
+
     @commands.Cog.listener()
     async def on_ready(self):
         self.guild = self.bot.guilds[0]
+
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -38,7 +39,8 @@ class ModMail(commands.Cog):
         if await self.is_valid_mail(message):
             cooldown = await self.get_cooldown(message.author.id)
             if cooldown <= 0:
-                logger.info(f"Recieved valid mail: '{message.content}' from {message.author.name}#{message.author.discriminator}")
+                logger.info(
+                    f"Recieved valid mail: '{message.content}' from {message.author.name}#{message.author.discriminator}")
                 await self.process_modmail(message)
                 ok_embed = discord.Embed(title="Forwarded your message to mod team!", color=discord.Color.dark_gold())
                 await message.channel.send(embed=ok_embed, delete_after=30)
@@ -50,6 +52,7 @@ class ModMail(commands.Cog):
                 )
                 await message.channel.send(embed=cooldown_embed, delete_after=30)
 
+
     async def get_cooldown(self, user_id: int) -> int:
         """
         Get the users remaining cooldown
@@ -59,7 +62,7 @@ class ModMail(commands.Cog):
         if user_id not in self.last_messages_times:
             return 0
         else:
-            minutes_passed = (datetime.now() - self.last_messages_times[user_id]).seconds//60
+            minutes_passed = (datetime.now() - self.last_messages_times[user_id]).seconds // 60
             cooldown = modmail_config.cooldown - minutes_passed
             if cooldown <= 0:
                 del self.last_messages_times[user_id]
@@ -67,12 +70,14 @@ class ModMail(commands.Cog):
             else:
                 return cooldown
 
+
     async def reset_cooldown(self, user_id: int):
         """
         Restarts the users cooldown
         :param user_id:
         """
         self.last_messages_times[user_id] = datetime.now()
+
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -83,6 +88,7 @@ class ModMail(commands.Cog):
         if not self.mod_channel:
             logger.error(f"Channel with ID {modmail_config.mod_channel_id} not found")
             raise RuntimeError(f"Channel with ID {modmail_config.mod_channel_id} not found")
+
 
     async def is_valid_mail(self, message: discord.Message):
         """
@@ -102,6 +108,7 @@ class ModMail(commands.Cog):
             return False
         return True
 
+
     async def process_modmail(self, message: discord.Message):
         """
         Executes the steps to report and save this message as a modmail
@@ -117,7 +124,8 @@ class ModMail(commands.Cog):
         message_id = await self.report(mail)  # Send to mod_channel
         logger.info(f"Sent mail to mods: '{mail.content}'. msg_id: {message_id}")
         await self.db.assign_message_id(modmail_id=modmail_id,
-                                  message_id=message_id)  # Save discord message ID to db for updating
+                                        message_id=message_id)  # Save discord message ID to db for updating
+
 
     async def report(self, mail: modmail_models.ModMail) -> int:
         """
@@ -132,6 +140,7 @@ class ModMail(commands.Cog):
 
         msg = await self.mod_channel.send(embed=embed)
         return msg.id
+
 
     async def update_modmail_answer(self, modmail: modmail_models.ModMail, answer: modmail_models.ModMailAnswer):
         """
@@ -155,6 +164,7 @@ class ModMail(commands.Cog):
         logger.info(f"Updated modmail: '{modmail.modmail_id}'. Answer: {answer.content}")
         await report_message.edit(embed=embed)
 
+
     async def answer_user(self, modmail: modmail_models.ModMail, answer: modmail_models.ModMailAnswer):
         """
         Generates an embed answer and sends it to the user
@@ -177,6 +187,7 @@ class ModMail(commands.Cog):
         await self.db.put_answer(answer)
         logger.info(f"Saved answer to db: '{modmail.modmail_id}'. Answer: {answer.content}")
         await self.update_modmail_answer(modmail=modmail, answer=answer)
+
 
     @commands.command(aliases=["respond", "a", "res", "ans"])
     @can_ban()
@@ -205,8 +216,10 @@ class ModMail(commands.Cog):
         await preview.add_reaction(emoji.white_check_mark)
         await preview.add_reaction(emoji.x)
 
+
         def check(_reaction, _user):
             return _user == ctx.author and str(_reaction.emoji) in [emoji.x, emoji.white_check_mark]
+
 
         async def send_cancelled_answer():
             """
@@ -215,12 +228,14 @@ class ModMail(commands.Cog):
             cancel_embed = discord.Embed(title=f"{emoji.x} Cancelled answer to {modmail_id}")
             await ctx.send(embed=cancel_embed, delete_after=30)
 
+
         async def send_sent_answer():
             """
             Inner helpmethod to signal a sent response
             """
             sent_embed = discord.Embed(title=f"{emoji.white_check_mark} Sent answer to {modmail_id}")
             await ctx.send(embed=sent_embed, delete_after=30)
+
 
         try:
             reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0,

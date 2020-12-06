@@ -1,16 +1,15 @@
 import asyncio
-from typing import List, Union, Dict, Tuple
+import logging
+
 import discord
 from discord.ext import commands
+from typing import List, Union, Dict, Tuple
 
+from Referee import can_ban, can_kick
 from config.config import Rolegroups as rolegroups_config
 from db_classes.PGRolegroupsDB import PGRolegroupsDB
 from models.rolegroups_models import Rolegroup
-
 from utils import emoji
-import logging
-
-from Referee import can_ban, can_kick
 
 logger = logging.getLogger("Referee")
 

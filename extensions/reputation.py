@@ -1,26 +1,22 @@
 import asyncio
-import logging
 import io
-from typing import Optional
-
-import discord
-from discord.ext import commands
-
+import logging
 import re
-
-from db_classes.PGReputationDB import PGReputationDB
-from config.config import Reputation as reputation_config
-from models.reputation_models import Thank
-
-from utils import emoji
-
 from datetime import datetime, date, timedelta
 
+import discord
 from PIL import Image, ImageDraw, ImageFont
+from discord.ext import commands
+from typing import Optional
+
+from config.config import Reputation as reputation_config
+from db_classes.PGReputationDB import PGReputationDB
+from models.reputation_models import Thank
+from utils import emoji
 
 logger = logging.getLogger("Referee")
 
-from Referee import can_ban, can_kick
+from Referee import can_kick
 
 
 class Reputation(commands.Cog):
@@ -145,14 +141,14 @@ class Reputation(commands.Cog):
     async def notify_user_of_thank(self, member: discord.Member, source_member: discord.Member):
         thankHelp = f"You were just awarded with a reputation point by {source_member.display_name}, probably for helping them with something. **Good job!**\n" \
                     f"We count **'Thank you'** messages as a fun way to track helpfulness and community engagement.\n\n" \
-                    \
+ \
                     f"Every message containing a thank with a mention will be recorded, I'll react with {emoji.thumbs_up} to confirm that.\n" \
                     f"I will offer a {emoji.trashcan} reaction to take it back, just in case it was a mistake.\n\n" \
-                    \
+ \
                     f"To check your score  *(Spoiler: It's 1)*  use `r!rep`\n\n" \
-                    \
+ \
                     f"For an overview over the top 10, use `r!scoreboard`, `r!scoreboard all` for the whole list and `r!scoreboard me` to focus on you\n\n" \
-                    \
+ \
                     f"**Thanks for having a positive impact on the community!**"
         embed = discord.Embed(title="You are appreciated!")
         embed.add_field(name=f"{member.display_name.replace(' ', '_').lower()}.reputation += 1;", value=thankHelp)

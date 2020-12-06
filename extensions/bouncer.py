@@ -1,15 +1,12 @@
-import asyncio
+import logging
+import os
 
 import discord
 from discord.ext import commands
 
+from Referee import can_ban
 from config.config import Bouncer as bouncer_config
-
-import logging
-import os
-
 from utils import emoji
-from Referee import can_ban, can_kick
 
 logger = logging.getLogger("Referee")
 
@@ -28,9 +25,11 @@ class Bouncer(commands.Cog):
             self.check_message_id = None
         self.guild: discord.Guild = None
 
+
     @commands.Cog.listener()
     async def on_ready(self):
         self.guild = self.bot.guilds[0]
+
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -40,12 +39,14 @@ class Bouncer(commands.Cog):
         await member.add_roles(await self.get_newbie_role())
         logger.info(f"Adding newbie role to {member.name}#{member.discriminator}")
 
+
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):
         """
         Called by the API when a new channel is created
         """
         await self.hide_channel(channel, await self.get_newbie_role())
+
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -60,8 +61,10 @@ class Bouncer(commands.Cog):
             if await self.get_newbie_role(guild=guild) in member.roles:
                 await member.remove_roles(await self.get_newbie_role(guild=guild))
                 logger.info(f"Removed newbie role from {member.name}#{member.discriminator}")
-                await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji, payload.user_id)
+                await self.bot.http.remove_reaction(payload.message_id, payload.channel_id, payload.emoji,
+                                                    payload.user_id)
                 await self.welcome(member)
+
 
     @staticmethod
     async def welcome(member: discord.Member):
@@ -69,6 +72,7 @@ class Bouncer(commands.Cog):
         embed.set_footer(icon_url=member.guild.icon_url, text=member.guild.name)
         embed.add_field(name=f"Welcome to {member.guild.name}!", value=bouncer_config.welcome_message, inline=True)
         await member.send(embed=embed)
+
 
     async def get_newbie_role(self):
         """
@@ -82,6 +86,7 @@ class Bouncer(commands.Cog):
             )
         return newbie_role
 
+
     async def create_accept_button(self, channel: discord.TextChannel):
         """
         Sends the message to which users are supposed to react
@@ -92,12 +97,14 @@ class Bouncer(commands.Cog):
         with open(CHECK_BUTTON_FILE_NAME, "w") as file:
             file.write(str(msg.id))
 
+
     async def delete_accept_button(self, channel: discord.TextChannel):
         """
         Deletes the message created by :meth:`create_accept_button`
         """
         await self.bot.http.delete_message(channel_id=channel.id, message_id=self.check_message_id)
         os.remove(CHECK_BUTTON_FILE_NAME)
+
 
     async def hide_channel(self, channel: discord.abc.GuildChannel, role: discord.Role):
         """
@@ -109,6 +116,7 @@ class Bouncer(commands.Cog):
         else:
             await channel.set_permissions(role, connect=False)
 
+
     async def unhide_channel(self, channel: discord.abc.GuildChannel, role: discord.Role):
         """
         Reverses :meth:`hide_channel` for a specific role and channel
@@ -119,6 +127,7 @@ class Bouncer(commands.Cog):
         else:
             await channel.set_permissions(role, overwrite=None)
 
+
     @commands.group(invoke_without_command=True)
     @can_ban()
     async def bouncer(self, ctx: commands.Context):
@@ -127,11 +136,12 @@ class Bouncer(commands.Cog):
         """
         embed = discord.Embed(title="Bouncer")
         embed.add_field(name="Usage", value=
-                        f"**{ctx.prefix}{ctx.invoked_with} enable**: Lock all channels except "
-                        f"{ctx.guild.get_channel(bouncer_config.first_channel_id).mention} for new members\n"
-                        f"**{ctx.prefix}{ctx.invoked_with} disable**: Unlock channels\n"
+        f"**{ctx.prefix}{ctx.invoked_with} enable**: Lock all channels except "
+        f"{ctx.guild.get_channel(bouncer_config.first_channel_id).mention} for new members\n"
+        f"**{ctx.prefix}{ctx.invoked_with} disable**: Unlock channels\n"
                         )
         await ctx.send(embed=embed, delete_after=30)
+
 
     @bouncer.command(name="enable")
     @can_ban()
@@ -151,6 +161,7 @@ class Bouncer(commands.Cog):
         await ctx.send(embed=embed, delete_after=5)
         await ctx.message.delete()
 
+
     @bouncer.command(name="disable")
     @can_ban()
     async def disable(self, ctx: commands.Context):
@@ -169,6 +180,7 @@ class Bouncer(commands.Cog):
         embed = discord.Embed(title="Bouncer disabled")
         await ctx.send(embed=embed, delete_after=5)
         await ctx.message.delete()
+
 
     @commands.command(name="welcome_me", hidden=True)
     async def welcome_me(self, ctx: commands.Context):
