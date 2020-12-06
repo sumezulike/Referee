@@ -15,7 +15,7 @@ import logging
 
 from discord.ext.commands import BadArgument
 
-from Referee import is_aight, send_embed_with_delete_option
+from Referee import is_aight
 from config.config import Bot as config
 from utils import emoji
 
@@ -41,6 +41,9 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        def emoji_check(reaction: discord.Reaction, user):
+            return user == message.author and str(
+                reaction.emoji) == emoji.trashcan and reaction.message.id == msg.id
 
         content = message.content.lower()
         if len(content.split()) == 1 and content.endswith(".gif") and not content.startswith("http"):
@@ -50,7 +53,15 @@ class Misc(commands.Cog):
             if b64_finds and min(map(len, b64_finds.keys())) > 6:
                 res = "\n".join(f"'{c}' => **{d}**" for c, d in b64_finds.items())
                 embed = discord.Embed(title="Decoded b64:", description=res)
-                await send_embed_with_delete_option(orig_message=message, embed=embed)
+                msg = await message.channel.send(embed=embed)
+                await msg.add_reaction(emoji.trashcan)
+
+                try:
+                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=emoji_check)
+                except asyncio.TimeoutError:
+                    await msg.remove_reaction(emoji.trashcan, self.bot.user)
+                else:
+                    await msg.delete()
         calc = message.content.replace("\\", "").replace(" ", "").replace("`", "")
         if len(calc) >= 3 and set(calc).issubset(set("0123456789+-*/().")) and "**" not in calc and set(calc)&set("+-*/"):
             logger.debug(f"Calculating {calc} for {message.author}")
@@ -68,7 +79,15 @@ class Misc(commands.Cog):
             logger.debug(f"Result: {result}")
 
             embed = discord.Embed(title="Result:", description=answer)
-            await send_embed_with_delete_option(orig_message=message, embed=embed)
+            msg = await message.channel.send(embed=embed)
+            await msg.add_reaction(emoji.trashcan)
+
+            try:
+                reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=emoji_check)
+            except asyncio.TimeoutError:
+                await msg.remove_reaction(emoji.trashcan, self.bot.user)
+            else:
+                await msg.delete()
 
 
     async def provide_gif(self, message: discord.Message):
@@ -76,9 +95,21 @@ class Misc(commands.Cog):
         logger.debug(f"Fetching gif: {content}")
         query = content.split(".gif")[0]
         url = await self.fetch_gif(query)
-        embed = discord.Embed()
-        embed.set_image(url=url)
-        await send_embed_with_delete_option(orig_message=message, embed=embed)
+        gif_message = await message.channel.send(url)
+        await gif_message.add_reaction(emoji.trashcan)
+
+
+        def check(reaction: discord.Reaction, user):
+            return user == message.author and str(
+                reaction.emoji) == emoji.trashcan and reaction.message.id == gif_message.id
+
+        try:
+            reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            await gif_message.remove_reaction(emoji.trashcan, self.bot.user)
+        else:
+            await gif_message.delete()
+
 
     async def fetch_gif(self, query):
         query = query.replace("_", "-")

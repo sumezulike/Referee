@@ -11,8 +11,6 @@ import logging
 import logging.handlers
 import typing
 
-from utils import emoji
-
 intents = discord.Intents.default()
 intents.members = True
 intents.presences = True
@@ -105,8 +103,10 @@ async def ping(ctx: commands.Context):
     await msg.edit(embed=embed)
     await msg.add_reaction(zoop)
 
+
     def check(reaction, user):
         return user == ctx.author and reaction.emoji == zoop
+
 
     try:
         await bot.wait_for("reaction_add", check=check, timeout=120)
@@ -131,6 +131,7 @@ def is_aight():
             return True
 
         raise commands.MissingPermissions(missing)
+
 
     return commands.check(predicate)
 
@@ -194,25 +195,6 @@ async def stats(ctx: commands.Context):
     embed.add_field(name="Loaded modules", value="\n".join(config.extensions))
     await ctx.send(embed=embed)
 
-
-async def send_embed_with_delete_option(orig_message: discord.Message, embed: discord.Embed, delete_emoji=emoji.trashcan) -> typing.Optional[discord.Message]:
-    def emoji_check(_reaction: discord.Reaction, user):
-        return user == orig_message.author and str(_reaction.emoji) == delete_emoji and _reaction.message.id == msg.id
-
-    msg = await orig_message.channel.send(embed=embed)
-    await msg.add_reaction(delete_emoji)
-
-    try:
-        reaction, _ = await bot.wait_for('reaction_add', timeout=60.0, check=emoji_check)
-    except asyncio.TimeoutError:
-        for reaction in msg.reactions:
-            if reaction.emoji == delete_emoji:
-                async for user in reaction.users():
-                    await msg.remove_reaction(delete_emoji, user)
-        return msg
-    else:
-        await msg.delete()
-        return None
 
 if __name__ == '__main__':
     logger: logging.Logger = setup_logger()

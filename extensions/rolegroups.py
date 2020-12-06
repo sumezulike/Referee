@@ -10,7 +10,7 @@ from models.rolegroups_models import Rolegroup
 from utils import emoji
 import logging
 
-from Referee import is_aight, send_embed_with_delete_option
+from Referee import is_aight
 
 logger = logging.getLogger("Referee")
 
