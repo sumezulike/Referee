@@ -41,6 +41,10 @@ class Misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        def emoji_check(reaction: discord.Reaction, user):
+            return user == message.author and str(
+                reaction.emoji) == emoji.trashcan and reaction.message.id == msg.id
+
         content = message.content.lower()
         if len(content.split()) == 1 and content.endswith(".gif") and not content.startswith("http"):
             await self.provide_gif(message)
@@ -52,17 +56,13 @@ class Misc(commands.Cog):
                 msg = await message.channel.send(embed=embed)
                 await msg.add_reaction(emoji.trashcan)
 
-                def check(reaction: discord.Reaction, user):
-                    return user == message.author and str(
-                        reaction.emoji) == emoji.trashcan and reaction.message.id == msg.id
-
                 try:
-                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=emoji_check)
                 except asyncio.TimeoutError:
                     await msg.remove_reaction(emoji.trashcan, self.bot.user)
                 else:
                     await msg.delete()
-        calc = message.content
+        calc = message.content.replace("\\", "").replace(" ", "").replace("`", "")
         if len(calc) >= 3 and set(calc).issubset(set("0123456789+-*/().")) and "**" not in calc and set(calc)&set("+-*/"):
             logger.debug(f"Calculating {calc} for {message.author}")
             try:
@@ -79,7 +79,15 @@ class Misc(commands.Cog):
             logger.debug(f"Result: {result}")
 
             embed = discord.Embed(title="Result:", description=answer)
-            await message.channel.send(embed=embed, delete_after=30)
+            msg = await message.channel.send(embed=embed)
+            await msg.add_reaction(emoji.trashcan)
+
+            try:
+                reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=emoji_check)
+            except asyncio.TimeoutError:
+                await msg.remove_reaction(emoji.trashcan, self.bot.user)
+            else:
+                await msg.delete()
 
 
     async def provide_gif(self, message: discord.Message):
