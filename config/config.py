@@ -14,7 +14,10 @@ class Bot:
     commandPrefixes = config["Bot"]["CommandPrefixes"].split()
     status = config["Bot"]["Status"]
     logging_level = int(config["Bot"]["LoggingLevel"])
-    bitly_token = config["Bot"]["BitlyToken"]
+
+
+class Misc:
+    bitly_token = config["Misc"]["BitlyToken"]
 
 
 class PostGres:

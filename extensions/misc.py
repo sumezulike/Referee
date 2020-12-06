@@ -13,7 +13,7 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument
 
 from Referee import can_kick
-from config.config import Bot as config
+from config.config import Misc as config
 from extensions.rolegroups import Role_T
 from utils import emoji
 
