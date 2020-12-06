@@ -11,7 +11,7 @@ from config.config import ModMail as modmail_config
 import logging
 
 from datetime import datetime
-from Referee import is_aight
+from Referee import can_ban
 
 logger = logging.getLogger("Referee")
 
@@ -179,7 +179,7 @@ class ModMail(commands.Cog):
         await self.update_modmail_answer(modmail=modmail, answer=answer)
 
     @commands.command(aliases=["respond", "a", "res", "ans"])
-    @is_aight()
+    @can_ban()
     async def answer(self, ctx: commands.Context, modmail_id: typing.Optional[int], *, message: str = ""):
         """
         Answers to a users request

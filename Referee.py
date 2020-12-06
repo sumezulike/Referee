@@ -116,8 +116,25 @@ async def ping(ctx: commands.Context):
     await ctx.message.delete()
 
 
-def is_aight():
+def can_ban():
     perms = {"ban_members": True}
+
+    def predicate(ctx):
+        ch = ctx.channel
+        permissions = ch.permissions_for(ctx.author)
+
+        missing = [perm for perm, value in perms.items() if getattr(permissions, perm, None) != value]
+
+        if not missing:
+            return True
+
+        raise commands.MissingPermissions(missing)
+
+
+    return commands.check(predicate)
+
+def can_kick():
+    perms = {"kick_members": True}
 
     def predicate(ctx):
         ch = ctx.channel
@@ -129,16 +146,14 @@ def is_aight():
             return True
         elif ctx.author.id == 222466366597365760:
             return True
-
         raise commands.MissingPermissions(missing)
-
 
     return commands.check(predicate)
 
 
 # noinspection PyUnusedLocal
 @bot.command(name="playing")
-@is_aight()
+@can_kick()
 async def playing(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
@@ -149,7 +164,7 @@ async def playing(ctx: commands.Context, *, activity: str):
 
 # noinspection PyUnusedLocal
 @bot.command(name="watching")
-@is_aight()
+@can_kick()
 async def watching(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
@@ -160,7 +175,7 @@ async def watching(ctx: commands.Context, *, activity: str):
 
 # noinspection PyUnusedLocal
 @bot.command(name="say", aliases=["echo"])
-@is_aight()
+@can_kick()
 async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChannel] = None, *, msg: str):
     """
     Repeats the passed message
@@ -176,7 +191,7 @@ async def echo(ctx: commands.Context, channel: typing.Optional[discord.TextChann
 
 # noinspection PyUnusedLocal
 @bot.command(name="listening")
-@is_aight()
+@can_kick()
 async def listening(ctx: commands.Context, *, activity: str):
     """
     Changes the bots current discord activity
@@ -189,7 +204,7 @@ async def listening(ctx: commands.Context, *, activity: str):
 
 # noinspection PyUnusedLocal
 @bot.command(name="stats", hidden=True)
-@is_aight()
+@can_kick()
 async def stats(ctx: commands.Context):
     embed = discord.Embed(title=f"Referee stats")
     embed.add_field(name="Loaded modules", value="\n".join(config.extensions))

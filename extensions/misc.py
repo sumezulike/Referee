@@ -15,7 +15,7 @@ import logging
 
 from discord.ext.commands import BadArgument
 
-from Referee import is_aight
+from Referee import can_ban, can_kick
 from config.config import Bot as config
 from utils import emoji
 
@@ -184,7 +184,7 @@ class Misc(commands.Cog):
 
 
     @commands.command()
-    @is_aight()
+    @can_kick()
     async def shorten(self, ctx: commands.Context, url: str):
         url = f"http://{url}" if not url.startswith("http") else url
         payload = {"long_url": url}

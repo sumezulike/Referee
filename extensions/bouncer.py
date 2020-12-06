@@ -9,7 +9,7 @@ import logging
 import os
 
 from utils import emoji
-from Referee import is_aight
+from Referee import can_ban, can_kick
 
 logger = logging.getLogger("Referee")
 
@@ -120,7 +120,7 @@ class Bouncer(commands.Cog):
             await channel.set_permissions(role, overwrite=None)
 
     @commands.group(invoke_without_command=True)
-    @is_aight()
+    @can_ban()
     async def bouncer(self, ctx: commands.Context):
         """
         Enable or disable the bouncer
@@ -134,7 +134,7 @@ class Bouncer(commands.Cog):
         await ctx.send(embed=embed, delete_after=30)
 
     @bouncer.command(name="enable")
-    @is_aight()
+    @can_ban()
     async def enable(self, ctx: commands.Context):
         """
         Enable the bouncer
@@ -152,7 +152,7 @@ class Bouncer(commands.Cog):
         await ctx.message.delete()
 
     @bouncer.command(name="disable")
-    @is_aight()
+    @can_ban()
     async def disable(self, ctx: commands.Context):
         """
         Disable the bouncer

@@ -10,7 +10,7 @@ from models.rolegroups_models import Rolegroup
 from utils import emoji
 import logging
 
-from Referee import is_aight
+from Referee import can_ban, can_kick
 
 logger = logging.getLogger("Referee")
 
@@ -266,7 +266,7 @@ class Rolegroups(commands.Cog):
 
 
     @commands.group(name="rolegroup", aliases=["rolegroups", "rg"])
-    @is_aight()
+    @can_ban()
     async def rolegroup_cmd(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
             helpmsg = f"""Usage: 
@@ -284,7 +284,7 @@ del *RLEGROUP_NAME* *ROLENAME*
 
 
     @rolegroup_cmd.command(name="create")
-    @is_aight()
+    @can_ban()
     async def create_rolegroup(self, ctx: commands.Context, *, name: str = None):
         def messagecheck(_message):
             return _message.author.id == ctx.author.id and _message.content
@@ -319,7 +319,7 @@ del *RLEGROUP_NAME* *ROLENAME*
 
 
     @rolegroup_cmd.command(name="destroy")
-    @is_aight()
+    @can_ban()
     async def destroy_rolegroup(self, ctx: commands.Context, *, rolegroup: Rolegroup_T):
         try:
             if rolegroup.roles:
@@ -352,7 +352,7 @@ del *RLEGROUP_NAME* *ROLENAME*
 
 
     @rolegroup_cmd.command(name="edit")
-    @is_aight()
+    @can_ban()
     async def edit_rolegroup(self, ctx: commands.Context, *, rolegroup: Rolegroup_T):
         await self.start_editing(rolegroup, ctx.author)
         helpmsg = f"""Use the reactions to edit '{rolegroup.name}'
@@ -368,7 +368,7 @@ Click an existing roles reaction to edit the role
 
 
     @rolegroup_cmd.command(name="mv", aliases=["move"])
-    @is_aight()
+    @can_ban()
     async def move_role_between_groups(self, ctx: commands.Context, from_group: Rolegroup_T, role: Union[Role_T, str],
                                        to_group: Rolegroup_T):
         logger.debug(f"Moving from {from_group} to {to_group}")
@@ -394,7 +394,7 @@ Click an existing roles reaction to edit the role
 
 
     @rolegroup_cmd.command(name="add")
-    @is_aight()
+    @can_ban()
     async def add_role_to_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, *, role: Union[Role_T, str]):
         def message_check(_message):
             return _message.author.id == ctx.author.id and _message.content
@@ -451,7 +451,7 @@ Click an existing roles reaction to edit the role
 
 
     @rolegroup_cmd.command(name="del")
-    @is_aight()
+    @can_ban()
     async def del_role_from_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, *, role: Role_T):
         try:
             delete_role = await self.quick_embed_query(ctx=ctx, question=f"Also delete discord role?",
@@ -468,7 +468,7 @@ Click an existing roles reaction to edit the role
 
 
     @rolegroup_cmd.command(name="rename")
-    @is_aight()
+    @can_ban()
     async def rename_rolegroup(self, ctx: commands.Context, rolegroup: Rolegroup_T, *, name: str):
         rolegroup.name = name
         await self.db.update_rolegroup(rolegroup)
@@ -477,7 +477,7 @@ Click an existing roles reaction to edit the role
 
 
     @rolegroup_cmd.command(name="id", aliases=["ids"])
-    @is_aight()
+    @can_kick()
     async def rolegroup_ids(self, ctx: commands.Context):
         rolegroups = await self.db.get_all_rolegroups()
         text = "\n".join(
@@ -487,7 +487,7 @@ Click an existing roles reaction to edit the role
 
 
     @rolegroup_cmd.command(name="clean")
-    @is_aight()
+    @can_ban()
     async def clean_rolegroup_message(self, ctx: commands.Context, rolegroup: Rolegroup_T):
         rolegroup_msg = await self.get_rolegroup_message(rolegroup=rolegroup)
         for reaction in rolegroup_msg.reactions:
@@ -503,7 +503,7 @@ Click an existing roles reaction to edit the role
 
 
     @rolegroup_cmd.command(name="count")
-    @is_aight()
+    @can_kick()
     async def count_rolegroup_members(self, ctx: commands.Context, rolegroup: Rolegroup_T):
         embed = discord.Embed(title=f"{rolegroup.name}")
         roles = sorted([self.guild.get_role(r_id) for r_id in rolegroup.roles.values()], key=lambda x: len(x.members),

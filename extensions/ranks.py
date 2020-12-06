@@ -9,7 +9,7 @@ from models.ranks_models import Rank
 from utils import emoji
 import logging
 
-from Referee import is_aight
+from Referee import can_ban, can_kick
 
 logger = logging.getLogger("Referee")
 
@@ -176,7 +176,7 @@ class Ranks(commands.Cog):
             await self.bot.http.remove_reaction(message_id=payload.message_id, channel_id=payload.channel_id, emoji=payload.emoji, member_id=payload.user_id)
 
     @commands.command(aliases=["create_rank", "add_ranks", "create_ranks"])
-    @is_aight()
+    @can_ban()
     async def add_rank(self, ctx: commands.Context, ranks: commands.Greedy[Union[Role, str]]):
         """
         This command creates one or more new ranks and the rank selection messages that can then be used by Members.
@@ -201,7 +201,7 @@ class Ranks(commands.Cog):
         await self.update_ranks_cache()
 
     @commands.command(aliases=["delete_ranks", "remove_rank", "remove_ranks", "del_rank"])
-    @is_aight()
+    @can_ban()
     async def delete_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
         """
         This command deletes one or more ranks and the ranks selection messages.
@@ -225,7 +225,7 @@ class Ranks(commands.Cog):
 
 
     @commands.command(aliases=["renew_rank", "refresh_rank"])
-    @is_aight()
+    @can_ban()
     async def reset_rank(self, ctx: commands.Context, roles: commands.Greedy[Role]):
         """
         This command deletes and then recreates one or more ranks and the ranks selection messages.
@@ -244,7 +244,7 @@ class Ranks(commands.Cog):
         await self.update_ranks_cache()
 
     @commands.command()
-    @is_aight()
+    @can_kick()
     async def clean_reactions(self, ctx: commands.Context):
         """
         Resets the reactions on the rank messages
@@ -253,7 +253,7 @@ class Ranks(commands.Cog):
         await ctx.message.delete()
 
     @commands.command(aliases=["count_roles", "count_rank"])
-    @is_aight()
+    @can_kick()
     async def count_ranks(self, ctx: commands.Context):
         """
         Displays a list of all ranks and the number of assigned members

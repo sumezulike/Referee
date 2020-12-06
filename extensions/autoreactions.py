@@ -11,7 +11,7 @@ import utils
 
 logger = logging.getLogger("Referee")
 
-from Referee import is_aight
+from Referee import can_ban, can_kick
 
 
 class Autoreactions(commands.Cog):
@@ -54,7 +54,7 @@ class Autoreactions(commands.Cog):
 
 
     @commands.command(name="react")
-    @is_aight()
+    @can_ban()
     async def add_autoreaction(self, ctx: commands.Context, emoji: Union[discord.Emoji, str], regex: str, channel: Optional[discord.TextChannel] = None):
         """
         Add an autoreaction instruction
@@ -80,7 +80,7 @@ class Autoreactions(commands.Cog):
 
 
     @commands.command(name="reactions")
-    @is_aight()
+    @can_kick()
     async def list_autoreactions(self, ctx: commands.Context):
         """
         List all active autoreactions
@@ -94,7 +94,7 @@ class Autoreactions(commands.Cog):
 
 
     @commands.command(name="remove_react", aliases=["del_react"])
-    @is_aight()
+    @can_ban()
     async def del_autoreaction(self, ctx: commands.Context, autoreaction_id: int):
         """
         Delete an autoreaction instruction
