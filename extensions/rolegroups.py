@@ -858,7 +858,6 @@ Click an existing roles reaction to edit the role
 
 
     async def clear_temp_rolegroups(self):
-        logger.debug(f"Clearing temp rolegroups")
         self.temp_rolegroups = {}
 
 
