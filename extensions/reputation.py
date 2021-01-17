@@ -1,22 +1,21 @@
 import asyncio
-import io
 import logging
 import re
 from datetime import datetime, date, timedelta
 
 import discord
-from PIL import Image, ImageDraw, ImageFont
 from discord.ext import commands
 from typing import Optional
 
 from config.config import Reputation as reputation_config, Timeouts
 from db_classes.PGReputationDB import PGReputationDB
+from extensions.reputation_graphics import *
 from models.reputation_models import Thank
 from utils import emoji
 
 logger = logging.getLogger("Referee")
 
-from Referee import can_kick
+from Referee import can_kick, can_ban
 
 
 class Reputation(commands.Cog):
@@ -225,32 +224,63 @@ class Reputation(commands.Cog):
         await self.notify_user_of_thank(ctx.author, ctx.author)
 
 
-    @commands.command(name="rep", aliases=["ep", "score", "thanks"])
+    @commands.group(name="rep", aliases=["ep", "score", "thanks"])
     async def get_rep(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """
         Displays a users current reputation score
         :param member: Any user, omit to query own score
         """
+        if ctx.invoked_subcommand is None:
+            if not member:
+                member = ctx.author
+            leaderboard = await self.db.get_leaderboard()
+
+            rank = [m["rank"] for m in leaderboard if m["user_id"] == member.id]
+            if rank:
+                rank = rank[0]
+
+            rep = await self.db.get_user_rep(member.id)
+
+            if member.bot:
+                rep = "Math.Infinity"  # Not python, but it looks better than math.inf
+                rank = "0"  # It's an easteregg, it doesn't have to make sense
+
+            embed = discord.Embed(title="Support Score", color=discord.Color.dark_gold())
+            embed.add_field(name=f"{member.name}:",
+                            value=f"{rep} " + (f"(Rank #{rank})" if rank else ""),
+                            inline=True)
+            await ctx.send(embed=embed)
+
+    @get_rep.command(name="history")
+    async def thank_stats(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         if not member:
-            member = ctx.author
-        leaderboard = await self.db.get_leaderboard()
+            thanks = await self.db.get_thanks()
+            embed = discord.Embed(title="Thanks history")
+            history = dict()
+            for t in thanks:
+                date_str = t.timestamp.strftime('%b-%d-%Y')
+                history[date_str] = history.get(date_str, []) + [(self.guild.get_member(t.source_user_id).display_name, self.guild.get_member(t.target_user_id).display_name)]
+            for d, names in history.items():
+                embed.add_field(name=d, value="\n".join(f"{n[0]} -> {n[1]}" for n in names), inline=False)
 
-        rank = [m["rank"] for m in leaderboard if m["user_id"] == member.id]
-        if rank:
-            rank = rank[0]
-
-        rep = await self.db.get_user_rep(member.id)
-
-        if member.bot:
-            rep = "Math.Infinity"  # Not python, but it looks better than math.inf
-            rank = "0"  # It's an easteregg, it doesn't have to make sense
-
-        embed = discord.Embed(title="Support Score", color=discord.Color.dark_gold())
-        embed.add_field(name=f"{member.name}:",
-                        value=f"{rep} " + (f"(Rank #{rank})" if rank else ""),
-                        inline=True)
+        else:
+            thanks = await self.db.get_thanks_by_userid(user_id=member.id)
+            embed = discord.Embed(title=f"Thanks history of {member.display_name}")
+            history = dict()
+            for t in thanks:
+                date_str = t.timestamp.strftime('%d %b %Y')
+                history[date_str] = history.get(date_str, []) + [self.guild.get_member(t.source_user_id).display_name]
+            for d, names in history.items():
+                embed.add_field(name=d, value="\n".join(names), inline=False)
         await ctx.send(embed=embed)
 
+    @get_rep.command(name="graph")
+    @can_ban()
+    async def thanks_graph(self, ctx: commands.Context):
+        async with ctx.typing():
+            generate_graph(self.guild, await self.db.get_thanks())
+
+        await ctx.send(file=discord.File("graph.gif"))
 
     @commands.group(name="scoreboard")
     async def leaderboard(self, ctx: commands.Context):
@@ -265,7 +295,7 @@ class Reputation(commands.Cog):
                 embed = discord.Embed(title=f"No entries", color=discord.Color.dark_gold())
                 await ctx.send(embed=embed)
             else:
-                img = await self.draw_scoreboard(leaderboard[:reputation_config.leaderboard_max_length])
+                img = await draw_scoreboard(leaderboard=leaderboard[:reputation_config.leaderboard_max_length], guild=self.guild)
                 await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
@@ -280,7 +310,7 @@ class Reputation(commands.Cog):
             embed = discord.Embed(title=f"No entries", color=discord.Color.dark_gold())
             await ctx.send(embed=embed)
         else:
-            img = await self.draw_scoreboard(leaderboard)
+            img = await draw_scoreboard(leaderboard=leaderboard, guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
@@ -302,7 +332,7 @@ class Reputation(commands.Cog):
             embed = discord.Embed(title=f"No entries for {month_name}", color=discord.Color.dark_gold())
             await ctx.send(embed=embed)
         else:
-            img = await self.draw_scoreboard(leaderboard)
+            img = await draw_scoreboard(leaderboard=leaderboard, guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
@@ -321,7 +351,7 @@ class Reputation(commands.Cog):
             embed = discord.Embed(title=f"No entries for the last week", color=discord.Color.dark_gold())
             await ctx.send(embed=embed)
         else:
-            img = await self.draw_scoreboard(leaderboard)
+            img = await draw_scoreboard(leaderboard=leaderboard, guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
@@ -347,77 +377,8 @@ class Reputation(commands.Cog):
                 a, b = a - 1, b - 1
             while a < 0:
                 a, b = a + 1, b + 1
-            img = await self.draw_scoreboard(leaderboard[a:b], highlight={"member_id": ctx.author.id})
+            img = await draw_scoreboard(leaderboard=leaderboard[a:b], highlight={"member_id": ctx.author.id}, guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
-
-
-    async def draw_scoreboard(self, leaderboard: list, highlight=None):
-        width = reputation_config.fontsize * 13
-        row_height = reputation_config.fontsize + reputation_config.fontsize // 2
-        height = (len(leaderboard) + 1) * row_height
-
-        bg = Image.new("RGBA", (width, height), (255, 255, 255, 0))
-        text = Image.new("RGBA", bg.size, (255, 255, 255, 0))
-
-        pics = Image.new("RGBA", bg.size, (255, 255, 255, 0))
-        fnt = ImageFont.truetype('coolvetica.ttf', reputation_config.fontsize)
-        text_draw = ImageDraw.Draw(text)
-
-        rank_x = reputation_config.fontsize
-        name_x = 2 * reputation_config.fontsize
-        point_x = width - reputation_config.fontsize
-
-        line_x = name_x
-        max_line_width = (point_x - name_x)
-
-        i = 0
-
-        for row in leaderboard:
-            rank, member_id, score = row["rank"], row["user_id"], row["score"]
-            member = self.guild.get_member(member_id)
-            if not member:
-                logger.error(f"No member with user_id {member_id}")
-                continue
-
-            row_y = i * row_height + (reputation_config.fontsize // 2)
-            line_y = row_y + int(reputation_config.fontsize * 1.2)
-
-            row_color = reputation_config.font_colors.get(rank, reputation_config.default_fontcolor)
-
-            if highlight:
-                if (highlight.get("member_id", None) == member_id or
-                        highlight.get("rank", None) == rank or
-                        highlight.get("score", None) == score or
-                        highlight.get("row", None) == i):
-                    row_color = reputation_config.highlight_color
-
-            w, h = text_draw.textsize(f"{rank}", font=fnt)
-            text_draw.text((rank_x - w, row_y), f"{rank}", font=fnt,
-                           fill=(255, 255, 255, 50))
-            name = member.display_name
-            w, h = text_draw.textsize(f"{name}", font=fnt)
-            score_w, _ = text_draw.textsize(f"{score}", font=fnt)
-            while name_x + w >= point_x - score_w:
-                name = name[:-1]
-                w, h = text_draw.textsize(f"{name}...", font=fnt)
-            text_draw.text((name_x, row_y), f"{name}" if name == member.display_name else f"{name}...", font=fnt,
-                           fill=row_color)
-
-            w, h = text_draw.textsize(f"{score}", font=fnt)
-            text_draw.text((point_x - w, row_y), f"{score}", font=fnt,
-                           fill=row_color)
-
-            text_draw.line([line_x, line_y,
-                            line_x + int(max_line_width * score / leaderboard[0]["score"]), line_y],
-                           fill=row_color, width=2)
-
-            i += 1
-
-        out = Image.alpha_composite(Image.alpha_composite(bg, text), pics)
-        tmp_img = io.BytesIO()
-        out.save(tmp_img, format="png")
-        tmp_img.seek(0)
-        return tmp_img
 
 
 def setup(bot: commands.Bot):

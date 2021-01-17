@@ -1,5 +1,7 @@
 import asyncio
 import logging
+from typing import List
+
 import asyncpg
 from config.config import PostGres as pg_config
 from models.reputation_models import Thank
@@ -75,7 +77,7 @@ class PGReputationDB:
                               new_thank.message_id, new_thank.timestamp)
 
 
-    async def get_thanks(self, since=datetime(day=1, month=1, year=2000), until=None):
+    async def get_thanks(self, since=datetime(day=1, month=1, year=2000), until=None) -> List[Thank]:
         if not until:
             until = datetime.now()
         sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2"
@@ -86,6 +88,20 @@ class PGReputationDB:
                              channel_id=r["channel_id"],
                              timestamp=r["time"])
                        for r in await con.fetch(sql, since, until)]
+
+        return results
+
+    async def get_thanks_by_userid(self, user_id, since=datetime(day=1, month=1, year=2000), until=None) -> List[Thank]:
+        if not until:
+            until = datetime.now()
+        sql = "SELECT * FROM thanks WHERE  target_user_id = $1 AND time >= $2 AND time <= $3"
+        async with self.pool.acquire() as con:
+            results = [Thank(source_user_id=r["source_user_id"],
+                             target_user_id=r["target_user_id"],
+                             message_id=r["message_id"],
+                             channel_id=r["channel_id"],
+                             timestamp=r["time"])
+                       for r in await con.fetch(sql, user_id, since, until)]
 
         return results
 
