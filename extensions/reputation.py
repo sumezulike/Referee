@@ -278,7 +278,7 @@ class Reputation(commands.Cog):
     @can_ban()
     async def thanks_graph(self, ctx: commands.Context):
         async with ctx.typing():
-            generate_graph(self.guild, await self.db.get_thanks())
+            await generate_graph(self.guild, await self.db.get_thanks())
 
         await ctx.send(file=discord.File("graph.gif"))
 
