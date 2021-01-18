@@ -309,7 +309,7 @@ class Reputation(commands.Cog):
 
     @commands.command(name="scoreboard")
     async def old_leaderboard(self, ctx: commands.Context):
-        await ctx.send("Ay bruv you prolly lookin for dis ```r!ep scores``` sry fam", delete_after=10)
+        await ctx.send(f"Ay bro you prolly lookin for this: `r!ep scores`\nsry fam {emoji.robot}", delete_after=10)
 
     @get_rep.group(name="scoreboard", aliases=["leaderboard", "scores"])
     async def leaderboard(self, ctx: commands.Context):
