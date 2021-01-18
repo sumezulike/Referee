@@ -267,7 +267,7 @@ class Reputation(commands.Cog):
             member = ctx.author
 
         if member.bot:
-            embed = discord.Embed(title=f"Thanking history of {member.display_name}", color=discord.Color.dark_gold)
+            embed = discord.Embed(title=f"Thanking history of {member.display_name}", color=discord.Color.dark_gold())
             embed.add_field(name=f"Received: 0", value=f"{member.display_name}, the thankless hero of {self.guild.name}")
             await ctx.send(embed=embed)
             return
@@ -275,7 +275,7 @@ class Reputation(commands.Cog):
 
         thanks_received = await self.db.get_thanks(target_user_id=member.id)
         thanks_given = await self.db.get_thanks(source_user_id=member.id)
-        embed = discord.Embed(title=f"Thanking history of {member.display_name}", color=discord.Color.dark_gold)
+        embed = discord.Embed(title=f"Thanking history of {member.display_name}", color=discord.Color.dark_gold())
         thankers = dict()
         for t in thanks_received:
             date_str = t.timestamp.strftime('%d %b %Y')
