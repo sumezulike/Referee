@@ -259,7 +259,16 @@ class Reputation(commands.Cog):
             history = dict()
             for t in thanks:
                 date_str = t.timestamp.strftime('%b-%d-%Y')
-                history[date_str] = history.get(date_str, []) + [(self.guild.get_member(t.source_user_id).display_name, self.guild.get_member(t.target_user_id).display_name)]
+                if not self.guild.get_member(t.source_user_id):
+                    thanker_name = str(t.source_user_id)
+                else:
+                    thanker_name = self.guild.get_member(t.source_user_id).display_name
+
+                if not self.guild.get_member(t.target_user_id):
+                    thanked_name = str(t.target_user_id)
+                else:
+                    thanked_name = self.guild.get_member(t.target_user_id).display_name
+                history[date_str] = history.get(date_str, []) + [(thanker_name, thanked_name)]
             for d, names in history.items():
                 embed.add_field(name=d, value="\n".join(f"{n[0]} -> {n[1]}" for n in names), inline=False)
 
@@ -269,7 +278,11 @@ class Reputation(commands.Cog):
             history = dict()
             for t in thanks:
                 date_str = t.timestamp.strftime('%d %b %Y')
-                history[date_str] = history.get(date_str, []) + [self.guild.get_member(t.source_user_id).display_name]
+                if not self.guild.get_member(t.source_user_id):
+                    thanker_name = str(t.source_user_id)
+                else:
+                    thanker_name = self.guild.get_member(t.source_user_id).display_name
+                history[date_str] = history.get(date_str, []) + [thanker_name]
             for d, names in history.items():
                 embed.add_field(name=d, value="\n".join(names), inline=False)
         await ctx.send(embed=embed)
