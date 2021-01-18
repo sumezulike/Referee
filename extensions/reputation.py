@@ -307,7 +307,11 @@ class Reputation(commands.Cog):
         await ctx.send(file=discord.File("graph.gif"))
 
 
-    @commands.group(name="scoreboard")
+    @commands.command(name="scoreboard")
+    async def old_leaderboard(self, ctx: commands.Context):
+        await ctx.send("Ay bruv you prolly lookin for dis ```r!ep scores``` sry fam", delete_after=10)
+
+    @get_rep.group(name="scoreboard", aliases=["leaderboard", "scores"])
     async def leaderboard(self, ctx: commands.Context):
         """
         Displays the reputation scoreboard. Can be invoked with different subcommands
