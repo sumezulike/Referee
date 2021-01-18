@@ -268,7 +268,7 @@ class Reputation(commands.Cog):
 
         thanks_received = await self.db.get_thanks(target_user_id=member.id)
         thanks_given = await self.db.get_thanks(source_user_id=member.id)
-        embed = discord.Embed(title=f"Thanking history of {member.display_name}")
+        embed = discord.Embed(title=f"Thanking history of {member.display_name}", color=discord.Color.dark_gold())
         thankers = dict()
         for t in thanks_received:
             date_str = t.timestamp.strftime('%d %b %Y')
@@ -286,8 +286,8 @@ class Reputation(commands.Cog):
             f"{display_name(u_id)}{'(' + str(len(dates)) + ')' if len(dates) > 1 else ''}" for u_id, dates in
             sorted(thankees.items(), key=lambda x: len(x[1]), reverse=True))
 
-        embed.add_field(name=f"Received: {len(thanks_received)}", value=received, inline=False)
-        embed.add_field(name=f"Given: {len(thanks_given)}", value=given, inline=False)
+        embed.add_field(name=f"Received: {len(thanks_received)}", value=received, inline=True)
+        embed.add_field(name=f"Given: {len(thanks_given)}", value=given, inline=True)
         await ctx.send(embed=embed)
 
 
