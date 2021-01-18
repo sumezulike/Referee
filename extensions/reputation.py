@@ -43,7 +43,7 @@ class Reputation(commands.Cog):
             if await self.is_thank_message(message):
                 mentioned_members = message.mentions
                 logger.info(
-                    f"Recieved thanks from {message.author} to {', '.join(str(m) for m in mentioned_members)}: {message.content}")
+                    f"Received thanks from {message.author} to {', '.join(str(m) for m in mentioned_members)}: {message.content}")
 
                 if await self.is_on_cooldown(source_user_id=message.author.id):
                     if mentioned_members:
@@ -115,7 +115,8 @@ class Reputation(commands.Cog):
 
 
                         try:
-                            reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.short, check=check)
+                            reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.short,
+                                                                     check=check)
                         except asyncio.TimeoutError:
                             logger.debug("Thank confirmed: Timeout")
                             async for user in trash_reaction.users():
@@ -251,41 +252,44 @@ class Reputation(commands.Cog):
                             inline=True)
             await ctx.send(embed=embed)
 
-    @get_rep.command(name="history")
+
+    @get_rep.command(name="history", aliases=["stats", "hist", "herstory"])
     async def thank_stats(self, ctx: commands.Context, member: Optional[discord.Member] = None):
+
+        def display_name(u_id):  # TODO: put this where it belongs
+            if not self.guild.get_member(u_id):
+                return str(u_id)
+            else:
+                return self.guild.get_member(u_id).display_name
+
+
         if not member:
-            thanks = await self.db.get_thanks()
-            embed = discord.Embed(title="Thanks history")
-            history = dict()
-            for t in thanks:
-                date_str = t.timestamp.strftime('%b-%d-%Y')
-                if not self.guild.get_member(t.source_user_id):
-                    thanker_name = str(t.source_user_id)
-                else:
-                    thanker_name = self.guild.get_member(t.source_user_id).display_name
+            member = ctx.author
 
-                if not self.guild.get_member(t.target_user_id):
-                    thanked_name = str(t.target_user_id)
-                else:
-                    thanked_name = self.guild.get_member(t.target_user_id).display_name
-                history[date_str] = history.get(date_str, []) + [(thanker_name, thanked_name)]
-            for d, names in history.items():
-                embed.add_field(name=d, value="\n".join(f"{n[0]} -> {n[1]}" for n in names), inline=False)
+        thanks_received = await self.db.get_thanks(target_user_id=member.id)
+        thanks_given = await self.db.get_thanks(source_user_id=member.id)
+        embed = discord.Embed(title=f"Thanking history of {member.display_name}")
+        thankers = dict()
+        for t in thanks_received:
+            date_str = t.timestamp.strftime('%d %b %Y')
+            thankers[t.source_user_id] = thankers.get(t.source_user_id, []) + [date_str]
 
-        else:
-            thanks = await self.db.get_thanks_by_userid(user_id=member.id)
-            embed = discord.Embed(title=f"Thanks history of {member.display_name}")
-            history = dict()
-            for t in thanks:
-                date_str = t.timestamp.strftime('%d %b %Y')
-                if not self.guild.get_member(t.source_user_id):
-                    thanker_name = str(t.source_user_id)
-                else:
-                    thanker_name = self.guild.get_member(t.source_user_id).display_name
-                history[date_str] = history.get(date_str, []) + [thanker_name]
-            for d, names in history.items():
-                embed.add_field(name=d, value="\n".join(names), inline=False)
+        thankees = dict()
+        for t in thanks_given:
+            date_str = t.timestamp.strftime('%d %b %Y')
+            thankees[t.target_user_id] = thankees.get(t.target_user_id, []) + [date_str]
+
+        received = "\n".join(
+            f"{display_name(u_id)}{'(' + str(len(dates)) + ')' if len(dates) > 1 else ''}" for u_id, dates in
+            sorted(thankers.items(), key=lambda x: len(x[1]), reverse=True))
+        given = "\n".join(
+            f"{display_name(u_id)}{'(' + str(len(dates)) + ')' if len(dates) > 1 else ''}" for u_id, dates in
+            sorted(thankees.items(), key=lambda x: len(x[1]), reverse=True))
+
+        embed.add_field(name=f"Received: {len(thanks_received)}", value=received, inline=False)
+        embed.add_field(name=f"Given: {len(thanks_given)}", value=given, inline=False)
         await ctx.send(embed=embed)
+
 
     @get_rep.command(name="graph")
     @can_ban()
@@ -294,6 +298,7 @@ class Reputation(commands.Cog):
             await generate_graph(self.guild, await self.db.get_thanks())
 
         await ctx.send(file=discord.File("graph.gif"))
+
 
     @commands.group(name="scoreboard")
     async def leaderboard(self, ctx: commands.Context):
@@ -308,7 +313,8 @@ class Reputation(commands.Cog):
                 embed = discord.Embed(title=f"No entries", color=discord.Color.dark_gold())
                 await ctx.send(embed=embed)
             else:
-                img = await draw_scoreboard(leaderboard=leaderboard[:reputation_config.leaderboard_max_length], guild=self.guild)
+                img = await draw_scoreboard(leaderboard=leaderboard[:reputation_config.leaderboard_max_length],
+                                            guild=self.guild)
                 await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 
@@ -390,7 +396,8 @@ class Reputation(commands.Cog):
                 a, b = a - 1, b - 1
             while a < 0:
                 a, b = a + 1, b + 1
-            img = await draw_scoreboard(leaderboard=leaderboard[a:b], highlight={"member_id": ctx.author.id}, guild=self.guild)
+            img = await draw_scoreboard(leaderboard=leaderboard[a:b], highlight={"member_id": ctx.author.id},
+                                        guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
 

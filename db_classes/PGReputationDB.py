@@ -77,31 +77,30 @@ class PGReputationDB:
                               new_thank.message_id, new_thank.timestamp)
 
 
-    async def get_thanks(self, since=datetime(day=1, month=1, year=2000), until=None) -> List[Thank]:
+    async def get_thanks(self, since=datetime(day=1, month=1, year=2000), until=None, source_user_id=None, target_user_id=None) -> List[Thank]:
         if not until:
             until = datetime.now()
-        sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2"
+
         async with self.pool.acquire() as con:
+            if source_user_id and target_user_id:
+                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND source_user_id = $3 AND target_user_id = $4"
+                fetch = con.fetch(sql, since, until, source_user_id, target_user_id)
+            elif source_user_id:
+                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND source_user_id = $3"
+                fetch = con.fetch(sql, since, until, source_user_id)
+            elif target_user_id:
+                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND target_user_id = $3"
+                fetch = con.fetch(sql, since, until, target_user_id)
+            else:
+                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2"
+                fetch = con.fetch(sql, since, until)
+
             results = [Thank(source_user_id=r["source_user_id"],
                              target_user_id=r["target_user_id"],
                              message_id=r["message_id"],
                              channel_id=r["channel_id"],
                              timestamp=r["time"])
-                       for r in await con.fetch(sql, since, until)]
-
-        return results
-
-    async def get_thanks_by_userid(self, user_id, since=datetime(day=1, month=1, year=2000), until=None) -> List[Thank]:
-        if not until:
-            until = datetime.now()
-        sql = "SELECT * FROM thanks WHERE  target_user_id = $1 AND time >= $2 AND time <= $3"
-        async with self.pool.acquire() as con:
-            results = [Thank(source_user_id=r["source_user_id"],
-                             target_user_id=r["target_user_id"],
-                             message_id=r["message_id"],
-                             channel_id=r["channel_id"],
-                             timestamp=r["time"])
-                       for r in await con.fetch(sql, user_id, since, until)]
+                       for r in await fetch]
 
         return results
 
