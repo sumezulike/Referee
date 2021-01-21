@@ -1,6 +1,8 @@
 from typing import List, Dict
 
 import discord
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from config.config import Reputation as reputation_config
 from models.reputation_models import Thank
@@ -83,43 +85,61 @@ async def draw_scoreboard(leaderboard: list, guild: discord.Guild, highlight=Non
     tmp_img.seek(0)
     return tmp_img
 
+PAUSE_FRAMES = 100
+
 async def generate_graph(guild: discord.Guild, history: List[Thank]):
+    fig: Figure
+    ax: Axes
     fig, ax = plt.subplots()
+    plt.figure(num=1, figsize=(12, 6), dpi=100, facecolor='grey', edgecolor='k')
     x = []
 
-    users = {t.target_user_id: [] for t in history}
+    user_id_historys = {t.target_user_id: [] for t in history if guild.get_member(t.target_user_id)}
     for t in history:
-        users[t.target_user_id].append(t)
+        user_id_historys[t.target_user_id].append(t)
 
-    max_score = max(len(t) for u, t in users.items())
+    max_score = max(len(t) for u, t in user_id_historys.items())
 
     start_day = history[0].timestamp.date()
     last_day = history[-1].timestamp.date()
     total_days = (last_day - start_day).days
 
-    days: List[Dict[int, int]] = [{u: 0 for u in users} for _ in range(total_days+1)]
+    days: List[Dict[int, int]] = [{u: 0 for u in user_id_historys.keys()} for _ in range(total_days+1)]
 
     for t in history:
         day = (t.timestamp.date() - start_day).days
         days[day][t.target_user_id] += 1
 
-    graphs: Dict[int, List] = {u: [] for u in users}
-    lines: Dict[int, Line2D] = {u: plt.plot([], [], '-', color=f"xkcd:{COLORS[i]}")[0] for i, u in enumerate(users)}
+    graphs: Dict[int, List] = {u: [] for u in user_id_historys.keys()}
+    lines: Dict[int, Line2D] = {u: plt.plot([], [], '-', color=f"xkcd:{COLORS[i]}")[0] for i, u in enumerate(user_id_historys.keys())}
 
     def init():
-        ax.set_xlim(0, total_days)
+        ax.set_xlim(0, 1)
         ax.set_ylim(0, max_score+1)
 
-    user_scores = {u: 0 for u in users}
+    user_scores = {u: 0 for u in user_id_historys.keys()}
+
+    def top_n_lines(n: int):
+        top_uids = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)[:n]
+        return {u_id: lines.get(u_id) for u_id, score in top_uids}
+
+    def get_label(user_id):
+        return f"{guild.get_member(user_id).display_name}: {user_scores.get(user_id)}"
 
     def update(i):
+        if i > total_days:
+            top = top_n_lines(10)
+            plt.legend(handles=list(top.values()), labels=[get_label(u_id) for u_id in top])
+            return
         x.append(int(i))
+        ax.set_xlim(0, i+1)
         for user_id, score in days[int(i)].items():
             user_scores[user_id] += score
             graphs[user_id].append(user_scores[user_id])
             lines[user_id].set_data(x, graphs[user_id])
+        ax.set_ylim(0, max(user_scores.values())+1)
 
-    ani = FuncAnimation(fig, update, np.linspace(0, total_days, total_days+1), init_func=init)
+    ani = FuncAnimation(fig, update, np.linspace(0, total_days+PAUSE_FRAMES, total_days+PAUSE_FRAMES+1), init_func=init, repeat=False, interval=400)
 
     writer = PillowWriter(fps=25)
     ani.save("graph.gif", writer=writer)

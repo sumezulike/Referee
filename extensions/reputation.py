@@ -301,15 +301,18 @@ class Reputation(commands.Cog):
     @get_rep.command(name="graph")
     @can_ban()
     async def thanks_graph(self, ctx: commands.Context):
+        wait_msg = await ctx.send(f"This going to take a while {emoji.rolling_eyes}")
         async with ctx.typing():
             await generate_graph(self.guild, await self.db.get_thanks())
 
         await ctx.send(file=discord.File("graph.gif"))
+        await ctx.send(f"There you go {ctx.author.mention}")
+        await wait_msg.delete()
 
 
     @commands.command(name="scoreboard")
-    async def old_leaderboard(self, ctx: commands.Context):
-        await ctx.send(f"Ay bro you prolly lookin for this: `r!ep scores`\nsry fam {emoji.robot}", delete_after=10)
+    async def old_leaderboard(self, ctx: commands.Context, *, args: str):
+        await ctx.send(f"You're probably looking for this: ```r!ep scores {args}```\nsry fam {emoji.robot}", delete_after=Timeouts.short)
 
     @get_rep.group(name="scoreboard", aliases=["leaderboard", "scores"])
     async def leaderboard(self, ctx: commands.Context):
