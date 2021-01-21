@@ -147,7 +147,7 @@ class Reputation(commands.Cog):
  \
                     f"To check your score  *(Spoiler: It's 1)*  use `r!rep`\n\n" \
  \
-                    f"For an overview over the top 10, use `r!scoreboard`, `r!scoreboard all` for the whole list and `r!scoreboard me` to focus on you\n\n" \
+                    f"For an overview over the top 10, use `r!rep scoreboard`, `r!rep scoreboard all` for the whole list and `r!rep scoreboard me` to focus on you\n\n" \
  \
                     f"**Thanks for having a positive impact on the community!**"
         embed = discord.Embed(title="You are appreciated!")
