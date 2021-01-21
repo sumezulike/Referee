@@ -301,7 +301,7 @@ class Reputation(commands.Cog):
     @get_rep.command(name="graph")
     @can_ban()
     async def thanks_graph(self, ctx: commands.Context):
-        wait_msg = await ctx.send(f"This going to take a while {emoji.rolling_eyes}")
+        wait_msg = await ctx.send(f"This is going to take a while {emoji.rolling_eyes}")
         async with ctx.typing():
             await generate_graph(self.guild, await self.db.get_thanks())
 
