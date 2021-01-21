@@ -302,12 +302,16 @@ class Reputation(commands.Cog):
     @can_ban()
     async def thanks_graph(self, ctx: commands.Context):
         wait_msg = await ctx.send(f"This is going to take a while {emoji.rolling_eyes}")
-        async with ctx.typing():
-            await generate_graph(self.guild, await self.db.get_thanks())
+        try:
+            async with ctx.typing():
+                await generate_graph(self.guild, await self.db.get_thanks())
 
-        await ctx.send(file=discord.File("graph.gif"))
-        await ctx.send(f"There you go {ctx.author.mention}")
-        await wait_msg.delete()
+            await ctx.send(file=discord.File("graph.gif"))
+            await ctx.send(f"There you go {ctx.author.mention}")
+        except Exception as e:
+            await ctx.send(f"Nope, graph machine broke. {self.guild.get_member(238359385888260096).mention}!!!")
+            await wait_msg.delete()
+            raise e
 
 
     @commands.command(name="scoreboard")

@@ -94,7 +94,9 @@ async def generate_graph(guild: discord.Guild, history: List[Thank]):
     plt.figure(num=1, figsize=(12, 6), dpi=100, facecolor='grey', edgecolor='k')
     x = []
 
-    user_id_historys = {t.target_user_id: [] for t in history if guild.get_member(t.target_user_id)}
+    history = [t for t in history if guild.get_member(t.target_user_id)]
+
+    user_id_historys = {t.target_user_id: [] for t in history}
     for t in history:
         user_id_historys[t.target_user_id].append(t)
 
