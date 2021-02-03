@@ -304,19 +304,19 @@ class Reputation(commands.Cog):
         wait_msg = await ctx.send(f"This is going to take a while {emoji.rolling_eyes}")
         try:
             async with ctx.typing():
-                await generate_graph(self.guild, await self.db.get_thanks())
+                filename = await generate_graph(self.guild, await self.db.get_thanks())
 
-            await ctx.send(file=discord.File("graph.gif"))
-            await ctx.send(f"There you go {ctx.author.mention}")
+            await ctx.send(f"There you go {ctx.author.mention}", file=discord.File(filename))
         except Exception as e:
             await ctx.send(f"Nope, graph machine broke. {self.guild.get_member(238359385888260096).mention}!!!")
-            await wait_msg.delete()
             raise e
+        finally:
+            await wait_msg.delete()
 
 
-    @commands.command(name="scoreboard")
-    async def old_leaderboard(self, ctx: commands.Context, *, args: str):
-        await ctx.send(f"You're probably looking for this: ```r!ep scores {args}```\nsry fam {emoji.robot}", delete_after=Timeouts.short)
+    @commands.command(name="scoreboard", hidden=True)
+    async def old_leaderboard(self, ctx: commands.Context, *, args: Optional[str] = ""):
+        await ctx.send(f"You're probably looking for this: ```r!ep scores {args}```", delete_after=Timeouts.mid)
 
     @get_rep.group(name="scoreboard", aliases=["leaderboard", "scores"])
     async def leaderboard(self, ctx: commands.Context):
