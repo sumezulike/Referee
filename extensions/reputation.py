@@ -330,7 +330,10 @@ class Reputation(commands.Cog):
 
     @commands.command(name="scoreboard", hidden=True)
     async def old_leaderboard(self, ctx: commands.Context, *, args: Optional[str] = ""):
-        await ctx.send(f"You're probably looking for this: ```r!ep scores {args}```", delete_after=Timeouts.mid)
+        if args:
+            await ctx.send(f"You're probably looking for this: ```r!ep scores {args}```", delete_after=Timeouts.mid)
+        else:
+            await self.leaderboard(ctx)
 
     @get_rep.group(name="scoreboard", aliases=["leaderboard", "scores"])
     async def leaderboard(self, ctx: commands.Context):
