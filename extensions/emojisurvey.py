@@ -76,8 +76,8 @@ class EmojiSurvey(commands.Cog):
         downvotes_report = "\n".join(f"{e} **{v['score']}** ({v['upvotes']}/{v['downvotes']})" for e, v in sorted(negative.items(), key=lambda x: x[1]["score"]))
 
         embed = discord.Embed(title=f"Survey Evaluation - {datetime.datetime.now().strftime('%d %b %Y %H:%M')}")
-        embed.add_field(name="Liked", value=upvotes_report)
-        embed.add_field(name="Disliked", value=downvotes_report)
+        embed.add_field(name="Liked", value=upvotes_report[:1024]) # TODO: Fix message length restiction issue
+        embed.add_field(name="Disliked", value=downvotes_report[:1024])
         await ctx.send(embed=embed)
 
     @can_ban()
