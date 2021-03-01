@@ -72,15 +72,16 @@ class EmojiSurvey(commands.Cog):
         positive = {k: v for k, v in emoji_scores.items() if v["score"] >= 0}
         negative = {k: v for k, v in emoji_scores.items() if v["score"]  < 0}
 
-        upvotes_report = "\n".join(f"{e} **{v['score']}** ({v['upvotes']}/{v['downvotes']})" for e, v in sorted(positive.items(), key=lambda x: x[1]["score"], reverse=True))
-        downvotes_report = "\n".join(f"{e} **{v['score']}** ({v['upvotes']}/{v['downvotes']})" for e, v in sorted(negative.items(), key=lambda x: x[1]["score"]))
+        for i in range(0, max(len(positive), len(negative))//20+1):
+            p = "\n".join(f"{e} **{v['score']}** ({v['upvotes']}/{v['downvotes']})" for e, v in sorted(positive.items(), key=lambda x: x[1]["score"], reverse=True)[i*20:(i+1)*20])
+            n = "\n".join(f"{e} **{v['score']}** ({v['upvotes']}/{v['downvotes']})" for e, v in sorted(negative.items(), key=lambda x: x[1]["score"])[i*20:(i+1)*20])
 
-        embed = discord.Embed(title=f"Survey Evaluation - {datetime.datetime.now().strftime('%d %b %Y %H:%M')}")
-        if upvotes_report:
-            embed.add_field(name="Liked", value=upvotes_report[:1024]) # TODO: Fix message length restiction issue
-        if downvotes_report:
-            embed.add_field(name="Disliked", value=downvotes_report[:1024])
-        await ctx.send(embed=embed)
+            embed = discord.Embed(title=f"Survey Evaluation - {datetime.datetime.now().strftime('%d %b %Y %H:%M')}"+(f"({i+1})" if i > 0 else ""))
+            if p:
+                embed.add_field(name="Liked", value=p)
+            if n:
+                embed.add_field(name="Disliked", value=n)
+            await ctx.send(embed=embed)
 
     @can_ban()
     @emoji_survey.command(name="end", aliases=["stop"])
