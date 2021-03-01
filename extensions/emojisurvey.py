@@ -49,7 +49,7 @@ class EmojiSurvey(commands.Cog):
     async def start_survey(self, ctx: commands.Context):
         for custom_emoji in filter(lambda x: not x.animated, self.guild.emojis):
             try:
-                msg = await ctx.send(custom_emoji)
+                msg = await self.survey_channel.send(custom_emoji)
                 await asyncio.sleep(0.1)
                 await msg.add_reaction(emoji.thumbs_up)
                 await asyncio.sleep(0.1)
