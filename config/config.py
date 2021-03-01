@@ -97,3 +97,6 @@ class Rolegroups:
     cooldown_count = int(config["Rolegroups"]["CooldownCount"])
     cooldown_time = int(config["Rolegroups"]["CooldownTime"])
     role_count_limit = int(config["Rolegroups"]["RoleCountLimit"])
+
+class EmojiSurvey:
+    channel_id = int(config["EmojiSurvey"]["ChannelID"])
