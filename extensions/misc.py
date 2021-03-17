@@ -61,7 +61,7 @@ class Misc(commands.Cog):
                     await msg.delete()
         calc = message.content.replace("\\", "").replace(" ", "").replace("`", "")
         if len(calc) >= 3 and set(calc).issubset(set("0123456789+-*/().")) and "**" not in calc and set(calc) & set(
-                "+-*/"):
+                "+-*/") and set(calc) & set("0123456789"):
             logger.debug(f"Calculating {calc} for {message.author}")
             try:
                 result = eval(calc)
@@ -70,6 +70,8 @@ class Misc(commands.Cog):
                     answer = str(result)
             except SyntaxError:
                 await message.add_reaction(emoji.x)
+                await asyncio.sleep(0.1)
+                await message.remove_reaction(emoji.x, self.bot.user)
                 return
             except Exception as e:
                 result = e.__class__.__name__
