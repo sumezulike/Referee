@@ -52,6 +52,8 @@ class Reputation(commands.Cog):
                 return
             if before.content == after.content:
                 return
+            if before.mentions.map(lambda m: m.id) == after.mentions.map(lambda m: m.id):
+                return
 
             if await self.is_thank_message(after):
                 await self.handle_thank_message(after)
@@ -183,7 +185,6 @@ class Reputation(commands.Cog):
     @staticmethod
     async def is_thank_message(message: discord.Message) -> bool:
         ignore_list = ["thanking", "thanker", "thanked"]
-        split_punctuation = "!?:;->"
 
         text = message.content.lower()
 
@@ -197,19 +198,16 @@ class Reputation(commands.Cog):
             return True
 
         if "thank" in text:
-            for p in split_punctuation:
-                text = text.replace(p, ".")
-
             if message.mentions:  # I thank thee @Trapture
                 logger.debug("Is thank: mentions")
                 return True
             elif text.startswith("thank"):  # Thanks bro
                 logger.debug("Is thank: startswith")
                 return True
-            elif any(s.strip().startswith("thank") for s in text.split(".")):  # Alright, thanks a lot
+            elif any(s.strip().startswith("thank") for s in re.split("\\W+", text)):  # Alright, thanks a lot
                 logger.debug("Is thank: punctuation startswith")
                 return True
-            elif any(s.strip().endswith("thanks") for s in text.split(".")):  # Ah thanks. Cool.
+            elif any(s.strip().endswith("thanks") for s in re.split("\\W+", text)):  # Ah thanks. Cool.
                 logger.debug("Is thank: punctuation endswith thanks")
                 return True
             elif "thank you" in text and text[text.find("thank you") - 1] == " ":  # Not "thank you"
