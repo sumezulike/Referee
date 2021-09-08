@@ -52,7 +52,9 @@ class Reputation(commands.Cog):
                 return
             if before.content == after.content:
                 return
-            if before.mentions.map(lambda m: m.id) == after.mentions.map(lambda m: m.id):
+            # temp variable cause mapping all members to their ID for every ID in after.mentions gets expensive fast
+            before_mentions = set(map(lambda m: m.id, before.mentions))
+            if all(map(lambda m: m.id in before_mentions, after.mentions)):
                 return
 
             if await self.is_thank_message(after):
