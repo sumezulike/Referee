@@ -53,8 +53,8 @@ class Reputation(commands.Cog):
             if before.content == after.content:
                 return
             # temp variable cause mapping all members to their ID for every ID in after.mentions gets expensive fast
-            before_mentions = set(map(lambda m: m.id, before.mentions))
-            if all(map(lambda m: m.id in before_mentions, after.mentions)):
+            before_mentions = {member.id for member in before.mentions}
+            if all({member.id in before_mentions for member in after.mentions}):
                 return
 
             if await self.is_thank_message(after):
