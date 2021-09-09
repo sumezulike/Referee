@@ -17,20 +17,17 @@ logger = logging.getLogger("Referee")
 
 from Referee import can_kick, can_ban
 
-
 class Reputation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.db = PGReputationDB()
         self.guild = None
 
-
     @commands.Cog.listener()
     async def on_ready(self):
         self.guild: discord.Guild = self.bot.guilds[0]
         self.self_thank_emoji = discord.utils.get(self.guild.emojis, name="cmonBruh") or emoji.x
         await self.check_thanked_roles()
-
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -112,11 +109,9 @@ class Reputation(commands.Cog):
                 thumbs_up_reaction = discord.utils.find(lambda x: x.emoji == emoji.thumbs_up,
                                                         message.reactions)
 
-
                 def check(_reaction: discord.Reaction, _user):
                     return _reaction.message.id == message.id and _user == message.author and str(
                         _reaction.emoji) in [emoji.trashcan, emoji.thumbs_up]
-
 
                 async def save_thanks(members):
                     for member in members:
@@ -172,7 +167,6 @@ class Reputation(commands.Cog):
         embed.add_field(name=f"{member.display_name.replace(' ', '_').lower()}.reputation += 1;", value=thankHelp)
         await member.send(embed=embed)
 
-
     async def is_on_cooldown(self, source_user_id, target_user_id=None):
         all_thanks = await self.db.get_thanks(since=datetime.now() - timedelta(seconds=reputation_config.cooldown))
         thanks = [t for t in all_thanks if t.source_user_id == source_user_id]
@@ -182,7 +176,6 @@ class Reputation(commands.Cog):
             if target_user_id in [t.target_user_id for t in thanks]:
                 return True
         return False
-
 
     @staticmethod
     async def is_thank_message(message: discord.Message) -> bool:
@@ -220,7 +213,6 @@ class Reputation(commands.Cog):
         else:
             return False
 
-
     async def check_thanked_roles(self, member=None):
         if not member:
             logger.debug("Checking all members for thank autorole")
@@ -232,12 +224,10 @@ class Reputation(commands.Cog):
                     await member.add_roles(thanked_role, reason="Reached enough thanks")
                     logger.info(f"Added {thanked_role.name} to {member.name} with {member_rep} points")
 
-
     @commands.command(hidden=True)
     @can_kick()
     async def test_notify(self, ctx: commands.Context):
         await self.notify_user_of_thank(ctx.author, ctx.author)
-
 
     @commands.group(name="rep", aliases=["ep", "score", "thanks"])
     async def get_rep(self, ctx: commands.Context, member: Optional[discord.Member] = None):
@@ -266,7 +256,6 @@ class Reputation(commands.Cog):
                             inline=True)
             await ctx.send(embed=embed)
 
-
     @get_rep.command(name="history", aliases=["stats", "hist", "herstory"])
     async def thank_stats(self, ctx: commands.Context, member: Optional[discord.Member] = None):
 
@@ -276,7 +265,6 @@ class Reputation(commands.Cog):
             else:
                 return self.guild.get_member(u_id).display_name
 
-
         if not member:
             member = ctx.author
 
@@ -285,7 +273,6 @@ class Reputation(commands.Cog):
             embed.add_field(name=f"Received: 0", value=f"{member.display_name}, the thankless hero of {self.guild.name}")
             await ctx.send(embed=embed)
             return
-
 
         thanks_received = await self.db.get_thanks(target_user_id=member.id)
         thanks_given = await self.db.get_thanks(source_user_id=member.id)
@@ -311,11 +298,8 @@ class Reputation(commands.Cog):
         embed.add_field(name=f"Given: {len(thanks_given)}", value=given if given else "Say thanks every once in a while!", inline=True)
         await ctx.send(embed=embed)
 
-
     @get_rep.command(name="graph")
-    @can_ban()
     async def thanks_graph(self, ctx: commands.Context):
-        wait_msg = await ctx.send(f"This is going to take a while {emoji.rolling_eyes}")
         try:
             async with ctx.typing():
                 filename = await generate_graph(self.guild, await self.db.get_thanks())
@@ -324,9 +308,6 @@ class Reputation(commands.Cog):
         except Exception as e:
             await ctx.send(f"Nope, graph machine broke. {self.guild.get_member(238359385888260096).mention}!!!")
             raise e
-        finally:
-            await wait_msg.delete()
-
 
     @commands.command(name="scoreboard", hidden=True)
     async def old_leaderboard(self, ctx: commands.Context, *, args: Optional[str] = ""):
@@ -352,7 +333,6 @@ class Reputation(commands.Cog):
                                             guild=self.guild)
                 await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
-
     @leaderboard.command()
     async def all(self, ctx: commands.Context):
         """
@@ -366,7 +346,6 @@ class Reputation(commands.Cog):
         else:
             img = await draw_scoreboard(leaderboard=leaderboard, guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
-
 
     @leaderboard.command()
     async def month(self, ctx: commands.Context, month_number: int = date.today().month):
@@ -389,7 +368,6 @@ class Reputation(commands.Cog):
             img = await draw_scoreboard(leaderboard=leaderboard, guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
 
-
     @leaderboard.command()
     async def week(self, ctx: commands.Context):
         """
@@ -407,7 +385,6 @@ class Reputation(commands.Cog):
         else:
             img = await draw_scoreboard(leaderboard=leaderboard, guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
-
 
     @leaderboard.command()
     async def me(self, ctx: commands.Context):
@@ -434,7 +411,6 @@ class Reputation(commands.Cog):
             img = await draw_scoreboard(leaderboard=leaderboard[a:b], highlight={"member_id": ctx.author.id},
                                         guild=self.guild)
             await ctx.send(file=discord.File(img, filename="scoreboard.png"))
-
 
 def setup(bot: commands.Bot):
     bot.add_cog(Reputation(bot))
