@@ -4,5 +4,6 @@ __pycache__
 .idea
 *.log
 
-config/ini/*.ini
-!config/ini/example_*.ini
+config/options.ini
+
+graph.png

@@ -79,20 +79,20 @@ class PGReputationDB:
 
     async def get_thanks(self, since=datetime(day=1, month=1, year=2000), until=None, source_user_id=None, target_user_id=None) -> List[Thank]:
         if not until:
-            until = datetime.now()
+            until = datetime(day=1,month=1,year=3000)
 
         async with self.pool.acquire() as con:
             if source_user_id and target_user_id:
-                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND source_user_id = $3 AND target_user_id = $4"
+                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND source_user_id = $3 AND target_user_id = $4 ORDER BY time"
                 fetch = con.fetch(sql, since, until, source_user_id, target_user_id)
             elif source_user_id:
-                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND source_user_id = $3"
+                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND source_user_id = $3 ORDER BY time"
                 fetch = con.fetch(sql, since, until, source_user_id)
             elif target_user_id:
-                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND target_user_id = $3"
+                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 AND target_user_id = $3 ORDER BY time"
                 fetch = con.fetch(sql, since, until, target_user_id)
             else:
-                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2"
+                sql = "SELECT * FROM thanks WHERE time >= $1 AND time <= $2 ORDER BY time"
                 fetch = con.fetch(sql, since, until)
 
             results = [Thank(source_user_id=r["source_user_id"],
