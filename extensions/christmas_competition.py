@@ -7,6 +7,8 @@ from discord.ext import commands
 
 from datetime import datetime, timedelta
 
+import json
+
 from config.config import Christmas_Competition as config, Timeouts
 
 from Referee import can_kick
@@ -31,11 +33,11 @@ class ChristmasCompetition(commands.Cog):
     @commands.command(name="test_cookie", hidden=True)
     @can_kick()
     async def TestAocCookie(self, ctx: commands.Context):
-        url = 'https://adventofcode.com/' + config.year + '/leaderboard/private/view/' + config.leaderboard_id + '.json'
-        cookies = {'session': await self.db.get_cookie()}
-        async with aiohttp.ClientSession(cookies=cookies) as session:
-            async with session.get(url) as resp:
-                await ctx.reply(resp.status)
+        # dont replace with not; it can replace None and None != False
+        if await self.TryUpdateLeaderboardData() == False:
+            await ctx.message.channel.send("Please set a cookie first using r!set_cookie.", delete_after=Timeouts.short)
+            return
+        await ctx.reply("```json\n"+json.dumps(self.lb_data, indent=4, sort_keys=True)+"```")
 
     @commands.command(name="aoc", aliases=["register", "egister"], hidden=True)
     async def Register(self, ctx: commands.Context, name: str):
@@ -83,27 +85,37 @@ class ChristmasCompetition(commands.Cog):
         finally:
             await message.delete()
 
-
     async def TryUpdateLeaderboardData(self):
+        """
+        :returns None for rate limit, False for no or invalid cookie, and True for success
+        """
         if (datetime.now() - self.last_updated_lb).seconds <= 1000:
-            return
-
-        self.last_updated_lb = datetime.now()
+            return None
+        session = await self.db.get_cookie()
+        if session is None:
+            return False
 
         url = 'https://adventofcode.com/' + config.year + '/leaderboard/private/view/' + config.leaderboard_id + '.json'
-        cookies = {'session': await self.db.get_cookie()}
+        cookies = {'session': session}
         async with aiohttp.ClientSession(cookies=cookies) as session:
             async with session.get(url) as resp:
+                if not (200 <= resp.status < 300):
+                    return False
+                self.last_updated_lb = datetime.now()
                 self.lb_data = await resp.json()
+        return True
 
     @commands.command(name="notjoined", hidden=True)
     @can_kick()
     async def NotOnLeaderboard(self, ctx: commands.Context):
-        await self.TryUpdateLeaderboardData()
+        # dont replace with not, see Test_cookie for reasoning
+        if await self.TryUpdateLeaderboardData() == False:
+            await ctx.message.channel.send("Please set a cookie first using r!set_cookie.", delete_after=Timeouts.short)
+            return
         registered = await self.db.get_all_users()
         in_leaderboard = []
         for member_id in self.lb_data["members"]:
-            in_leaderboard += [self.lb_data["members"][member_id]["name"]]
+            in_leaderboard += [self.lb_data["members"][member_id]["name"].lower()]
 
         out = "__**joined via discord, but not in leaderboard**__\n"
 
@@ -126,6 +138,7 @@ class ChristmasCompetition(commands.Cog):
     @can_kick()
     async def AoC_WhoIs2(self, ctx: commands.Context, subject: str):
         await ctx.reply(await self.db.get_user(subject, None))
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(ChristmasCompetition(bot))
