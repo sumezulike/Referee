@@ -41,13 +41,31 @@ class ChristmasCompetition(commands.Cog):
 
     @commands.command(name="aoc", aliases=["register", "egister"], hidden=True)
     async def Register(self, ctx: commands.Context, name: str):
+        isUpdate = False
+
+        def check(_reaction: discord.Reaction, _user):
+            return _reaction.message.id == message.id and _user == ctx.message.author and str(_reaction.emoji) in [
+                emoji.thumbs_down, emoji.thumbs_up]
+
         if await self.db.get_user(None, ctx.message.author.id) is not None:
-            await ctx.message.channel.send("You are already registered.", delete_after=Timeouts.short)
-            return
+            message = await ctx.message.channel.send("You are already registered, do you want to update your AoC name instead?", delete_after=Timeouts.short)
+            await message.add_reaction(emoji.thumbs_up)
+            await message.add_reaction(emoji.thumbs_down)
+
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.mid, check=check)
+            except asyncio.TimeoutError:
+                pass
+            else:
+                if reaction.emoji != emoji.thumbs_up:
+                    return
+                isUpdate = True
+            finally:
+                await message.delete()
 
         message = await ctx.reply("Is " + name + " Your AoC name? If so, react with " + emoji.thumbs_up)
         await message.add_reaction(emoji.thumbs_up)
-        await message.add_reaction(emoji.trashcan)
+        await message.add_reaction(emoji.thumbs_down)
 
         def check(_reaction: discord.Reaction, _user):
             return _reaction.message.id == message.id and _user == ctx.message.author and str(_reaction.emoji) in [
@@ -59,28 +77,10 @@ class ChristmasCompetition(commands.Cog):
             await ctx.message.channel.send("AoC name wasn't confirmed, cancelling.", delete_after=Timeouts.short)
         else:
             if reaction.emoji == emoji.thumbs_up:
-                await self.db.add_user(name.lower(), ctx.message.author.id)
-                await ctx.message.channel.send("AoC name confirmed, saving...", delete_after=Timeouts.short)
-        finally:
-            await message.delete()
-
-    @commands.command(name="aoc_update", hidden=True)
-    async def Update(self, ctx: commands.Context, name: str):
-        message = await ctx.reply("Is " + name + " Your AoC name? If so, react with " + emoji.thumbs_up)
-        await message.add_reaction(emoji.thumbs_up)
-        await message.add_reaction(emoji.trashcan)
-
-        def check(_reaction: discord.Reaction, _user):
-            return _reaction.message.id == message.id and _user == ctx.message.author and str(_reaction.emoji) in [
-                emoji.trashcan, emoji.thumbs_up]
-
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.mid, check=check)
-        except asyncio.TimeoutError:
-            await ctx.message.channel.send("AoC name wasn't confirmed, cancelling.", delete_after=Timeouts.short)
-        else:
-            if reaction.emoji == emoji.thumbs_up:
-                await self.db.update_user(name.lower(), ctx.message.author.id)
+                if isUpdate:
+                    await self.db.update_user(name.lower(), ctx.message.author.id)
+                else:
+                    await self.db.add_user(name.lower(), ctx.message.author.id)
                 await ctx.message.channel.send("AoC name confirmed, saving...", delete_after=Timeouts.short)
         finally:
             await message.delete()
@@ -105,7 +105,7 @@ class ChristmasCompetition(commands.Cog):
                 self.lb_data = await resp.json()
         return True
 
-    @commands.command(name="notjoined", hidden=True)
+    @commands.command(name="notjoined")
     @can_kick()
     async def NotOnLeaderboard(self, ctx: commands.Context):
         # dont replace with not, see Test_cookie for reasoning
@@ -129,16 +129,25 @@ class ChristmasCompetition(commands.Cog):
 
         await ctx.reply(out)
 
-    @commands.command(name="whois_discord", hidden=True)
+    @commands.command(name="whois_discord")
     @can_kick()
     async def AoC_WhoIs(self, ctx: commands.Context, *, subject: discord.Member):
         await ctx.reply(await self.db.get_user(None, subject.id))
 
-    @commands.command(name="whois_aoc", hidden=True)
+    @commands.command(name="whois_aoc")
     @can_kick()
     async def AoC_WhoIs2(self, ctx: commands.Context, subject: str):
         await ctx.reply(await self.db.get_user(subject, None))
 
+    @commands.command(name="aoc_lb")
+    async def AoC_Leaderboard(self, ctx: commands.Context):
+        await self.TryUpdateLeaderboardData()
+        sorted_lb = sorted(self.lb_data["members"], key=lambda x: self.lb_data["members"][x]["local_score"], reverse=True)
+        out = ""
+        for c in sorted_lb:
+            currentMember = self.lb_data["members"][c]
+            out += currentMember["name"] + " (" + str(currentMember["local_score"]) + " points)\n"
+        await ctx.reply(out)
 
 def setup(bot: commands.Bot):
     bot.add_cog(ChristmasCompetition(bot))
