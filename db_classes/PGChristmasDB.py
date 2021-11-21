@@ -70,7 +70,9 @@ class PGChristmasDB:
         async with self.pool.acquire() as con:
             results = await con.fetch(query)
 
-        return [r["cookie"] for r in results][0]
+        results = [r["cookie"] for r in results]
+
+        return None if len(results) == 0 else results[0]
 
 
     async def add_user(self, aoc_name: str, discord_id: int):
