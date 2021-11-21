@@ -1,6 +1,7 @@
 async-timeout==3.0.1
 discord.py
-asyncpg
-Pillow
+asyncpg~=0.24.0
+Pillow~=8.3.2
 numpy
-matplotlib
+matplotlib~=3.4.3
+aiohttp~=3.7.4.post0

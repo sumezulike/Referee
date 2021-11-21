@@ -98,5 +98,11 @@ class Rolegroups:
     cooldown_time = int(config["Rolegroups"]["CooldownTime"])
     role_count_limit = int(config["Rolegroups"]["RoleCountLimit"])
 
+
 class EmojiSurvey:
     channel_id = int(config["EmojiSurvey"]["ChannelID"])
+
+
+class Christmas_Competition:
+    leaderboard_id = config["Christmas"]["LeaderboardId"]
+    year = config["Christmas"]["Event"]
