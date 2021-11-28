@@ -4,6 +4,7 @@ import re
 import urllib.parse
 from base64 import b64decode, b64encode
 from builtins import filter
+from datetime import datetime, timedelta
 
 import aiohttp
 import discord
@@ -11,6 +12,9 @@ import string
 import typing
 from discord.ext import commands
 from discord.ext.commands import BadArgument
+from discord.utils import get
+
+from db_classes.PGEveryoneRoleDB import PGEveryoneRoleDB
 
 from Referee import can_kick
 from config.config import Misc as config, Timeouts
@@ -24,8 +28,8 @@ class Misc(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.db = PGEveryoneRoleDB()
         self.guild: discord.Guild = None
-
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -34,13 +38,14 @@ class Misc(commands.Cog):
         """
         self.guild: discord.Guild = self.bot.guilds[0]
 
+        if config.role_time > 0:
+            asyncio.create_task(self.everyone_ping_role_loop())
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         def emoji_check(reaction: discord.Reaction, user):
             return user == message.author and str(
                 reaction.emoji) == emoji.trashcan and reaction.message.id == msg.id
-
 
         content = message.content.lower()
         if len(content.split()) == 1 and content.endswith(".gif") and not content.startswith("http"):
@@ -88,7 +93,12 @@ class Misc(commands.Cog):
                 await msg.remove_reaction(emoji.trashcan, self.bot.user)
             else:
                 await msg.delete()
-
+        everyone_role = get(message.guild.roles, name="everyone")
+        here_role = get(message.guild.roles, name="here")
+        if f"<@&{everyone_role.id}>" in content or f"<@&{here_role.id}>" in content:
+            await message.author.add_roles(everyone_role, here_role)
+            await self.db.give_role(message.author.id)
+            print("done")
 
     async def provide_gif(self, message: discord.Message):
         content = message.content.lower()
@@ -98,11 +108,9 @@ class Misc(commands.Cog):
         gif_message = await message.channel.send(url)
         await gif_message.add_reaction(emoji.trashcan)
 
-
         def check(reaction: discord.Reaction, user):
             return user == message.author and str(
                 reaction.emoji) == emoji.trashcan and reaction.message.id == gif_message.id
-
 
         try:
             reaction, _ = await self.bot.wait_for('reaction_add', timeout=Timeouts.long, check=check)
@@ -110,7 +118,6 @@ class Misc(commands.Cog):
             await gif_message.remove_reaction(emoji.trashcan, self.bot.user)
         else:
             await gif_message.delete()
-
 
     async def fetch_gif(self, query):
         query = query.replace("_", "-")
@@ -135,7 +142,6 @@ class Misc(commands.Cog):
                     return url
                 else:
                     logger.debug(f"No match")
-
 
     @commands.command(name="explain")
     async def lmgtfy(self, ctx: commands.Context, *, query: str):
@@ -162,7 +168,6 @@ class Misc(commands.Cog):
             await ctx.send(
                 embed=discord.Embed(description=f"[{query}]({resp['short_url']})", color=discord.Colour.dark_gold()))
 
-
     @commands.command(name="google", aliases=["gg"])
     async def google(self, ctx: commands.Context, *, query: str):
         """
@@ -182,7 +187,6 @@ class Misc(commands.Cog):
             resp = await short.json()
             await ctx.send(
                 embed=discord.Embed(description=f"[{query}]({resp['link']})", color=discord.Colour.dark_gold()))
-
 
     @commands.command()
     @can_kick()
@@ -207,7 +211,6 @@ class Misc(commands.Cog):
                     embed=discord.Embed(description=f"Bit.ly error: {resp['description']}",
                                         color=discord.Colour.dark_gold()), delete_after=15)
 
-
     async def get_b64_strings(self, text: str) -> typing.Dict[str, str]:
         enc = filter(lambda x: len(x) % 4 == 0, re.findall(r"[a-zA-Z0-9+/]+={0,2}", text))
         solved = {}
@@ -220,7 +223,6 @@ class Misc(commands.Cog):
                 # logger.error(ex)  # this is noisy and not neccesary
                 pass
         return solved
-
 
     @commands.command(name="b64")
     async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
@@ -260,7 +262,6 @@ class Misc(commands.Cog):
 
             await ctx.send(embed=embed)
 
-
     @commands.command(name="info", aliases=["whois", "whoisin", "whatis"])
     async def show_info(self, ctx: commands.Context, *, subject: typing.Union[Role_T, discord.Member]):
         """
@@ -275,7 +276,6 @@ class Misc(commands.Cog):
             raise BadArgument("Unknown subject type")
         await ctx.send(embed=embed)
         await ctx.message.delete()
-
 
     async def get_member_info_embed(self, member: discord.Member) -> discord.Embed:
         embed = discord.Embed(
@@ -294,7 +294,6 @@ class Misc(commands.Cog):
         embed.set_image(url=member.avatar_url)
         return embed
 
-
     async def get_role_info_embed(self, role: discord.Role) -> discord.Embed:
         embed = discord.Embed(
             title=f"**{role.name}** ({len(role.members)} member{'s' if len(role.members) != 1 else ''})",
@@ -307,6 +306,17 @@ class Misc(commands.Cog):
             member_text += f"{name}\n"
         embed.add_field(name="Members" if role.members else "No members", value=member_text or "-")
         return embed
+
+    async def everyone_ping_role_loop(self):
+        e_role = get(self.guild.roles, name="everyone")
+        h_role = get(self.guild.roles, name="here")
+        while True:
+            current_members_with_roles = await self.db.find_roles_given_before(
+                datetime.now() - timedelta(minutes=config.role_time))
+            for m in current_members_with_roles:
+                await get(self.guild.members, id=m).remove_roles(e_role, h_role)
+                await self.db.remove_role(m)
+            await asyncio.sleep(60)
 
 
 def setup(bot: commands.Bot):

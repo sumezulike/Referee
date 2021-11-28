@@ -24,6 +24,7 @@ class Bot:
 
 class Misc:
     bitly_token = config["Misc"]["BitlyToken"]
+    role_time = int(config["Misc"]["RoleTime"])
 
 
 class PostGres:
