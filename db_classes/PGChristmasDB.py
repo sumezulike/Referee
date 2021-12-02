@@ -98,7 +98,9 @@ class PGChristmasDB:
         if aoc_name is None and discord_id is None:
             return None
         if aoc_name is not None and discord_id is not None:
-            return None
+            # wow very useful.
+            # get_user("foo", 12345) == ("foo", 12345)
+            return aoc_name, discord_id
         if aoc_name is None:
             # discord_id is not None, we want aoc_name
             query = "SELECT aoc_name, discord_id FROM aoc_users WHERE discord_id = $1"

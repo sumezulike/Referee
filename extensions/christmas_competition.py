@@ -21,9 +21,17 @@ logger = logging.getLogger("Referee")
 class ChristmasCompetition(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.guild = None
         self.db = PGChristmasDB()
         self.lb_data = None
         self.last_updated_lb = datetime.fromtimestamp(0)
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        """
+        On_ready eventhandler, gets called by api
+        """
+        self.guild: discord.Guild = self.bot.guilds[0]
 
     @commands.command(name="set_cookie", hidden=True)
     @can_kick()
@@ -37,7 +45,7 @@ class ChristmasCompetition(commands.Cog):
         if await self.TryUpdateLeaderboardData() == False:
             await ctx.message.channel.send("Please set a cookie first using r!set_cookie.", delete_after=Timeouts.short)
             return
-        await ctx.reply("```json\n"+json.dumps(self.lb_data, indent=4, sort_keys=True)+"```")
+        await ctx.reply("```json\n" + json.dumps(self.lb_data, indent=4, sort_keys=True) + "```")
 
     @commands.command(name="aoc", aliases=["register", "egister"], hidden=True)
     async def Register(self, ctx: commands.Context, name: str):
@@ -48,7 +56,8 @@ class ChristmasCompetition(commands.Cog):
                 emoji.thumbs_down, emoji.thumbs_up]
 
         if await self.db.get_user(None, ctx.message.author.id) is not None:
-            message = await ctx.message.channel.send("You are already registered, do you want to update your AoC name instead?", delete_after=Timeouts.short)
+            message = await ctx.message.channel.send(
+                "You are already registered, do you want to update your AoC name instead?", delete_after=Timeouts.short)
             await message.add_reaction(emoji.thumbs_up)
             await message.add_reaction(emoji.thumbs_down)
 
@@ -137,17 +146,25 @@ class ChristmasCompetition(commands.Cog):
     @commands.command(name="whois_aoc")
     @can_kick()
     async def AoC_WhoIs2(self, ctx: commands.Context, subject: str):
-        await ctx.reply(await self.db.get_user(subject, None))
+        await ctx.reply(await self.db.get_user(subject.lower(), None))
 
     @commands.command(name="aoc_lb")
     async def AoC_Leaderboard(self, ctx: commands.Context):
         await self.TryUpdateLeaderboardData()
-        sorted_lb = sorted(self.lb_data["members"], key=lambda x: self.lb_data["members"][x]["local_score"], reverse=True)
+        sorted_lb = sorted(self.lb_data["members"], key=lambda x: self.lb_data["members"][x]["local_score"],
+                           reverse=True)
         out = ""
         for c in sorted_lb:
             currentMember = self.lb_data["members"][c]
-            out += currentMember["name"] + " (" + str(currentMember["local_score"]) + " points)\n"
+            cm_info = await self.db.get_user(currentMember["name"].lower(), None)
+            score = currentMember['local_score']
+            if not cm_info:
+                out += f"AoC: {currentMember['name']} ({str(score)} points)\n"
+            else:
+                member = self.guild.get_member(cm_info[1])
+                out += f"{member.name}#{member.discriminator} ({cm_info[0]}, {str(score)} points)\n"
         await ctx.reply(out)
+
 
 def setup(bot: commands.Bot):
     bot.add_cog(ChristmasCompetition(bot))
