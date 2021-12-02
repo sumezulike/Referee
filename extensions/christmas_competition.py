@@ -159,7 +159,7 @@ class ChristmasCompetition(commands.Cog):
             cm_info = await self.db.get_user(currentMember["name"].lower(), None)
             score = currentMember['local_score']
             if not cm_info:
-                out += f"**NOT REGISTERED!** AoC: {currentMember['name']} ({str(score)} points)\n"
+                out += f"AoC: {currentMember['name']} ({str(score)} points)\n"
             else:
                 member = self.guild.get_member(cm_info[1])
                 out += f"{member.name}#{member.discriminator} ({cm_info[0]}, {str(score)} points)\n"
