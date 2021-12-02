@@ -164,7 +164,7 @@ class ChristmasCompetition(commands.Cog):
             else:
                 member = self.guild.get_member(cm_info[1])
                 out += f"{member.mention} ({cm_info[0]}, {str(score)} points)\n"
-            embed.add_field(name="-", value=out)
+        embed.add_field(name="-", value=out)
         await ctx.reply(embed=embed)
 
 
