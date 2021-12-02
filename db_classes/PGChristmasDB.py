@@ -1,5 +1,7 @@
 import asyncio
 import logging
+from typing import Optional
+
 import asyncpg
 
 from config.config import PostGres as pg_config
@@ -94,7 +96,7 @@ class PGChristmasDB:
 
         return [(row["aoc_name"], row["discord_id"]) for row in results]
 
-    async def get_user(self, aoc_name: str, discord_id: int):
+    async def get_user(self, aoc_name: Optional[str], discord_id: Optional[int]):
         if aoc_name is None and discord_id is None:
             return None
         if aoc_name is not None and discord_id is not None:

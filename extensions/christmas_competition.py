@@ -154,16 +154,18 @@ class ChristmasCompetition(commands.Cog):
         sorted_lb = sorted(self.lb_data["members"], key=lambda x: self.lb_data["members"][x]["local_score"],
                            reverse=True)
         out = ""
+        embed = discord.Embed(title=f"AoC Leaderboard {config.year}")
         for c in sorted_lb:
             currentMember = self.lb_data["members"][c]
             cm_info = await self.db.get_user(currentMember["name"].lower(), None)
             score = currentMember['local_score']
             if not cm_info:
-                out += f"AoC: {currentMember['name']} ({str(score)} points)\n"
+                out += f"{currentMember['name']} ({str(score)} points)\n"
             else:
                 member = self.guild.get_member(cm_info[1])
-                out += f"{member.name}#{member.discriminator} ({cm_info[0]}, {str(score)} points)\n"
-        await ctx.reply(out)
+                out += f"{member.mention} ({cm_info[0]}, {str(score)} points)\n"
+            embed.add_field(name="-", value=out)
+        await ctx.reply(embed=embed)
 
 
 def setup(bot: commands.Bot):
