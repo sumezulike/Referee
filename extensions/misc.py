@@ -285,6 +285,9 @@ class Misc(commands.Cog):
             await ctx.send(f"Invalid regex: <https://regexr.com/?expression={regex}>")
             return
         targets: List[discord.Member] = [m for m in self.guild.members if re.fullmatch(regex, m.name)]
+        if not targets:
+            await ctx.send(f"No matches for `{regex}`")
+            return
         embed = discord.Embed(title="Matches")
         matches = ""
         for t in targets:
