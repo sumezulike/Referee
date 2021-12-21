@@ -8,7 +8,7 @@ from builtins import filter
 import aiohttp
 import discord
 import string
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Dict, Optional
 from discord.ext import commands
 from discord.ext.commands import BadArgument
 
@@ -208,7 +208,7 @@ class Misc(commands.Cog):
                                         color=discord.Colour.dark_gold()), delete_after=15)
 
 
-    async def get_b64_strings(self, text: str) -> typing.Dict[str, str]:
+    async def get_b64_strings(self, text: str) -> Dict[str, str]:
         enc = filter(lambda x: len(x) % 4 == 0, re.findall(r"[a-zA-Z0-9+/]+={0,2}", text))
         solved = {}
         for code in enc:
@@ -223,7 +223,7 @@ class Misc(commands.Cog):
 
 
     @commands.command(name="b64")
-    async def b64decode(self, ctx: commands.Context, *, query: typing.Optional[str]):
+    async def b64decode(self, ctx: commands.Context, *, query: Optional[str]):
         """
         Decode a base64 encoded string, will encode if decoding fails
         :param query: A base64 encoded string. Omit to have Referee find one in the previous messages
@@ -262,7 +262,7 @@ class Misc(commands.Cog):
 
 
     @commands.command(name="info", aliases=["whois", "whoisin", "whatis"])
-    async def show_info(self, ctx: commands.Context, *, subject: typing.Union[Role_T, discord.Member]):
+    async def show_info(self, ctx: commands.Context, *, subject: Union[Role_T, discord.Member]):
         """
         :param subject: Role or member so far
         :return:
