@@ -288,7 +288,7 @@ class Misc(commands.Cog):
         if not targets:
             await ctx.send(f"No matches for `{regex}`")
             return
-        embed = discord.Embed(title="Matches")
+        embed = discord.Embed(title=f"{len(targets)} matches")
         matches = ""
         for t in targets:
             if len(matches) > 1000:
@@ -296,6 +296,8 @@ class Misc(commands.Cog):
                 matches = ""
             else:
                 matches = matches + "\n" + t.display_name
+        else:
+            embed.add_field(name="---", value=matches)
 
         await ctx.send(embed=embed)
         if await self.quick_embed_query(ctx, question="Do you want to ban these users?", reraise_timeout=False):
