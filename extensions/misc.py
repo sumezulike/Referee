@@ -8,11 +8,11 @@ from builtins import filter
 import aiohttp
 import discord
 import string
-import typing
+from typing import Union, List, Tuple
 from discord.ext import commands
 from discord.ext.commands import BadArgument
 
-from Referee import can_kick
+from Referee import can_kick, can_ban
 from config.config import Misc as config, Timeouts
 from extensions.rolegroups import Role_T
 from utils import emoji
@@ -276,6 +276,29 @@ class Misc(commands.Cog):
         await ctx.send(embed=embed)
         await ctx.message.delete()
 
+    @commands.command(name="regex_ban", aliases=["ban"])
+    @can_ban()
+    async def regex_ban(self, ctx: commands.Context, *, regex: str):
+        try:
+            re.compile(regex)
+        except re.error:
+            await ctx.send(f"Invalid regex: <https://regexr.com/?expression={regex}>")
+            return
+        targets: List[discord.Member] = [m for m in self.guild.members if re.fullmatch(regex, m.name)]
+        embed = discord.Embed(title="Matches")
+        embed.add_field(name="---", value="\n".join(m.display_name for m in targets))
+        if await self.quick_embed_query(ctx, question="Do you want to ban these users?", reraise_timeout=False):
+            count = 0
+            for m in targets:
+                try:
+                    await m.ban()
+                    count += 1
+                except Exception as e:
+                    logging.error(e)
+            await ctx.send(f"Banned {count}/{len(targets)} users.")
+        else:
+            await ctx.send("Ban cancelled.")
+
 
     async def get_member_info_embed(self, member: discord.Member) -> discord.Embed:
         embed = discord.Embed(
@@ -308,6 +331,70 @@ class Misc(commands.Cog):
         embed.add_field(name="Members" if role.members else "No members", value=member_text or "-")
         return embed
 
+    async def quick_embed_query(self, ctx: Union[commands.Context, Tuple[discord.TextChannel, discord.Member]],
+                                 question: str, reraise_timeout: bool = True) -> bool:
+        """
+        Sends a yes/no query to a context
+        :param ctx: The :class:`commands.Context` to which the query should be sent OOOR a Tuple of Channel and Member
+        :param question: The content of the query
+        :param reraise_timeout: Whether an exception should be raised on timeout, defaults to True
+        :return: bool answer
+        """
+
+
+        def check(_reaction, _user):
+            return _user == member and str(_reaction.emoji) in [emoji.x, emoji.white_check_mark]
+
+
+        if type(ctx) == commands.Context:
+            channel = ctx.channel
+            member = ctx.author
+        else:
+            channel = ctx[0]
+            member = ctx[1]
+
+        logger.debug(f"Sending query '{question}' for {member.name}")
+
+        msg = await self.send_simple_embed(channel=channel, content=question)
+        await msg.add_reaction(emoji.white_check_mark)
+        await msg.add_reaction(emoji.x)
+
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=Timeouts.long, check=check)
+        except asyncio.TimeoutError as e:
+            await msg.delete()
+            if reraise_timeout:
+                raise e
+            else:
+                return False
+        else:
+            await self.send_simple_embed(channel=channel, content=reaction.emoji, delete_after=2)
+            if reaction.emoji == emoji.white_check_mark:
+                await msg.delete()
+                return True
+            else:
+                await msg.delete()
+                return False
+
+    @staticmethod
+    async def send_simple_embed(channel: Union[discord.TextChannel, commands.Context, discord.User], content: str,
+                                delete_after=None,
+                                mentions: Union[List[discord.Member], discord.Member] = None) -> discord.Message:
+
+        embed = discord.Embed(title=content if len(content) < 256 else emoji.white_check_mark,
+                              color=discord.Color.dark_gold())
+        if not len(content) < 256:
+            embed.add_field(name="*", value=content)
+        if mentions:
+            if type(mentions) == list:
+                embed.description = " ".join(u.mention for u in mentions)
+            else:
+                embed.description = mentions.mention
+        if delete_after:
+            msg = await channel.send(embed=embed, delete_after=delete_after)
+        else:
+            msg = await channel.send(embed=embed)
+        return msg
 
 def setup(bot: commands.Bot):
     bot.add_cog(Misc(bot))
