@@ -286,7 +286,14 @@ class Misc(commands.Cog):
             return
         targets: List[discord.Member] = [m for m in self.guild.members if re.fullmatch(regex, m.name)]
         embed = discord.Embed(title="Matches")
-        embed.add_field(name="---", value="\n".join(m.display_name for m in targets))
+        matches = ""
+        for t in targets:
+            if len(matches) > 1000:
+                embed.add_field(name="---", value=matches)
+                matches = ""
+            else:
+                matches = matches + "\n" + t.display_name
+
         await ctx.send(embed=embed)
         if await self.quick_embed_query(ctx, question="Do you want to ban these users?", reraise_timeout=False):
             count = 0
